@@ -1,0 +1,98 @@
+{
+  "project_info": {
+    "project_number": "206078516575",
+    "project_id": "orbit-mvp-54642",
+    "storage_bucket": "orbit-mvp-54642.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:206078516575:android:0524a76c5ab27130d4eaea",
+        "android_client_info": {
+          "package_name": "com.example.orbit"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "206078516575-ouoct6id3c0q36tqilavj7dnn65koik1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAPBantaIQpl4sBc2X9YD8vqirc3IirctY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "206078516575-ouoct6id3c0q36tqilavj7dnn65koik1.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "206078516575-issncj3hqeaev3i9ocus0iv97na4ro0j.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.lemonlab.orbit"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:206078516575:android:55c41298c014ec60d4eaea",
+        "android_client_info": {
+          "package_name": "com.invokerlab.orbit"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "206078516575-8crne78hp19n6srn5lmg468bjqcp6u5e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.invokerlab.orbit",
+            "certificate_hash": "529748a8be46ff2d6c3c5d2d806d036c454360f5"
+          }
+        },
+        {
+          "client_id": "206078516575-u9sq8acuogr865vhaeq8tt6vmn6ukdto.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.invokerlab.orbit",
+            "certificate_hash": "22deb2607f0cf3a855bd9b24ce843ee4bedd276d"
+          }
+        },
+        {
+          "client_id": "206078516575-ouoct6id3c0q36tqilavj7dnn65koik1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAPBantaIQpl4sBc2X9YD8vqirc3IirctY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "206078516575-ouoct6id3c0q36tqilavj7dnn65koik1.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "206078516575-issncj3hqeaev3i9ocus0iv97na4ro0j.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.lemonlab.orbit"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
