@@ -66,6 +66,14 @@
           }
         },
         {
+          "client_id": "206078516575-ut47b8r6o5vncmc0l2b8gm3d0p2u41fq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.invokerlab.orbit",
+            "certificate_hash": "116a73c89230dff33941e06596d50ac8906f74d9"
+          }
+        },
+        {
           "client_id": "206078516575-ouoct6id3c0q36tqilavj7dnn65koik1.apps.googleusercontent.com",
           "client_type": 3
         }

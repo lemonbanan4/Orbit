@@ -1,0 +1,82 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'contract_screen.dart';
+
+class FutureLetterScreen extends StatefulWidget {
+  final String userName;
+  const FutureLetterScreen({super.key, required this.userName});
+
+  @override
+  State<FutureLetterScreen> createState() => _FutureLetterScreenState();
+}
+
+class _FutureLetterScreenState extends State<FutureLetterScreen> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF050112),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Spacer(),
+              Text(
+                'Dear ${widget.userName},',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ).animate().fadeIn(duration: 800.ms).slideY(begin: 0.2),
+              const SizedBox(height: 24),
+              const Text(
+                'Welcome to Orbit. Your journey starts now. Master your habits, organize your life, and become the best version of yourself. We are thrilled to have you here.',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 18,
+                  height: 1.5,
+                ),
+              )
+                  .animate()
+                  .fadeIn(delay: 500.ms, duration: 800.ms)
+                  .slideY(begin: 0.2),
+              const Spacer(flex: 2),
+              Center(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00E5FF),
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                  ),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            ContractScreen(userName: widget.userName),
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    'Begin Journey',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ).animate().fadeIn(delay: 1000.ms, duration: 800.ms),
+              ),
+              const Spacer(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

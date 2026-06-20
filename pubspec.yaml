@@ -1,11 +1,12 @@
-name: orbit
+name: orbit_app
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.0+2
+version: 1.0.0+6
 
 environment:
-  sdk: ">=3.2.0 <4.0.0"
+  sdk: ^3.12.0
+  flutter: ">=3.44.0"
 
 dependencies:
   flutter:
@@ -13,45 +14,76 @@ dependencies:
   flutter_svg: ^2.0.10
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.5.4
-  audioplayers: ^6.6.0
+  audioplayers: ^6.7.0
   vibration: ^3.1.8
-  permission_handler: ^12.0.1
+
+  device_info_plus: ^13.1.0
+   # Force a newer version of sensors_plus that contains the Android namespace fix
+  # to prevent the shake package from pulling in the broken v1.4.1
+  sensors_plus: ^6.1.1
+  
+  
   confetti: ^0.8.0
   provider: ^6.1.2
   firebase_core: ^4.6.0
   cloud_firestore: ^6.2.0
+  firebase_app_check: ^0.4.4+2
   firebase_auth: ^6.3.0
-  google_sign_in: ^6.2.1
-  sign_in_with_apple: ^6.1.1
+  cloud_functions: ^6.2.0
+  firebase_remote_config: ^6.4.0
+  firebase_messaging: ^16.2.0
+  google_sign_in: ^7.2.0
+  sign_in_with_apple: ^8.0.0
   firebase_crashlytics: ^5.1.0
   firebase_analytics: ^12.2.0
+  flutter_tts: ^4.2.5
+  
+  
+  firebase_storage: ^13.2.0
+  image_picker: ^1.2.2
+  purchases_flutter: ^10.1.1
+  purchases_ui_flutter: ^10.0.1
+  flutter_animate: ^4.5.2
+  flutter_cache_manager: ^3.3.2
+  package_info_plus: ^10.1.0
+  video_player: ^2.11.1
+  url_launcher: ^6.3.2
+  share_plus: ^13.1.0
+  flutter_dotenv: ^6.0.1
+  home_widget: 0.9.1
+  google_generative_ai: ^0.4.7
+  just_audio: ^0.10.5
+  just_audio_background: ^0.0.1-beta.11
   flutter_local_notifications: ^21.0.0
   timezone: ^0.11.0
-  flutter_timezone: ^5.0.2
-  firebase_storage: ^13.2.0
-  image_picker: ^1.1.2
-  purchases_flutter: ^9.15.1
-  purchases_ui_flutter: ^9.15.1
-  flutter_animate: ^4.5.2
-  package_info_plus: ^8.0.0
-  video_player: ^2.11.1
-  url_launcher: ^6.2.6
-  share_plus: ^12.0.2
-  flutter_dotenv: ^5.1.0
-  home_widget: ^0.9.0
-  google_generative_ai: ^0.4.6
-  just_audio: ^0.9.36
-  just_audio_background: ^0.0.1-beta.11
   table_calendar: ^3.1.2
-  google_fonts: ^6.3.3
-  shake: ^2.2.0
+  google_fonts: ^8.1.0
+  shake: ^3.0.0
   http: ^1.6.0
   flutter_html: ^3.0.0
+  cached_network_image: ^3.4.1
+  flutter_image_compress: ^2.4.0
+  crypto: ^3.0.7
+  fl_chart: ^1.2.0
+  # flutter_dynamic_icon: ^3.0.1 # Commented out: version 3.0.1 doesn't exist/fails Dart 3 constraints
+  permission_handler: ^12.0.3
+  flutter_timezone: any
+  in_app_review: any
+  gal: ^2.3.0
+  path_provider: any
+  wakelock_plus: ^1.1.4
+  qr_flutter: ^4.1.0
+  speech_to_text: ^7.3.0
+  screenshot: ^3.0.0
+  app_tracking_transparency: ^2.0.7
+  flutter_slidable: ^4.0.3
+  go_router: ^17.3.0
+  
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
+  flutter_lints: ^6.0.0
   integration_test:
     sdk: flutter
   flutter_launcher_icons: ^0.14.4
@@ -61,37 +93,56 @@ dev_dependencies:
   mocktail: ^1.0.5
   build_runner: ^2.13.1
 
-dependency_overrides:
-  # Force a newer version of sensors_plus that contains the Android namespace fix
-  # to prevent the shake package from pulling in the broken v1.4.1
-  sensors_plus: ^4.0.2
 
 flutter:
   uses-material-design: true
   assets:
     - .env
     - assets/
-    - assets/audio/space_hum.mp3
-    - assets/audio/shockwave.mp3
-    - assets/audio/lunar_breeze.mp3
+    - assets/audio/hypnotic_loop.mp3
+    - assets/audio/deep_orbit_focus.mp3
+    - assets/audio/nebula_sleep.mp3
+    - assets/audio/morning_star.mp3
     - assets/audio/success_chime.mp3
     - assets/audio/
     - assets/interests/
     - assets/videos/
+    - assets/videos/paywall_bg.mp4
+    - assets/icons/
+    - assets/images/
     - assets/journeygen/
+    - assets/images/planet_mind.png
+    - assets/images/planet_fitness.png
+    - assets/images/planet_growth.png
+    - assets/images/planet_productivity.png
+    - assets/images/planet_default.png
 
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/icon.png"
-  image_path_ios: "assets/splash_icon.png" # Flattened icon with solid background for iOS
+  image_path: "assets/icons/splash_icon.png"
+  image_path_ios: "assets/icons/splash_icon.png"
+  adaptive_icon: "assets/icons/icon.png" # Flattened icon with solid background for iOS
   adaptive_icon_background: "#051024" # Your app's navy blue background
-  adaptive_icon_foreground: "assets/icon.png" # The monochrome icon
+  adaptive_icon_foreground: "assets/icons/icon.png" # The monochrome icon
   remove_alpha_ios: true
+  min_sdk_android: 24
 
 flutter_native_splash:
   color: "#051024"
-  image: "assets/icon.png"
+  image: "assets/icons/splash_icon.png"
+  color_dark: "#051024"
+  image_dark: "assets/icons/splash_icon.png"
+  android_gravity: center
+  ios_content_mode: center
+
   android_12:
     color: "#051024"
-    image: "assets/icon.png"
+    color_dark: "#051024"
+    # Point to the new image file that has extra transparent padding
+    image: "assets/icons/splash_icon.png"
+    
+    image_dark: "assets/icons/splash_icon.png"
+    android_gravity: center
+
+  

@@ -1,0 +1,612 @@
+// ignore_for_file: use_build_context_synchronously
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../../../providers/auth_provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter/gestures.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_html/flutter_html.dart';
+import 'future_letter_screen.dart';
+import '../../widgets/common/glow_orb.dart';
+import '../../widgets/common/glass_container.dart';
+import '../../widgets/common/auth_text_field.dart';
+import '../../widgets/common/social_auth_button.dart';
+import '../../widgets/common/guest_auth_button.dart';
+import '../../widgets/common/primary_button.dart';
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  bool _isLoadingGoogle = false;
+  bool _isLoadingGuest = false;
+  bool _isLoadingApple = false;
+  bool _isLoadingEmail = false;
+  bool _isSignUp = false;
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _nameController = TextEditingController();
+  final Map<String, String> _documentCache = {};
+  late TapGestureRecognizer _termsRecognizer;
+  late TapGestureRecognizer _privacyRecognizer;
+
+  @override
+  void initState() {
+    super.initState();
+    _termsRecognizer = TapGestureRecognizer()
+      ..onTap = () => _showDocumentDialog(
+        'Terms of Service',
+        'https://gistcdn.githack.com/lemonbanan4/ca02585eabe38bde5c6513cf71c44f10/raw/d695d037b8dc54f002b5dcdbe256b6bf11373f69/terms_and_conditions.html',
+      );
+    _privacyRecognizer = TapGestureRecognizer()
+      ..onTap = () => _showDocumentDialog(
+        'Privacy Policy',
+        'https://gistcdn.githack.com/lemonbanan4/f40ab2f143dcc1574afdb5f5a98289ed/raw/privacy_policy.html',
+      );
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _nameController.dispose();
+    _termsRecognizer.dispose();
+    _privacyRecognizer.dispose();
+    super.dispose();
+  }
+
+  void _showErrorSnackBar(BuildContext context, String message) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        content: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => messenger.hideCurrentSnackBar(),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        margin: const EdgeInsets.all(24),
+        elevation: 10,
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(BuildContext context, String message) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        content: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => messenger.hideCurrentSnackBar(),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        margin: const EdgeInsets.all(24),
+        elevation: 10,
+      ),
+    );
+  }
+
+  void _launchURL(String? url) async {
+    if (url == null) return;
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (context.mounted) _showErrorSnackBar(context, 'Could not open link.');
+    }
+  }
+
+  void _showDocumentDialog(String title, String url) async {
+    // Show a loading indicator while fetching
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      String content;
+      // 1. Check the cache first
+      if (_documentCache.containsKey(url)) {
+        content = _documentCache[url]!;
+      } else {
+        // 2. If not cached, fetch from network with a timeout
+        final response = await http
+            .get(Uri.parse(url))
+            .timeout(const Duration(seconds: 10));
+        if (response.statusCode == 200) {
+          content = response.body;
+          _documentCache[url] = content; // 3. Store in cache for next time
+        } else {
+          if (!context.mounted) return;
+          Navigator.pop(context); // Dismiss loading indicator
+          _showErrorSnackBar(context, 'Could not load document.');
+          return;
+        }
+      }
+
+      if (!context.mounted) return;
+      Navigator.pop(context); // Dismiss loading indicator
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF0A102A),
+          title: Text(title, style: const TextStyle(color: Colors.white)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Html(
+                data: content,
+                onLinkTap: (tappedUrl, _, _) => _launchURL(tappedUrl),
+                style: {
+                  "body": Style(
+                    color: Colors.white70,
+                    fontSize: FontSize(15.0),
+                    margin: Margins.zero,
+                  ),
+                  "h1": Style(color: Colors.white, fontSize: FontSize(22.0)),
+                  "h2": Style(color: Colors.white, fontSize: FontSize(18.0)),
+                  "h3": Style(color: Colors.white, fontSize: FontSize(16.0)),
+                  "a": Style(
+                    color: const Color(0xFF00E5FF),
+                    textDecoration: TextDecoration.underline,
+                  ),
+                },
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Close',
+                style: TextStyle(
+                  color: Color(0xFF00E5FF),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.pop(context); // Dismiss loading indicator
+      _showErrorSnackBar(
+        context,
+        'Could not load document. Check your internet connection.',
+      );
+    }
+  }
+
+  Future<bool> _performSignIn(
+    Future<void> Function() signInMethod,
+    String provider,
+    void Function(bool) setLoading,
+  ) async {
+    HapticFeedback.mediumImpact();
+    setLoading(true);
+    try {
+      await signInMethod();
+      return true;
+    } catch (e, stackTrace) {
+      if (!context.mounted) return false;
+
+      // Log the error securely to Crashlytics
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        stackTrace,
+        reason: 'Sign-in failed for $provider',
+        fatal: false,
+      );
+
+      String errorMessage =
+          'Failed to sign in with $provider. Please try again.';
+      final errorString = e.toString().toLowerCase();
+
+      if (errorString.contains('network') || errorString.contains('internet')) {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (errorString.contains('cancel')) {
+        errorMessage = 'Sign-in was cancelled.';
+      } else if (errorString.contains(
+        'account-exists-with-different-credential',
+      )) {
+        errorMessage =
+            'An account already exists with the same email but different sign-in method.';
+      }
+
+      _showErrorSnackBar(context, errorMessage);
+      return false;
+    } finally {
+      if (context.mounted) setLoading(false);
+    }
+  }
+
+  bool _isValidEmail(String email) {
+    return RegExp(
+      r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
+    ).hasMatch(email);
+  }
+
+  String? _validatePassword(String password) {
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters.';
+    }
+    if (!password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
+      return 'Password needs at least one special character.';
+    }
+    return null; // Password is valid
+  }
+
+  bool _isValidName(String name) {
+    return RegExp(r"^[a-zA-Z\s]+$").hasMatch(name);
+  }
+
+  Future<void> _handleEmailSignIn() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+    final name = _nameController.text.trim();
+
+    String? emailErr;
+    String? passwordErr;
+    String? confirmPasswordErr;
+    String? nameErr;
+    bool hasError = false;
+
+    if (!_isValidEmail(email)) {
+      emailErr = 'Please enter a valid email address.';
+      hasError = true;
+    }
+
+    if (_isSignUp) {
+      if (name.isEmpty) {
+        nameErr = 'Please enter your name.';
+        hasError = true;
+      } else if (!_isValidName(name)) {
+        nameErr = 'Name can only contain letters and spaces.';
+        hasError = true;
+      }
+      final passwordValidationError = _validatePassword(password);
+      if (passwordValidationError != null) {
+        passwordErr = passwordValidationError;
+        hasError = true;
+      }
+      if (password != confirmPassword) {
+        confirmPasswordErr = 'Passwords do not match.';
+        hasError = true;
+      }
+    }
+
+    if (hasError) {
+      final firstError =
+          emailErr ??
+          nameErr ??
+          passwordErr ??
+          confirmPasswordErr ??
+          'Please check your inputs.';
+      _showErrorSnackBar(context, firstError);
+      return;
+    }
+
+    final success = await _performSignIn(
+      () => _isSignUp
+          ? context.read<AppAuthProvider>().createUserWithEmailAndPassword(
+              email,
+              password,
+              name,
+            )
+          : context.read<AppAuthProvider>().signInWithEmailAndPassword(
+              email,
+              password,
+            ),
+      _isSignUp ? 'Sign Up' : 'Email',
+      (v) => setState(() => _isLoadingEmail = v),
+    );
+
+    if (success && context.mounted) {
+      if (_isSignUp) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FutureLetterScreen(userName: name),
+          ),
+        );
+      } else {
+        // Returning users will be auto-routed to MainNavigationScreen by AuthWrapper!
+      }
+    }
+  }
+
+  // ignore: unused_element
+  Future<void> _handleForgotPassword() async {
+    final email = _emailController.text.trim();
+    if (!_isValidEmail(email)) {
+      _showErrorSnackBar(
+        context,
+        'Please enter a valid email to reset your password.',
+      );
+      return;
+    }
+
+    try {
+      await context.read<AppAuthProvider>().sendPasswordResetEmail(email);
+      if (context.mounted) {
+        _showSuccessSnackBar(context, 'Password reset link sent to $email.');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        _showErrorSnackBar(
+          context,
+          'Failed to send reset email. Please try again.',
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              // Color(0xFFFF512F),
+              // Color(0xFFDD2476),
+              // Color(0xFF13002B),
+              // Color(0xFFFF5E00), // Vibrant Orange // Navy Blue
+              // // Color(0xFF051024),
+              // Color(0xFF2B0057),
+              // Color(0xFF051024),
+              Colors.cyan,
+              //Colors.blueAccent,
+
+              //Color.fromARGB(255, 0, 251, 213),r
+              Color(0xFF051024),
+              Colors.black,
+              // Deep Purple
+            ],
+          ),
+        ),
+        child: Stack(
+          children: [
+            // --- 3D POP BACKGROUND ---
+            GlowOrb(
+              // color: const Color.fromARGB(
+              //   255,
+              //   255,
+              //   94,
+              //   0,
+              color: //const Color(0xFFFF5E00).withValues(alpha: 0.1),
+                  //).withValues(alpha: 0.3),
+                  const Color(
+                    0xFF051024,
+                  ).withValues(alpha: 0.1).withValues(alpha: 0.3),
+              size: 400,
+              top: -100,
+              left: -50,
+            ),
+            GlowOrb(
+              color: //const Color(0xFF2B0057).withValues(alpha: 0.6),
+              const Color(
+                0xFF051024,
+              ).withValues(alpha: 0.6),
+              size: 300,
+              bottom: 50,
+              right: -50,
+            ),
+
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32.0,
+                  vertical: 40.0,
+                ),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    // BRANDING
+                    const Icon(
+                          Icons.blur_on_rounded,
+                          size: 80,
+                          color: Color(0xFF00E5FF),
+                        )
+                        .animate(onPlay: (c) => c.repeat())
+                        .shimmer(duration: 2.seconds),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Orbit',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 42,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1.0,
+                      ),
+                    ),
+                    const Text(
+                      'Master your day.',
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 16,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+
+                    const SizedBox(height: 50),
+
+                    // THE GLASS LOGIN BOX
+                    GlassContainer(
+                      child: Column(
+                        children: [
+                          if (_isSignUp) ...[
+                            AuthTextField(
+                              controller: _nameController,
+                              hintText: "Name",
+                              prefixIcon: Icons.person_outline,
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                          AuthTextField(
+                            controller: _emailController,
+                            hintText: "Email",
+                            prefixIcon: Icons.email_outlined,
+                          ),
+                          const SizedBox(height: 16),
+                          AuthTextField(
+                            controller: _passwordController,
+                            hintText: "Password",
+                            prefixIcon: Icons.lock_outline,
+                            obscureText: true,
+                          ),
+                          const SizedBox(height: 24),
+                          PrimaryButton(
+                            text: _isSignUp ? "Create Orbit" : "Sign In",
+                            onPressed: _handleEmailSignIn,
+                            isLoading: _isLoadingEmail,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // SOCIAL BUTTONS
+                    SocialAuthButton(
+                      onPressed: () async {
+                        final success = await _performSignIn(
+                          () =>
+                              context.read<AppAuthProvider>().signInWithApple(),
+                          'Apple',
+                          (v) => setState(() => _isLoadingApple = v),
+                        );
+                        if (success && context.mounted) {
+                          // Push the letter so social sign-ups see the onboarding lore
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const FutureLetterScreen(
+                                userName: 'Explorer',
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      isLoading: _isLoadingApple,
+                      text: 'Continue with Apple',
+                      icon: const Icon(Icons.apple, color: Colors.white),
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      animationDelay: 100,
+                    ),
+                    const SizedBox(height: 12),
+                    SocialAuthButton(
+                      onPressed: () async {
+                        final success = await _performSignIn(
+                          () => context
+                              .read<AppAuthProvider>()
+                              .signInWithGoogle(),
+                          'Google',
+                          (v) => setState(() => _isLoadingGoogle = v),
+                        );
+                        if (success && context.mounted) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const FutureLetterScreen(
+                                userName: 'Explorer',
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      isLoading: _isLoadingGoogle,
+                      text: 'Continue with Google',
+                      icon: const Icon(
+                        Icons.g_mobiledata,
+                        size: 38,
+                        color: Colors.black,
+                      ),
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
+                      animationDelay: 200,
+                    ),
+
+                    const SizedBox(height: 20),
+                    TextButton(
+                      onPressed: () => setState(() => _isSignUp = !_isSignUp),
+                      child: Text(
+                        _isSignUp
+                            ? "Already have an account? Sign In"
+                            : "New to Orbit? Create Account",
+                        style: const TextStyle(color: Colors.white54),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    GuestAuthButton(
+                      onPressed: () async {
+                        await _performSignIn(
+                          () => context.read<AppAuthProvider>().signInAsGuest(),
+                          'Guest',
+                          (v) => setState(() => _isLoadingGuest = v),
+                        );
+                      },
+                      isLoading: _isLoadingGuest,
+                      animationDelay: 300,
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

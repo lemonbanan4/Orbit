@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms and Conditions — Orbit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #020205; color: #ffffff; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1.6; padding: 2rem 1rem; }
+        .cosmic-glow { position: fixed; top: -10%; left: 50%; transform: translateX(-50%); width: 600px; height: 600px; background: radial-gradient(circle, rgba(112,0,255,0.15) 0%, rgba(4,75,127,0.05) 60%, rgba(0,0,0,0) 100%); border-radius: 50%; z-index: 1; pointer-events: none; }
+        .legal-container { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; padding: 3rem; max-width: 800px; margin: 0 auto; position: relative; z-index: 2; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        h1 { color: #7000FF; font-size: 2.5rem; margin-bottom: 0.5rem; font-weight: 800; text-shadow: 0 0 20px rgba(112,0,255,0.3); }
+        h2 { color: #00E5FF; font-size: 1.4rem; margin-top: 2rem; margin-bottom: 1rem; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.25rem; }
+        p, li { color: rgba(255, 255, 255, 0.7); font-size: 0.95rem; margin-bottom: 1rem; }
+        a { color: #00E5FF; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .back-link { display: inline-block; margin-bottom: 2rem; color: rgba(255,255,255,0.5); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+    <div class="cosmic-glow"></div>
+    <div class="legal-container">
+        <a href="#" id="dynamic-back-btn" class="back-link" onclick="if(history.length > 1){ history.back(); return false; } else { this.href='index.html'; }">← Back</a>
+
+        <h1>Terms and Conditions</h1>
+        <p><strong>Last updated:</strong> June 12, 2026</p>
+        <p>Welcome to Orbit. These Legal Terms constitute a binding contractual agreement between you ("User") and Liam Högberg ("we," "us," or "our") regarding your access to and use of our system tracking application features.</p>
+
+        <h2>1. Eligibility and User Registration</h2>
+        <p>By creating an account within the Orbit application, you state that you are at least 18 years of age and agree to comply with these terms. You are entirely responsible for protecting your secure password details and maintaining active device security protocols.</p>
+
+        <h2>2. Subscription Billings, Trials, and Cancellations</h2>
+        <p>Access to premium AI Pro Coaching dashboards requires an active subscription. We offer a 7-day free trial to new users. If you do not cancel your trial at least 24 hours before it ends, the platform will automatically charge your associated store account. Subscriptions auto-renew continuously. Users can modify, pause, or cancel recurring plans at any time directly inside their Apple App Store or Google Play account subscription management portals.</p>
+
+        <h2>3. Intellectual Property Rights</h2>
+        <p>We retain all rights, titles, and ownership across our source code, application architecture, logo assets, interface designs, content copy, and cosmic layout aesthetics. You are granted a non-exclusive, revocable, personal license to operate the Orbit application strictly for personal use guidelines.</p>
+
+        <h2>4. Platform Disclaimers & Limitation of Liability</h2>
+        <p>Orbit is an ambient tool built entirely to inspire personal milestone scheduling habits. It does not provide medical health guidance, clinical training plans, or structured therapeutic instruction. We explicitly disclaim all platform performance parameters. In no event shall we be held liable for any data loss, platform down-times, or incidental operational disruptions arising from use of our tracking systems.</p>
+
+        <h2>5. Contact & Governance</h2>
+        <p>These terms are governed and interpreted under the native laws of Norway. Any formal legal disputes are subject to the non-exclusive jurisdiction of the courts of Oslo, Norway.</p>
+        <p>Contact Email: contact@orbitroutine.com</p>
+    </div>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const backBtn = document.getElementById("dynamic-back-btn");
+        const referrer = document.referrer;
+        
+        if (referrer.includes("support.html")) {
+            backBtn.innerText = "← Back to Support";
+        } else if (referrer.includes("index.html") || referrer === "") {
+            backBtn.innerText = "← Back to Home";
+        }
+    });
+</script>
+</body>
+</html>

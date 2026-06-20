@@ -52,7 +52,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAPBantaIQpl4sBc2X9YD8vqirc3IirctY',
-    appId: '1:206078516575:android:0524a76c5ab27130d4eaea',
+    appId: '1:206078516575:android:55c41298c014ec60d4eaea',
     messagingSenderId: '206078516575',
     projectId: 'orbit-mvp-54642',
     storageBucket: 'orbit-mvp-54642.firebasestorage.app',
@@ -82,11 +82,12 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions windows = FirebaseOptions(
     apiKey: 'AIzaSyAJOeVAaMoDlK2UIfR5p7ENq--2loaxKuY',
-    appId: '1:206078516575:web:5973e3dd8b89bcd9d4eaea',
+    appId: '1:206078516575:web:4616f7c99194bac9d4eaea',
     messagingSenderId: '206078516575',
     projectId: 'orbit-mvp-54642',
     authDomain: 'orbit-mvp-54642.firebaseapp.com',
     storageBucket: 'orbit-mvp-54642.firebasestorage.app',
-    measurementId: 'G-4WDMEGR558',
+    measurementId: 'G-87YZJJDLMD',
   );
+
 }

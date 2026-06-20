@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'profile_setup_screen.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui';
-
+import 'package:orbit_app/screens/navigation/main_navigation_screen.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:orbit_app/theme/glass_button.dart';
+import '../../theme/custom_colors.dart';
+import 'package:orbit_app/screens/onboarding/contract_screen.dart';
 
 // --- UPGRADED DATA MODEL ---
-enum QuestionType { singleChoice, multiSelectGrid }
+enum QuestionType { singleChoice, multiSelectGrid, textInput }
 
 class SurveyQuestion {
   final String title;
@@ -32,33 +37,66 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  
+
+  String _capturedUserName = '';
+  final TextEditingController _nameController = TextEditingController();
+
   // Store single-choice answers
   Map<int, String> userAnswers = {};
-  
+
   // Store the multiple selections from the final grid!
   Set<String> selectedInterests = {};
 
   final List<SurveyQuestion> questions = [
     SurveyQuestion(
+      title: 'Welcome to Orbit!\nWhat should we call you?',
+      options: [], // Not needed for textInput
+      type: QuestionType.textInput,
+    ),
+    SurveyQuestion(
       title: 'Why are you embarking on this journey to build healthy habits?',
-      options: ['To feel better about myself', 'To improve my health', 'To set and achieve goals', 'To be more like someone who I admire'],
+      options: [
+        'To feel better about myself',
+        'To improve my health',
+        'To set and achieve goals',
+        'To be more like someone who I admire',
+      ],
     ),
     SurveyQuestion(
       title: 'How much sleep do you usually get at night?',
-      options: ['7 hours or less', '7-9 hours', '9-12 hours', '12 hours or more'],
+      options: [
+        '7 hours or less',
+        '7-9 hours',
+        '9-12 hours',
+        '12 hours or more',
+      ],
     ),
     SurveyQuestion(
       title: 'Understood! Throughout your day, how are your energy levels?',
-      options: ['High - energized throughout the day', 'Medium - I have bursts of energy', 'Low - my energy fades throughout the day'],
+      options: [
+        'High - energized throughout the day',
+        'Medium - I have bursts of energy',
+        'Low - my energy fades throughout the day',
+      ],
     ),
     SurveyQuestion(
       title: 'How distractable are you?',
-      options: ['Easily distracted', 'Sometimes lose focus', 'Rarely lose focus', 'Laser focus'],
+      options: [
+        'Easily distracted',
+        'Sometimes lose focus',
+        'Rarely lose focus',
+        'Laser focus',
+      ],
     ),
     SurveyQuestion(
-      title: 'We hear you. What single change would improve your life right now?',
-      options: ['More energy', 'More productivity', 'More mindfulness', 'More sleep'],
+      title:
+          'We hear you. What single change would improve your life right now?',
+      options: [
+        'More energy',
+        'More productivity',
+        'More mindfulness',
+        'More sleep',
+      ],
     ),
     // --- THE NEW MULTI-SELECT GRID PAGE ---
     SurveyQuestion(
@@ -66,22 +104,56 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       subtitle: 'Pick as many as you like.',
       type: QuestionType.multiSelectGrid,
       options: [
-        'Stoicism', 'Emotional Wellness', 'Pet Lovers', 'Structure & Organisation',
-        'Reading & Studying', 'The Environment', 'Mindful Eating', 'Self-discipline',
-        'Behavior Change', 'Gratitude', 'Creativity', 'Aging',
-        'Financial Habits', 'Self-love', 'Parenthood', 'Productivity',
-        'Better Relationships', 'Mindfulness', 'Physical Wellness', 'Anxiety & Stress',
-        'Detox Bad Habits', 'Purpose & Motivation', 'Better Sleep', 'Balanced Life'
+        'Stoicism',
+        'Emotional Wellness',
+        'Pet Lovers',
+        'Structure & Organisation',
+        'Reading & Studying',
+        'The Environment',
+        'Mindful Eating',
+        'Self-discipline',
+        'Behavior Change',
+        'Gratitude',
+        'Creativity',
+        'Aging',
+        'Financial Habits',
+        'Self-love',
+        'Parenthood',
+        'Productivity',
+        'Better Relationships',
+        'Mindfulness',
+        'Physical Wellness',
+        'Anxiety & Stress',
+        'Detox Bad Habits',
+        'Purpose & Motivation',
+        'Better Sleep',
+        'Balanced Life',
       ],
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _requestATT();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _nameController.dispose();
+    super.dispose();
+  }
 
   void _handleSingleChoiceAnswer(String answer) {
     HapticFeedback.lightImpact();
     userAnswers[_currentPage] = answer;
 
     if (_currentPage < questions.length - 1) {
-      _pageController.nextPage(duration: const Duration(milliseconds: 400), curve: Curves.easeInOutQuart);
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOutQuart,
+      );
     } else {
       _triggerAnalysis();
     }
@@ -100,13 +172,64 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _triggerAnalysis() async {
     HapticFeedback.heavyImpact();
-    // We can pass BOTH userAnswers and selectedInterests to the generation screen later!
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => ProfileSetupScreen(surveyAnswers: userAnswers)));
+
+    // Request notification permissions right before entering the app
+    try {
+      await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    } catch (e) {
+      debugPrint('Error requesting notification permissions: $e');
+    }
+
+    if (!mounted) return;
+
+    // Pass both the single-choice answers and the multi-select interests to the setup screen.
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ContractScreen(userName: _capturedUserName),
+      ),
+    );
+  }
+
+  Future<void> _requestATT() async {
+    try {
+      // Wait a brief moment to ensure the UI is fully rendered before popping the ATT dialog
+      await Future.delayed(const Duration(milliseconds: 1000));
+
+      final TrackingStatus status =
+          await AppTrackingTransparency.trackingAuthorizationStatus;
+
+      // if the system can prompt them, do it
+      if (status == TrackingStatus.notDetermined) {
+        final TrackingStatus newStatus =
+            await AppTrackingTransparency.requestTrackingAuthorization();
+
+        if (newStatus == TrackingStatus.notDetermined) {
+          debugPrint('User dismissed the ATT prompt without making a choice.');
+        } else if (newStatus == TrackingStatus.authorized) {
+          debugPrint('User granted tracking permission.');
+          FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(true);
+        } else {
+          debugPrint('User denied tracking permission.');
+        }
+      } else if (status == TrackingStatus.authorized) {
+        debugPrint('Tracking permission already granted.');
+      } else {
+        debugPrint('Tracking permission already denied.');
+      }
+    } on PlatformException catch (e) {
+      debugPrint("Failed to get ATT status: $e");
+    } catch (e) {
+      debugPrint('Error requesting tracking authorization: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-
     // final backgroundGradient = LinearGradient(
     //   begin: Alignment.topCenter,
     //   end: Alignment.bottomCenter,
@@ -119,20 +242,40 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(color: Color(0xFFF5F7FA)),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [cosmicCyan, deepNavy, cosmicBlack],
+          ),
+        ),
+        //const BoxDecoration(color: Color(0xFF050112)),
+        // decoration: const BoxDecoration(
+        //     image: DecorationImage(
+        //         image: AssetImage('assets/images/deep_nebula.jpg'),
+        //         fit: BoxFit.cover)),
         child: SafeArea(
           child: Column(
             children: [
               // --- PROGRESS BAR & BACK BUTTON ---
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back_ios, color: Colors.grey),
+                      icon: const Icon(
+                        Icons.arrow_back_ios,
+                        color: Colors.grey,
+                      ),
                       onPressed: () {
                         if (_currentPage > 0) {
-                          _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                          _pageController.previousPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
                         }
                       },
                     ),
@@ -141,8 +284,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         borderRadius: BorderRadius.circular(10),
                         child: LinearProgressIndicator(
                           value: (_currentPage + 1) / questions.length,
-                          backgroundColor: Colors.white.withOpacity(0.2),
-                          color: Colors.white,
+                          backgroundColor: Colors.white.withValues(alpha: 0.2),
+                          color: const Color(0xFF00E5FF),
                           minHeight: 6,
                         ),
                       ),
@@ -157,13 +300,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: PageView.builder(
                   controller: _pageController,
                   physics: const NeverScrollableScrollPhysics(),
-                  onPageChanged: (index) => setState(() => _currentPage = index),
+                  onPageChanged: (index) =>
+                      setState(() => _currentPage = index),
                   itemCount: questions.length,
                   itemBuilder: (context, index) {
                     final question = questions[index];
-                    
+
                     if (question.type == QuestionType.multiSelectGrid) {
                       return _buildMultiSelectGridPage(question);
+                    } else if (question.type == QuestionType.textInput) {
+                      return _buildTextInputPage(question);
                     } else {
                       return _buildSingleChoicePage(question);
                     }
@@ -177,6 +323,80 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
+  // --- UI FOR TEXT INPUT (The Name Slide) ---
+  Widget _buildTextInputPage(SurveyQuestion question) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Spacer(),
+          Text(
+            question.title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 40),
+          TextField(
+            controller: _nameController,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+              hintText: 'Your name',
+              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.3),
+                  width: 2,
+                ),
+              ),
+              focusedBorder: const UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF00E5FF), width: 2),
+              ),
+            ),
+            onChanged: (val) => setState(() => _capturedUserName = val.trim()),
+            onSubmitted: (val) {
+              if (val.trim().isNotEmpty) {
+                _pageController.nextPage(
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeInOutQuart,
+                );
+              }
+            },
+          ),
+          const SizedBox(height: 40),
+          AnimatedOpacity(
+            opacity: _capturedUserName.isNotEmpty ? 1.0 : 0.4,
+            duration: const Duration(milliseconds: 300),
+            child: GlassButton(
+              text: 'CONTINUE',
+              onPressed: () {
+                if (_capturedUserName.isNotEmpty) {
+                  HapticFeedback.lightImpact();
+                  _pageController.nextPage(
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeInOutQuart,
+                  );
+                }
+              },
+            ),
+          ),
+          const Spacer(flex: 2),
+        ],
+      ),
+    );
+  }
+
   // --- UI FOR SINGLE CHOICE (The White Cards) ---
   Widget _buildSingleChoicePage(SurveyQuestion question) {
     return Padding(
@@ -186,19 +406,49 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Spacer(),
-          Text(question.title, style: const TextStyle(color: Color(0xFF1A1F36), fontSize: 32, fontWeight: FontWeight.bold, height: 1.2)),
+          Text(
+            question.title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              height: 1.2,
+            ),
+          ),
           const SizedBox(height: 40),
-          ...question.options.map((option) => Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
-            child: GestureDetector(
-              onTap: () => _handleSingleChoiceAnswer(option),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))]),
-                child: Text(option, style: const TextStyle(color: Color(0xFF13002B), fontSize: 18, fontWeight: FontWeight.bold)),
+          ...question.options.map(
+            (option) => Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: GestureDetector(
+                onTap: () => _handleSingleChoiceAnswer(option),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 24,
+                    horizontal: 20,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    option,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ),
             ),
-          )),
+          ),
           const Spacer(flex: 2),
         ],
       ),
@@ -225,23 +475,38 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(question.title, style: const TextStyle(color: Color(0xFF1A1F36), fontSize: 28, fontWeight: FontWeight.bold, height: 1.2)),
+              Text(
+                question.title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  height: 1.2,
+                ),
+              ),
               if (question.subtitle != null) ...[
                 const SizedBox(height: 8),
-                Text(question.subtitle!, style: const TextStyle(color: Color(0xFF1A1F36), fontSize: 16, fontWeight: FontWeight.w600)),
-              ]
+                Text(
+                  question.subtitle!,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
-        
+
         Expanded(
           child: GridView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2, 
-              crossAxisSpacing: 12, 
-              mainAxisSpacing: 12, 
-              childAspectRatio: 0.85 // Taller cards to fit images later
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.85, // Taller cards to fit images later
             ),
             itemCount: question.options.length,
             itemBuilder: (context, index) {
@@ -250,86 +515,110 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               final isSelected = selectedInterests.contains(option);
               // Assuming image assets are named like 'assets/interests/stoicism.png'
               // You'll need to create these assets!
-              final safeName = option.toLowerCase()
-                                      .replaceAll(' & ', '_and_') // Fix the ampersand first
-                                      .replaceAll('-', '_') // Fixes Self-love and Self-discipline
-                                      .replaceAll(' ', '_'); // Then fix the spaces
+              final safeName = option
+                  .toLowerCase()
+                  .replaceAll(' & ', '_and_') // Fix the ampersand first
+                  .replaceAll('-', '_') // Fixes Self-love and Self-discipline
+                  .replaceAll(' ', '_'); // Then fix the spaces
               final imagePath = 'assets/interests/$safeName.png';
 
               return FrostyCategoryCard(
-                title: option,
-                imagePath: imagePath,
-                isSelected: isSelected,
-                onTap: () {
-                  setState(() {
-                    if (isSelected) {
-                      selectedInterests.remove(option);
-                    } else {
-                      selectedInterests.add(option);
-                    }
-                  });
-                },
-              )
-
-              // THE MAGIC WATERFALL ANIMATION
-              // Each card waits 50ms longer than the previous one before sliding up
-              .animate()
-              .fade(duration: 400.ms, delay: (index * 50).ms)
-              .slideY(begin: 0.2, end: 0, duration: 400.ms, curve: Curves.easeOutQuad);
+                    title: option,
+                    imagePath: imagePath,
+                    isSelected: isSelected,
+                    onTap: () {
+                      setState(() {
+                        if (isSelected) {
+                          selectedInterests.remove(option);
+                        } else {
+                          selectedInterests.add(option);
+                        }
+                      });
+                    },
+                  )
+                  // THE MAGIC WATERFALL ANIMATION
+                  // Each card waits 50ms longer than the previous one before sliding up
+                  .animate()
+                  .fade(duration: 400.ms, delay: (index * 50).ms)
+                  .slideY(
+                    begin: 0.2,
+                    end: 0,
+                    duration: 400.ms,
+                    curve: Curves.easeOutQuad,
+                  );
             },
           ),
         ),
-        
 
         // --- THE FIXED CONTINUE BUTTON ---
         // THE Premium Glassmorphism Bottom Bar
+        //GlassDockButton(text: 'CONTINUE', onPressed: _triggerAnalysis),
         ClipRRect(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0), // The intense frosty glass
+            filter: ImageFilter.blur(
+              sigmaX: 20.0,
+              sigmaY: 20.0,
+            ), // The intense frosty glass
             child: Container(
-              padding: const EdgeInsets.only(top: 24, bottom: 40, left: 24, right: 24),
+              padding: const EdgeInsets.only(
+                top: 24,
+                bottom: 40,
+                left: 24,
+                right: 24,
+              ),
               decoration: BoxDecoration(
                 // A subtle white gradient to give the glass some lighting
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Colors.white.withOpacity(0.5),
-                    Colors.white.withOpacity(0.2),
+                    Colors.white.withValues(alpha: 0.5),
+                    Colors.white.withValues(alpha: 0.2),
                   ],
                 ),
                 // The crisp icy top edge of the glass
                 border: Border(
-                  top: BorderSide(color: Colors.white.withOpacity(0.8), width: 1.5),
+                  top: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    width: 1.5,
+                  ),
                 ),
               ),
               child: SizedBox(
                 width: double.infinity,
                 height: 56,
-                child: ElevatedButton(
+
+                child: GlassButton(
+                  text: 'CONTINUE',
                   onPressed: _triggerAnalysis,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A1F36), // Deep premium navy button
-                    foregroundColor: Colors.white,
-                    elevation: 0, // No shadow needed, the glass does the work
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: const Text(
-                    'CONTINUE',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
                 ),
-              ),           
+                // child: ElevatedButton(
+                //   onPressed: _triggerAnalysis,
+                //   style: ElevatedButton.styleFrom(
+                //     backgroundColor: const Color(
+                //       //0xFF00E5FF,
+                //       0xFF1A1F36,
+                //     ), // Deep premium navy button
+                //     foregroundColor: Colors.white,
+                //     elevation: 0, // No shadow needed, the glass does the work
+                //     shape: RoundedRectangleBorder(
+                //       borderRadius: BorderRadius.circular(16),
+                //     ),
+                //   ),
+                //   child: const Text(
+                //     'CONTINUE',
+                //     style: TextStyle(
+                //       fontSize: 16,
+                //       fontWeight: FontWeight.bold,
+                //       letterSpacing: 1.5,
+                //     ),
+                //   ),
+                // ),
+              ),
             ),
           ),
-        )
+        ),
       ],
     );
   }
@@ -346,7 +635,7 @@ class FrostyCategoryCard extends StatefulWidget {
     required this.title,
     required this.imagePath,
     required this.isSelected,
-    required this.onTap
+    required this.onTap,
   });
 
   @override
@@ -372,7 +661,7 @@ class _FrostyCategoryCardState extends State<FrostyCategoryCard> {
 
       // The smooth bounce animation
       child: AnimatedScale(
-        scale:  _isPressed ? 0.93 : 1.0, // Shrinks by 7% when pressed
+        scale: _isPressed ? 0.93 : 1.0, // Shrinks by 7% when pressed
         duration: const Duration(milliseconds: 100),
         curve: Curves.easeInOut,
 
@@ -381,9 +670,11 @@ class _FrostyCategoryCardState extends State<FrostyCategoryCard> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           // clipBehavior is crucial so the big image doesn't spill out of the rounded corners!
-          clipBehavior: Clip.antiAlias, 
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: widget.isSelected ? Colors.white : Colors.white.withOpacity(0.6),
+            color: widget.isSelected
+                ? Colors.white
+                : Colors.white.withValues(alpha: 0.6),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: widget.isSelected ? const Color(0xFF1A1F36) : Colors.white,
@@ -391,7 +682,7 @@ class _FrostyCategoryCardState extends State<FrostyCategoryCard> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.blueGrey.withOpacity(0.08),
+                color: Colors.blueGrey.withValues(alpha: 0.08),
                 blurRadius: 20,
                 spreadRadius: 5,
                 offset: const Offset(0, 10),
@@ -410,12 +701,15 @@ class _FrostyCategoryCardState extends State<FrostyCategoryCard> {
                       widget.imagePath,
                       // Boxfit.contain ensures it gets as big as possible
                       fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, color: Colors.grey, size: 40),
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.broken_image,
+                        color: Colors.grey,
+                        size: 40,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 8), // breathiing room
-
                 // THE CENTERED TEXT
                 Text(
                   widget.title,

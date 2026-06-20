@@ -1,0 +1,106 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Document ID: {userId}
+// Fields: current_streak, xp, avatar, displayName, routine_alarms, habits, etc.
+//
+// Subcollections:
+//   - habits/{habitId}
+//   - skipped_sessions/{sessionId}
+//   - notifications/{notificationId}
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isValidString(field, minLen, maxLen) {
+      return field is string && field.size() >= minLen && field.size() <= maxLen;
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      let allowedKeys = [
+        'routine_rewards', 'routine_alarms', 'habits', 'current_streak', 
+        'streak_increased_today', 'longest_streak', 'total_habits_assigned', 
+        'xp', 'avatar', 'mood_history', 'xp_history', 'displayName', 
+        'intention_history', 'unlocked_journey_chapters', 'unlocked_milestones', 
+        'audio_track', 'ambient_volume', 'last_updated', 'bookmarked_quotes', 
+        'unlocked_reader_badge', 'unlocked_themes', 'active_nebula_theme', 
+        'all_notifs', 'daily_summary_notifs', 'interests'
+      ];
+      
+      // Prevent 1MB string payload attacks on display name
+      let isNameValid = !('displayName' in data) || isValidString(data.displayName, 0, 60);
+      
+      return data.keys().hasOnly(allowedKeys) && isNameValid;
+    }
+
+    function isValidHabit(data) {
+      let allowedKeys = ['id', 'title', 'routineType', 'iconCodePoint', 'isCompleted', 'order'];
+      return data.keys().hasOnly(allowedKeys) &&
+             isValidString(data.title, 1, 100) &&
+             isValidString(data.routineType, 1, 50);
+    }
+
+    function isValidSkippedSession(data) {
+      let allowedKeys = ['timestamp', 'reason'];
+      return data.keys().hasOnly(allowedKeys) &&
+             isValidString(data.reason, 0, 500);
+    }
+
+    // ===============================================================
+    // Collections
+    // ===============================================================
+
+    match /users/{userId} {
+      // Strict isolation: Users can only read and write their own primary document
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidUser(request.resource.data);
+
+      match /habits/{habitId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidHabit(request.resource.data);
+      }
+
+      match /skipped_sessions/{sessionId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidSkippedSession(request.resource.data);
+      }
+
+      match /notifications/{notificationId} {
+        // Fallback for notifications queue
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Let users send emails via the Firebase Trigger Email Extension
+    match /mail/{document} {
+      allow create: if isAuthenticated();
+      allow read, update, delete: if false; 
+    }
+
+    // Global deny for everything else (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

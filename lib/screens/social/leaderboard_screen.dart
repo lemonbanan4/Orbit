@@ -1,0 +1,206 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../../widgets/common/base_orbit_screen.dart';
+import '../../widgets/common/premium_glass_card.dart';
+import '../../widgets/reward_popup.dart';
+
+class LeaderboardScreen extends StatefulWidget {
+  const LeaderboardScreen({super.key});
+
+  @override
+  State<LeaderboardScreen> createState() => _LeaderboardScreenState();
+}
+
+class _LeaderboardScreenState extends State<LeaderboardScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Color _getRankColor(int rank) {
+    if (rank == 1) return const Color(0xFFFFD700); // Gold
+    if (rank == 2) return const Color(0xFFC0C0C0); // Silver
+    if (rank == 3) return const Color(0xFFCD7F32); // Bronze
+    return const Color(0xFF00E5FF); // Standard Cyan
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textColor = theme.colorScheme.onSurface;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final bool isDark = theme.brightness == Brightness.dark;
+
+    return BaseOrbitScreen(
+      title: 'Global Ranks',
+      actions: [
+        IconButton(
+          icon: Icon(Icons.refresh_rounded, color: textColor),
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            // Tapping forces a rebuild which triggers the StreamBuilder
+            (context as Element).markNeedsBuild();
+          },
+        ),
+      ],
+      body: Stack(
+        children: [
+          // THE PARALLAX BACKGROUND LAYER
+          AnimatedBuilder(
+            animation: _scrollController,
+            builder: (context, child) {
+              // Calculate the parallax offset
+              double parallaxOffset = 0.0;
+              if (_scrollController.hasClients) {
+                parallaxOffset = _scrollController.offset * -0.1;
+              }
+              return Positioned(
+                top: -50 + parallaxOffset,
+                left: -10,
+                right: -10,
+                bottom: -50,
+                child: Opacity(
+                  opacity: isDark ? 0.4 : 0.1,
+                  child: Image.asset(
+                    'assets/images/nebula_bg.png',
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              );
+            },
+          ),
+          StreamBuilder<QuerySnapshot>(
+            // Fetch the top 50 users globally, sorted by XP
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .orderBy('xp', descending: true)
+                .limit(50)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF00E5FF)));
+              }
+
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return Center(
+                  child: Text(
+                    'No explorers found in orbit yet.',
+                    style: TextStyle(color: textColor.withValues(alpha: 0.5)),
+                  ),
+                );
+              }
+
+              final docs = snapshot.data!.docs;
+
+              return ListView.builder(
+                controller: _scrollController,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                physics: const BouncingScrollPhysics(),
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  final data = docs[index].data() as Map<String, dynamic>;
+                  final rank = index + 1;
+                  final isMe = docs[index].id == currentUserId;
+
+                  final name = data['name'] ?? 'Explorer';
+                  final xp = data['xp'] as int? ?? 0;
+                  final level = RewardPopup.getLevel(xp);
+                  final photoUrl = data['photoURL'] as String?;
+
+                  final rankColor = _getRankColor(rank);
+                  final isTop3 = rank <= 3;
+
+                  Widget card = PremiumGlassCard(
+                    padding: const EdgeInsets.all(4),
+                    child: ListTile(
+                      leading: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 30,
+                            child: Text(
+                              '#$rank',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: rank <= 3
+                                    ? rankColor
+                                    : textColor.withValues(alpha: 0.5),
+                                fontWeight: FontWeight.w900,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          CircleAvatar(
+                            backgroundColor: rankColor.withValues(alpha: 0.2),
+                            backgroundImage: photoUrl != null
+                                ? NetworkImage(photoUrl)
+                                : null,
+                            child: photoUrl == null
+                                ? Icon(Icons.person, color: rankColor)
+                                : null,
+                          ),
+                        ],
+                      ),
+                      title: Text(
+                        isMe ? '$name (You)' : name,
+                        style: TextStyle(
+                          color: isMe ? const Color(0xFF00E5FF) : textColor,
+                          fontWeight: isMe ? FontWeight.w900 : FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Level $level',
+                        style:
+                            TextStyle(color: textColor.withValues(alpha: 0.6)),
+                      ),
+                      trailing: Text(
+                        '$xp XP',
+                        style: TextStyle(
+                          color: rankColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  );
+
+                  // Add a pulsing glow to the top 3 ranks!
+                  if (isTop3) {
+                    card = card
+                        .animate(onPlay: (c) => c.repeat(reverse: true))
+                        .boxShadow(
+                          begin: const BoxShadow(color: Colors.transparent),
+                          end: BoxShadow(
+                            color: rankColor.withValues(alpha: 0.5),
+                            blurRadius: 15,
+                            spreadRadius: 2,
+                          ),
+                          duration: 1.5.seconds,
+                        );
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: card
+                        .animate()
+                        .fade(delay: (index * 50).ms)
+                        .slideX(begin: 0.1),
+                  );
+                },
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}

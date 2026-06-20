@@ -1,5 +1,5 @@
 # Uncomment this line to define a global platform for your project
-# platform :ios, '13.0'
+platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -37,7 +37,29 @@ target 'Runner' do
 end
 
 post_install do |installer|
+  # 1. Update regular CocoaPods targets
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    target.build_configurations.each do |config|
+      config.build_settings.delete('IPHONEOS_DEPLOYMENT_TARGET[sdk=iphonesimulator*]')
+      config.build_settings.delete('IPHONEOS_DEPLOYMENT_TARGET[sdk=iphoneos*]')
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+    end
+  end
+  
+  # 2. Update the main Pods project settings
+  installer.pods_project.build_configurations.each do |config|
+    config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+  end
+
+  # 🚀 GLOBAL OVERRIDE: Reach into Swift Package Manager plugins and force 15.0
+  if installer.respond_to?(:generated_projects)
+    installer.generated_projects.each do |project|
+      project.targets.each do |target|
+        target.build_configurations.each do |config|
+          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+        end
+      end
+    end
   end
 end

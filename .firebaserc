@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "orbit-mvp-54642",
+    "staging": "orbit-stellar-launch"
+  },
+  "targets": {},
+  "etags": {
+    "orbit-mvp-54642": {
+      "extensionInstances": {
+        "firestore-send-email": "98d6493467bea96fe05f5af6604d1818e72ce802f4b17216aa3d25e7199a7516"
+      }
+    }
+  }
+}

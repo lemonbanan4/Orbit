@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.invokerlab.orbit",
+      "sha256_cert_fingerprints": [
+        "AC:BA:E5:AF:B0:96:65:F6:8A:63:9B:91:92:AD:29:D1:C3:E1:87:39:03:DD:80:57:15:BC:27:23:B2:A7:F9:23"
+      ]
+    }
+  }
+]

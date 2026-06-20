@@ -1,8 +1,42 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+<uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+<!-- Required by just_audio_background / audio_service for the foreground media service -->
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+
+<uses-permission android:name="android.permission.INTERNET" />
+
+<!-- Required to trigger alarms -->
+<uses-permission android:name="android.permission.WAKE_LOCK" />
+
+
+<!-- Required to show Notifications (Android 13 / API 33+) -->
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+
+
+<!-- Health Connect Permissions -->
+
+
     <application
-        android:label="orbit"
+        android:label="Orbit"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/launcher_icon">
+
+        <!-- FIREBASE METADATA -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+
+        <!-- Optional: Tint the silhouette icon to your brand's Cyan color! -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_tint" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -24,7 +58,126 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            
+            <!-- Deep link for the Orbit widget! -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="orbit" android:host="habit" />
+            </intent-filter>
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="orbitroutine.com" />
+            </intent-filter>
         </activity>
+
+        <!-- Custom App Icon Aliases -->
+        <activity-alias
+            android:name=".nebula"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/launcher_icon"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        
+        <activity-alias
+            android:name=".supernova"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/launcher_icon"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        
+        <activity-alias
+            android:name=".void"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/launcher_icon"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Required for Health Connect -->
+        <activity-alias
+            android:name="com.cph.health.HealthConnectPermissionController"
+            android:exported="true"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity-alias>
+
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name=".HabitWidget" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/habit_widget_info" />
+        </receiver>
+
+        <receiver android:name=".OrbitWidget" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/orbit_widget_info" />
+        </receiver>
+
+        <receiver android:name=".BootReceiver" android:enabled="true" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name=".AlarmReceiver" android:enabled="true" android:exported="true">
+            <intent-filter>
+                <action android:name="com.orbit.habs.ACTION_ALARM_TRIGGERED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ── just_audio_background / audio_service ──────────────────────────
+             The AudioService foreground service handles lock-screen controls,
+             media notifications, and background audio.  The MediaButtonReceiver
+             forwards hardware media-button events to the service.
+             Both entries are REQUIRED — omitting them causes the
+             "Activity class is wrong" IllegalStateException at init time. -->
+        <service android:name="com.ryanheise.audioservice.AudioService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
+
+        <receiver android:name="com.ryanheise.audioservice.MediaButtonReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
@@ -41,5 +194,7 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Required for Health Connect -->
+        <package android:name="com.google.android.apps.healthdata" />
     </queries>
 </manifest>

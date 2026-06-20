@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-site-verification" content="bD-4ntsabl5EjDn3dVN2DfkyI9KVtGO2TTNvRT3O2LY" />
+    <title>Orbit — Support</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background-color: #020205; color: #ffffff; min-height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; }
+        .cosmic-glow { position: absolute; bottom: -10%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(13,27,62,0.9) 0%, rgba(4,75,127,0.4) 50%, rgba(0,0,0,0) 100%); border-radius: 50%; z-index: 1; pointer-events: none; }
+        .glass-card { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 32px; padding: 3.5rem 2.5rem 3rem 2.5rem; width: 90%; max-width: 450px; text-align: center; z-index: 2; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); animation: floatIn 1s ease-out; position: relative; }
+        
+        /* Premium Minimalist Home Button Link */
+        .home-back-btn { position: absolute; top: 1.5rem; left: 1.75rem; display: flex; align-items: center; gap: 0.4rem; color: rgba(255, 255, 255, 0.4); text-decoration: none; font-size: 0.8rem; font-weight: 600; transition: all 0.2s ease; padding: 0.4rem 0.6rem; border-radius: 10px; border: 1px solid transparent; }
+        .home-back-btn:hover { color: #00E5FF; background: rgba(255, 255, 255, 0.02); border-color: rgba(0, 229, 255, 0.15); }
+        .home-back-btn svg { width: 14px; height: 14px; fill: currentColor; }
+        
+        .logo-container { width: 84px; height: 84px; margin: 0 auto 1.5rem auto; background: rgba(0, 229, 255, 0.05); border: 1px solid rgba(0, 229, 255, 0.2); border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 0 20px rgba(0, 229, 255, 0.1); }
+        .logo-img { width: 46px; height: 46px; object-fit: contain; }
+        .tagline { color: #00E5FF; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 0.75rem; }
+        h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 1rem; background: linear-gradient(180deg, #ffffff 0%, #a5b4fc 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        p { color: rgba(255, 255, 255, 0.6); font-size: 0.95rem; line-height: 1.6; margin-bottom: 2rem; }
+        .content-container { display: flex; flex-direction: column; gap: 1.5rem; }
+        .contact-btn { display: flex; align-items: center; justify-content: center; gap: 0.75rem; background: rgba(0, 229, 255, 0.04); border: 1px solid rgba(0, 229, 255, 0.25); border-radius: 16px; padding: 1.1rem; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 1rem; transition: all 0.3s ease; }
+        .contact-btn:hover { background: rgba(0, 229, 255, 0.1); border-color: #00E5FF; transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0, 229, 255, 0.2); }
+        .contact-btn svg { width: 20px; height: 20px; fill: #00E5FF; }
+        .footer-links { margin-top: 2.5rem; display: flex; justify-content: center; gap: 1.25rem; font-size: 0.8rem; }
+        .footer-links a { color: rgba(255,255,255,0.4); text-decoration: none; transition: color 0.2s ease; }
+        .footer-links a:hover { color: rgba(255,255,255,0.8); }
+        .divider { color: rgba(255,255,255,0.15); }
+        @keyframes floatIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="cosmic-glow"></div>
+    <div class="glass-card">
+        <!-- Top Left Home Navigation Vector Link -->
+        <a href="index.html" class="home-back-btn">
+            <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            <span>Home</span>
+        </a>
+
+        <div class="logo-container">
+            <img class="logo-img" src="assets/icons/icon.png" alt="Orbit Logo">
+        </div>
+        <div class="tagline">Support & Accountability</div>
+        <h1>Need help with Orbit?</h1>
+        <p>Have questions about tracking your routines, running into a bug, or want to share feedback? Reach out and we'll get you back on track.</p>
+        
+        <div class="content-container">
+            <a href="mailto:contact@orbitroutine.com?subject=Orbit%20Support%20Request" class="contact-btn">
+                <svg viewBox="0 0 24 24"><path d="M20,4H4C2.9,4,2,4.9,2,6v12c0,1.1,0.9,2,2,2h16c1.1,0,2-0.9,2-2V6C22,4.9,21.1,4,20,4z M20,8l-8,5L4,8V6l8,5l8,-5V8z"/></svg>
+                <span>Email Support</span>
+            </a>
+        </div>
+
+        <div class="footer-links">
+            <a href="privacy.html">Privacy Policy</a>
+            <span class="divider">|</span>
+            <a href="terms.html">Terms of Service</a>
+        </div>
+    </div>
+</body>
+</html>

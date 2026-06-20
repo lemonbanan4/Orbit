@@ -1,0 +1,20 @@
+.gcloudignore
+.git
+.gitignore
+firebase-debug.log
+firebase-debug.*.log
+.runtimeconfig.json
+
+# Block any instance of build or node_modules absolutely
+build/
+**/build/
+node_modules/
+**/node_modules/
+
+# Ignore compiled local ts files
+lib/
+**/lib/
+
+# Test files
+src/**/*.test.ts
+src/**/*.spec.ts
