@@ -62,4 +62,11 @@ post_install do |installer|
       end
     end
   end
+
+  # 🔒 LOCKDOWN XCCONFIGS: Appends deployment target directly to compilation files
+  installer.aggregate_targets.each do |target|
+    target.xcconfig_path('Debug').open('a') { |f| f.puts "\nIPHONEOS_DEPLOYMENT_TARGET = 15.0" }
+    target.xcconfig_path('Release').open('a') { |f| f.puts "\nIPHONEOS_DEPLOYMENT_TARGET = 15.0" }
+    target.xcconfig_path('Profile').open('a') { |f| f.puts "\nIPHONEOS_DEPLOYMENT_TARGET = 15.0" }
+  end
 end

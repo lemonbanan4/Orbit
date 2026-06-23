@@ -10,7 +10,7 @@ struct Provider: TimelineProvider {
         completion(entry)
     }
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
-        let userDefaults = UserDefaults(suiteName: "group.com.invokerlab.orbit")
+        let userDefaults = UserDefaults(suiteName: "group.com.orbitroutine.orbit")
         let streak = userDefaults?.string(forKey: "widget_streak") ?? "0"
         let intention = userDefaults?.string(forKey: "widget_intention") ?? "Set an intention today."
         
@@ -48,7 +48,6 @@ struct OrbitWidgetEntryView : View {
     }
 }
 
-@main
 struct OrbitWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "OrbitWidget", provider: Provider()) { entry in

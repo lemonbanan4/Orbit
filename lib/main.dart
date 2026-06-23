@@ -93,7 +93,7 @@ void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
 
   // Set the iOS App Group ID here!
-  await HomeWidget.setAppGroupId('group.com.invokerlab.orbit');
+  await HomeWidget.setAppGroupId('group.com.orbitroutine.orbit');
 
   // 3. Keep the splash screen visible while loading
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
@@ -103,13 +103,19 @@ void main() async {
 
   // Initialize app check with debug providers
   await FirebaseAppCheck.instance.activate(
-    androidProvider: kReleaseMode
-        ? AndroidProvider.playIntegrity
-        : AndroidProvider.debug,
-    //webProvider: ReCaptchaEnterpriseProvider('YOUR_RECAPTCHA_SITE_KEY'),
-    appleProvider: kReleaseMode
-        ? AppleProvider.deviceCheck
-        : AppleProvider.debug,
+    // androidProvider: kReleaseMode
+    //     ? AndroidProvider.playIntegrity
+    //     : AndroidProvider.debug,
+    // //webProvider: ReCaptchaEnterpriseProvider('YOUR_RECAPTCHA_SITE_KEY'),
+    // appleProvider: kReleaseMode
+    //     ? AppleProvider.deviceCheck
+    //     : AppleProvider.debug,
+
+    // debugging
+    androidProvider: kDebugMode
+        ? AndroidProvider.debug
+        : AndroidProvider.playIntegrity,
+    appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
   );
 
   // --- JUST AUDIO BACKGROUND ---
@@ -212,7 +218,7 @@ void main() async {
       if (Platform.isIOS) {
         configuration = PurchasesConfiguration(
           dotenv.env['REVENUECAT_APPLE_KEY'] ??
-              "YOUR_ACTUAL_PRODUCTION_APPLE_KEY",
+              "appl_hxLkpOfXfWtRdmoJPbTSwipirfu",
         );
       } else if (Platform.isAndroid) {
         // Fetches your secure production credential properties out of the env mapping layer

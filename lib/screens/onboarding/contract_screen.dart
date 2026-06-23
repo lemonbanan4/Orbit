@@ -137,27 +137,33 @@ class _ContractScreenState extends State<ContractScreen>
                   children: [
                     const SizedBox(height: 40),
                     Text(
-                      "$name's Contract",
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ).animate().fade(duration: 600.ms).shimmer(
+                          "$name's Contract",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                        .animate()
+                        .fade(duration: 600.ms)
+                        .shimmer(
                           duration: 1500.ms,
                           delay: 600.ms,
                           color: Colors.white54,
                         ),
                     const SizedBox(height: 16),
                     Text(
-                      "I, $name, will make the most of tomorrow. I will always remember that I will not live forever. Every fear and irritation that threatens to distract me will become fuel for building my best life one day at a time.",
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        height: 1.5,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ).animate().fade(duration: 600.ms, delay: 200.ms).shimmer(
+                          "I, $name, will make the most of tomorrow. I will always remember that I will not live forever. Every fear and irritation that threatens to distract me will become fuel for building my best life one day at a time.",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            height: 1.5,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        )
+                        .animate()
+                        .fade(duration: 600.ms, delay: 200.ms)
+                        .shimmer(
                           duration: 1500.ms,
                           delay: 800.ms,
                           color: Colors.white54,
@@ -214,25 +220,27 @@ class _ContractScreenState extends State<ContractScreen>
                             ),
                             // The solid center
                             Container(
-                              width: 100,
-                              height: 100,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Color(0xFFFFD600),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  _controller.isAnimating
-                                      ? "Almost there"
-                                      : "Hold",
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                                  width: 100,
+                                  height: 100,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Color(0xFFFFD600),
                                   ),
-                                ),
-                              ),
-                            )
+                                  child: Center(
+                                    child: Text(
+                                      _controller.isAnimating
+                                          ? "Almost there"
+                                          : "Hold",
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        height: 1.1,
+                                      ),
+                                    ),
+                                  ),
+                                )
                                 .animate(onPlay: (c) => c.repeat(reverse: true))
                                 .scaleXY(
                                   begin: 1.0,

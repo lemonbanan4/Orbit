@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import '../common/premium_glass_card.dart';
 
 class PremiumPaywallDialog extends StatefulWidget {
+  final String title;
+  final String description;
   final VoidCallback onUpgradePressed;
   final VoidCallback onCancelPressed;
 
   const PremiumPaywallDialog({
     super.key,
+    required this.title,
+    required this.description,
     required this.onUpgradePressed,
     required this.onCancelPressed,
   });
@@ -66,8 +70,8 @@ class _PremiumPaywallDialogState extends State<PremiumPaywallDialog>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Unlock Pro Coaching",
+                  Text(
+                    widget.title,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -77,7 +81,7 @@ class _PremiumPaywallDialogState extends State<PremiumPaywallDialog>
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    "Upgrade to Pro to access personalized AI coaching sessions, deeper insights, and advanced habit analysis. Elevate your journey with the full power of the Nebula Forge!",
+                    widget.description,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.9),
                       fontSize: 15,

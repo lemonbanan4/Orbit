@@ -341,7 +341,7 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
       //   ),
       // ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 16.0),
+        padding: const EdgeInsets.only(bottom: 2.0),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -365,8 +365,10 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
                   ),
                 );
               },
-              backgroundColor: const Color(0xFF00E5FF),
-              foregroundColor: Colors.black,
+              backgroundColor: const Color(0xFF051024).withValues(
+                alpha: 0.7,
+              ), //const Color(0xFF00E5FF).withValues(alpha: 0.6),
+              foregroundColor: Color(0xFF00E5FF), //Colors.black,
               icon: const Icon(Icons.add_rounded, size: 24),
               label: const Text(
                 'New Habit',
@@ -388,7 +390,7 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
       //             begin: Alignment.topCenter,
       //             end: Alignment.bottomCenter,
       //             colors: [
-      //               // Color(0xFF00E5FF), // cosmicCyan hex mapping
+      //               //Color(0xFF00E5FF), // cosmicCyan hex mapping
       //               Color(0xFF051024), // deepNavy hex mapping
       //               Color(0xFF050112), // cosmicBlack hex mapping
       //             ],
@@ -969,6 +971,24 @@ class _PremiumCarousel extends StatelessWidget {
     required this.onOpenReflection,
   });
 
+  void _showPaywall(BuildContext context, String title, String description) {
+    showDialog(
+      context: context,
+      builder: (context) => PremiumPaywallDialog(
+        title: title,
+        description: description,
+        onCancelPressed: () => Navigator.pop(context),
+        onUpgradePressed: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const PaywallScreen()),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -1013,7 +1033,18 @@ class _PremiumCarousel extends StatelessWidget {
                 duration: "3 min",
                 gradient: const [deepOrange, black87],
                 icon: Icons.bubble_chart_rounded,
-                onTap: onOpenReflection,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  if (isPro) {
+                    onOpenReflection();
+                  } else {
+                    _showPaywall(
+                      context,
+                      "Unlock Celestial Reflection",
+                      "Upgrade to Pro to find your center and relax with advanced meditation features and guided breathwork.",
+                    );
+                  }
+                },
               ),
               _buildCarouselCard(
                 context: context,
@@ -1029,14 +1060,22 @@ class _PremiumCarousel extends StatelessWidget {
                 icon: Icons.hub_rounded,
                 onTap: () {
                   HapticFeedback.selectionClick();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const NebulaForgeScreen(
-                        sourcePhase: "Live Grid Dashboard",
+                  if (isPro) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const NebulaForgeScreen(
+                          sourcePhase: "Live Grid Dashboard",
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  } else {
+                    _showPaywall(
+                      context,
+                      "Unlock The Nebula Forge",
+                      "Upgrade to Pro to deeply analyze your habit correlations, gravitational synergy, and long-term orbital trajectories.",
+                    );
+                  }
                 },
               ),
               _buildCarouselCard(
@@ -1052,7 +1091,15 @@ class _PremiumCarousel extends StatelessWidget {
                 icon: Icons.nightlight_round_rounded,
                 onTap: () {
                   HapticFeedback.lightImpact();
-                  SleepAudioBottomSheet.show(context);
+                  if (isPro) {
+                    SleepAudioBottomSheet.show(context);
+                  } else {
+                    _showPaywall(
+                      context,
+                      "Unlock Deep Sleep Audio",
+                      "Upgrade to Pro to access premium binaural beats, deep space soundscapes, and advanced recovery audio sessions.",
+                    );
+                  }
                 },
               ),
               _buildCarouselCard(
@@ -1079,60 +1126,11 @@ class _PremiumCarousel extends StatelessWidget {
                       ),
                     );
                   } else {
-                    showDialog(
-                      context: context,
-                      builder: (context) => PremiumPaywallDialog(
-                        onCancelPressed: () => Navigator.pop(context),
-                        onUpgradePressed: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const PaywallScreen(),
-                            ),
-                          );
-                        },
-                      ),
+                    _showPaywall(
+                      context,
+                      "Unlock Pro Coaching",
+                      "Upgrade to Pro to access personalized AI coaching sessions, deeper insights, and advanced habit analysis. Elevate your journey with the full power of the Nebula Forge!",
                     );
-
-                    // showDialog(
-                    //   context: context,
-                    //   builder: (context) => AlertDialog(
-                    //     title: const Text(
-                    //       "Unlock Pro Coaching",
-                    //       style: TextStyle(color: Colors.white),
-                    //     ),
-                    //     content: const Text(
-                    //       "Upgrade to Pro to access personalized AI coaching sessions, deeper insights, and advanced habit analysis. Elevate your journey with the full power of the Nebula Forge!",
-                    //     ),
-                    //     gradient: const LinearGradient(
-                    //       begin: Alignment.topLeft,
-                    //       end: Alignment.bottomRight,
-                    //       colors: [
-                    //         cosmicCyan,
-                    //         black87,
-                    //       ],
-                    //     ),
-                    //     actions: [
-                    //       TextButton(
-                    //         onPressed: () => Navigator.pop(context),
-                    //         child: const Text("Not Now"),
-                    //       ),
-                    //       ElevatedButton(
-                    //         onPressed: () {
-                    //           Navigator.pop(context);
-                    //           Navigator.push(
-                    //             context,
-                    //             MaterialPageRoute(
-                    //               builder: (_) => const PaywallScreen(),
-                    //             ),
-                    //           );
-                    //         },
-                    //         child: const Text("Upgrade to Pro"),
-                    //       ),
-                    //     ],
-                    //   ),
-                    // );
                   }
                 },
               ),
@@ -1142,6 +1140,45 @@ class _PremiumCarousel extends StatelessWidget {
       ],
     );
   }
+
+  // showDialog(
+  //   context: context,
+  //   builder: (context) => AlertDialog(
+  //     title: const Text(
+  //       "Unlock Pro Coaching",
+  //       style: TextStyle(color: Colors.white),
+  //     ),
+  //     content: const Text(
+  //       "Upgrade to Pro to access personalized AI coaching sessions, deeper insights, and advanced habit analysis. Elevate your journey with the full power of the Nebula Forge!",
+  //     ),
+  //     gradient: const LinearGradient(
+  //       begin: Alignment.topLeft,
+  //       end: Alignment.bottomRight,
+  //       colors: [
+  //         cosmicCyan,
+  //         black87,
+  //       ],
+  //     ),
+  //     actions: [
+  //       TextButton(
+  //         onPressed: () => Navigator.pop(context),
+  //         child: const Text("Not Now"),
+  //       ),
+  //       ElevatedButton(
+  //         onPressed: () {
+  //           Navigator.pop(context);
+  //           Navigator.push(
+  //             context,
+  //             MaterialPageRoute(
+  //               builder: (_) => const PaywallScreen(),
+  //             ),
+  //           );
+  //         },
+  //         child: const Text("Upgrade to Pro"),
+  //       ),
+  //     ],
+  //   ),
+  // );
 
   Widget _buildCarouselCard({
     required BuildContext context,

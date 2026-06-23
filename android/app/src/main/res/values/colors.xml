@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- This hex color matches your brand's cosmic cyan -->
-    <color name="ic_launcher_background">#020205</color>
+    <color name="ic_launcher_background">#051024</color>
     <color name="notification_tint">#00E5FF</color>
 </resources>

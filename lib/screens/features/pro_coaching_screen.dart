@@ -115,26 +115,45 @@ class _ProCoachingScreenState extends State<ProCoachingScreen> {
   }
 
   Widget _buildHeader() {
-    return Column(
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "COGNITIVE TELEMETRY",
-          style: TextStyle(
-            color: const Color(0xFF00E5FF),
-            fontSize: 11,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 3,
-          ),
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "COGNITIVE TELEMETRY",
+              style: TextStyle(
+                color: Color(0xFF00E5FF),
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 3,
+              ),
+            ),
+            SizedBox(height: 4),
+            Text(
+              "Mission Commander",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 4),
-        const Text(
-          "Mission Commander",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
+        IconButton(
+          icon: const Icon(
+            Icons.close_rounded,
+            color: Colors.white70,
+            size: 32,
           ),
+          padding: EdgeInsets.zero,
+          alignment: Alignment.topRight,
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            Navigator.pop(context);
+          },
         ),
       ],
     );

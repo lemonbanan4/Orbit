@@ -15,7 +15,7 @@ struct Provider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
         
         // 🚨 GRAB THE FLUTTER DATA HERE 🚨
-        let userDefaults = UserDefaults(suiteName: "group.com.invokerlab.orbit")
+        let userDefaults = UserDefaults(suiteName: "group.com.orbitroutine.orbit")
         let title = userDefaults?.string(forKey: "title") ?? "No Habit Data"
         let streak = userDefaults?.integer(forKey: "streak") ?? 0
 
@@ -58,9 +58,15 @@ struct HabitWidgetEntryView : View {
             }
             .padding()
         }
-        .containerBackground(Color(red: 5/255, green: 16/255, blue: 36/255), for: .widget)
-        // This URL will be passed to your app when the widget is tapped
-        .widgetURL(URL(string: "orbit://habit?title=\(entry.title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"))
+        if #available(iOS 17.0, *) {
+            self
+                .containerBackground(Color(red: 5/255, green: 16/255, blue: 36/255), for: .widget)
+                .widgetURL(URL(string: "orbit://habit?title=\(entry.title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"))
+        } else {
+            self
+                .background(Color(red: 5/255, green: 16/255, blue: 36/255))
+                .widgetURL(URL(string: "orbit://habit?title=\(entry.title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"))
+        }
     }
 }
 

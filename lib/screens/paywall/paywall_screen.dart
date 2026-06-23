@@ -10,8 +10,6 @@ import 'dart:math' as math;
 import 'dart:io';
 import '../../widgets/common/animated_frosty_button.dart';
 import '../../widgets/package_card.dart';
-import '../../widgets/animated_video_background.dart';
-import '../navigation/main_navigation_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/common/paywall_video_background.dart';
@@ -318,8 +316,13 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
     // 2. Navigate to the root path
     if (context.mounted) {
-      // Because we set the flag to true, Authwrapper will now auto route them to MainNavigationScreen
-      context.go('/');
+      if (Navigator.canPop(context)) {
+        // If opened from the Dashboard as a popup, simply close it
+        Navigator.pop(context);
+      } else {
+        // if Opened at the very end of Onboarding, route them to the homescreen
+        context.go('/');
+      }
     }
   }
 
@@ -485,8 +488,8 @@ class _PaywallScreenState extends State<PaywallScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 8),
-                                  const Text(
-                                    "Please check your internet connection or Google Play account status and try again.",
+                                  Text(
+                                    "Please check your internet connection or ${Platform.isIOS ? 'Apple' : 'Google Play'} account status and try again.",
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       color: Colors.white60,
