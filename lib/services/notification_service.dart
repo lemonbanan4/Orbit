@@ -190,8 +190,8 @@ class NotificationService {
       for (int day = 0; day < 7; day++) {
         if (alarm.activeDays[day]) {
           final scheduledDate = _nextInstanceOfDayTime(day + 1, hour, minute);
-          final details = NotificationDetails(
-            android: const AndroidNotificationDetails(
+          const details = NotificationDetails(
+            android: AndroidNotificationDetails(
               'routine_channel_v2',
               'Routine Reminders',
               channelDescription: 'Reminders for your daily habits',
@@ -215,8 +215,8 @@ class NotificationService {
             );
 
             // Schedule the group summary for the exact same time
-            final summaryDetails = NotificationDetails(
-              android: const AndroidNotificationDetails(
+            const summaryDetails = NotificationDetails(
+              android: AndroidNotificationDetails(
                 'routine_channel_v2',
                 'Routine Reminders',
                 channelDescription: 'Reminders for your daily habits',
@@ -265,8 +265,8 @@ class NotificationService {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
 
-    final details = NotificationDetails(
-      android: const AndroidNotificationDetails(
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
         'daily_channel_v2',
         'Daily Reminders',
         channelDescription: 'Reminders to check in daily',
@@ -319,8 +319,8 @@ class NotificationService {
     final int notificationId = habitTitle.hashCode;
     final scheduledTime = tz.TZDateTime.now(tz.local).add(delay);
 
-    final details = NotificationDetails(
-      android: const AndroidNotificationDetails(
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
         'com.orbit.reminders',
         'Orbit Reminders',
         channelDescription: 'Reminders for skipped habits',

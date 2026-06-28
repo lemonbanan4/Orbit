@@ -28,7 +28,7 @@ class AiCoachService {
       );
 
       // 3. The Prompt
-      final prompt =
+      const prompt =
           "Give the user a short, highly motivational, and cosmic-themed welcome message to ignite their productivity today.";
 
       final response = await model.generateContent([Content.text(prompt)]);

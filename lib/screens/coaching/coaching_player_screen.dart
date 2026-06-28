@@ -73,14 +73,14 @@ class _CoachingPlayerScreenState extends State<CoachingPlayerScreen> {
           ),
 
           // 3. Player UI Content
-          SafeArea(
+          const SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: EdgeInsets.all(24.0),
               child: Column(
                 children: [
                   // --- HEADER: Title & Dismiss Button ---
                   // --- VOLUME SLIDER ---
-                  const Spacer(),
+                  Spacer(),
                   // --- PLAYER CONTROLS (Seekbar, Play/Pause) ---
                 ],
               ),

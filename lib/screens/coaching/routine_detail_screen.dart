@@ -618,7 +618,7 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                   final index = entry.key;
                                   final habit = entry.value;
                                   final isCompleted = habit.isCompleted;
-                                  final highlightColor = const Color(
+                                  const highlightColor = Color(
                                     0xFF00E5FF,
                                   );
                                   final isGoal = habit.isGoal;

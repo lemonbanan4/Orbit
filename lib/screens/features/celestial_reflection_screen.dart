@@ -192,11 +192,11 @@ class _CelestialReflectionScreenState extends State<CelestialReflectionScreen> {
         maxLines: 5,
         maxLength: 250,
         style: const TextStyle(color: Colors.white, fontSize: 16),
-        decoration: InputDecoration(
+        decoration: const InputDecoration(
           hintText: "Speak your truth to the dark expanse...",
           hintStyle: TextStyle(color: Colors.white38, fontSize: 15),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.all(20),
+          contentPadding: EdgeInsets.all(20),
           counterStyle: TextStyle(color: Colors.white30),
         ),
       ),

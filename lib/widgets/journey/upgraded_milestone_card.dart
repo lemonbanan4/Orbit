@@ -47,8 +47,8 @@ class UpgradedMilestoneCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(28),
                 side: const BorderSide(color: Colors.white10),
               ),
-              title: Row(
-                children: const [
+              title: const Row(
+                children: [
                   Icon(Icons.lock_outline_rounded, color: Colors.purpleAccent),
                   SizedBox(width: 12),
                   Text(
@@ -118,7 +118,7 @@ class UpgradedMilestoneCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color pathActiveGlow = const Color(0xFF00E5FF);
+    const Color pathActiveGlow = Color(0xFF00E5FF);
 
     return IntrinsicHeight(
       child: Row(

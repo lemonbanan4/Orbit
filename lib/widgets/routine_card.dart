@@ -740,8 +740,8 @@ class _RoutineCardState extends State<RoutineCard> {
                                             final habit = widget.habits[index];
                                             final bool isCompleted =
                                                 habit.isCompleted;
-                                            final Color highlightColor =
-                                                const Color(0xFF00E5FF);
+                                            const Color highlightColor =
+                                                Color(0xFF00E5FF);
                                             final bool isDeleting = _deletingIds
                                                 .contains(habit.id);
                                             final bool isRestored = context

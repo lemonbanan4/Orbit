@@ -863,7 +863,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
                             padding: const EdgeInsets.only(bottom: 12.0),
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(
+                                backgroundColor: const Color(
                                   0xFF1A1F36,
                                 ).withValues(alpha: 0.6),
 
