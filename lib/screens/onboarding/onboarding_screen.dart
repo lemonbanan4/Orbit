@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui';
-import 'package:orbit_app/screens/navigation/main_navigation_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:orbit_app/theme/glass_button.dart';
 import '../../theme/custom_colors.dart';
@@ -170,6 +171,44 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
   }
 
+  Future<void> _saveSurveyToFirestore() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      debugPrint("Error: No user is signed in. Cannot save survey.");
+      return; // Can't save if there's no user
+    }
+
+    // Prepare the data for Firestore
+    final Map<String, dynamic> surveyData = {
+      'uid': user.uid,
+      'name': _capturedUserName,
+      'email': user.email, // Capture email from the authenticated user
+      'onboarding_completed_at': FieldValue.serverTimestamp(),
+      'interests': selectedInterests
+          .toList(), // Convert Set to List for Firestore
+      'survey_answers': {},
+    };
+
+    // Map question titles to answers for better readability in Firestore
+    userAnswers.forEach((key, value) {
+      if (key < questions.length) {
+        // Use a shortened/sanitized version of the title as the key
+        final questionTitle = questions[key].title
+            .substring(0, 20)
+            .replaceAll('\n', ' ');
+        (surveyData['survey_answers'] as Map<String, dynamic>)[questionTitle] =
+            value;
+      }
+    });
+
+    // Save to the 'users' collection with the document ID set to the user's UID
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .set(surveyData, SetOptions(merge: true));
+    debugPrint("Survey data saved to Firestore for user ${user.uid}");
+  }
+
   void _triggerAnalysis() async {
     HapticFeedback.heavyImpact();
 
@@ -183,6 +222,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } catch (e) {
       debugPrint('Error requesting notification permissions: $e');
     }
+
+    // Save the data to Firestore before navigating
+    await _saveSurveyToFirestore();
 
     if (!mounted) return;
 
