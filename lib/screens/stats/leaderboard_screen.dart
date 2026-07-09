@@ -3,33 +3,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../common/add_friend_screen.dart';
-import 'global_leaderboard_tab.dart';
 import 'friends_leaderboard_tab.dart';
 import '../common/friend_requests_screen.dart';
 import '../../widgets/common/base_orbit_screen.dart';
 
-class LeaderboardScreen extends StatefulWidget {
+// NOTE: The "Global" leaderboard tab (all app users, ranked by XP) is
+// intentionally disabled for now. It displayed freely user-editable
+// displayNames to strangers app-wide with no report/block/filter
+// mechanism, which doesn't meet App Store Guideline 1.2's UGC
+// moderation requirements. Re-enable only once reporting/blocking is
+// in place; see global_leaderboard_tab.dart (kept, unused).
+class LeaderboardScreen extends StatelessWidget {
   const LeaderboardScreen({super.key});
-
-  @override
-  State<LeaderboardScreen> createState() => _LeaderboardScreenState();
-}
-
-class _LeaderboardScreenState extends State<LeaderboardScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +23,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     final currentUser = FirebaseAuth.instance.currentUser;
 
     return BaseOrbitScreen(
-      title: 'Leaderboard',
+      title: 'Friends Leaderboard',
       actions: [
         StreamBuilder<QuerySnapshot>(
           stream: currentUser != null
@@ -90,23 +75,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           },
         ),
       ],
-      bottom: TabBar(
-        controller: _tabController,
-        indicatorColor: textColor,
-        labelColor: textColor,
-        unselectedLabelColor: textColor.withValues(alpha: 0.6),
-        tabs: const [
-          Tab(text: 'Global'),
-          Tab(text: 'Friends'),
-        ],
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: const [
-          GlobalLeaderboardTab(),
-          FriendsLeaderboardTab(),
-        ],
-      ),
+      body: const FriendsLeaderboardTab(),
     );
   }
 }
