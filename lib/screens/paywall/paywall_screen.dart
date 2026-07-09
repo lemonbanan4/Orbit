@@ -462,12 +462,25 @@ class _PaywallScreenState extends State<PaywallScreen> {
     // Determine the button text based on the selected package
     String buttonText = "LOADING...";
 
+    // Apple Guideline 3.1.2 requires auto-renewal terms to be disclosed
+    // in-app, not just in the App Store description.
+    String renewalDisclosure = "";
     if (!_isLoadingPrice) {
       if (_selectedPackage != null) {
+        final priceString = _selectedPackage!.storeProduct.priceString;
         if (_selectedPackage!.packageType == PackageType.annual) {
           buttonText = "START 7-DAY FREE TRIAL"; // Make it clear!
+          renewalDisclosure =
+              "7-day free trial, then $priceString/year. Subscription "
+              "automatically renews unless canceled at least 24 hours "
+              "before the end of the current period. Any unused portion of "
+              "a free trial is forfeited once you purchase a subscription.";
         } else {
           buttonText = "SUBSCRIBE MONTHLY";
+          renewalDisclosure =
+              "$priceString/month. Subscription automatically renews unless "
+              "canceled at least 24 hours before the end of the current "
+              "period.";
         }
       } else {
         buttonText = "CONTINUE";
@@ -677,6 +690,19 @@ class _PaywallScreenState extends State<PaywallScreen> {
                           ),
                         ),
 
+                      if (renewalDisclosure.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text(
+                            renewalDisclosure,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+
                       // --- LEGAL & RESTORE LINKS ---
                       const SizedBox(height: 16),
                       Row(
@@ -706,7 +732,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                           TextButton(
                             onPressed: () async {
                               final url = Uri.parse(
-                                'https://gistcdn.githack.com/lemonbanan4/ca02585eabe38bde5c6513cf71c44f10/raw/terms_and_conditions.html',
+                                'https://orbitroutine.com/terms.html',
                               );
                               if (!await launchUrl(url)) {
                                 debugPrint('Could not launch $url');
@@ -723,7 +749,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                           TextButton(
                             onPressed: () async {
                               final url = Uri.parse(
-                                'https://gistcdn.githack.com/lemonbanan4/f40ab2f143dcc1574afdb5f5a98289ed/raw/privacy_policy.html',
+                                'https://orbitroutine.com/privacy.html',
                               );
                               if (!await launchUrl(url)) {
                                 debugPrint('Could not launch $url');

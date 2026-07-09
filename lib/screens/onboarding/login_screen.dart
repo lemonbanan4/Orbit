@@ -7,8 +7,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter_html/flutter_html.dart';
 import 'future_letter_screen.dart';
 import '../../widgets/common/glow_orb.dart';
 import '../../widgets/common/glass_container.dart';
@@ -34,7 +32,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
-  final Map<String, String> _documentCache = {};
   late TapGestureRecognizer _termsRecognizer;
   late TapGestureRecognizer _privacyRecognizer;
 
@@ -42,15 +39,9 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _termsRecognizer = TapGestureRecognizer()
-      ..onTap = () => _showDocumentDialog(
-        'Terms of Service',
-        'https://gistcdn.githack.com/lemonbanan4/ca02585eabe38bde5c6513cf71c44f10/raw/d695d037b8dc54f002b5dcdbe256b6bf11373f69/terms_and_conditions.html',
-      );
+      ..onTap = () => _launchURL('https://orbitroutine.com/terms.html');
     _privacyRecognizer = TapGestureRecognizer()
-      ..onTap = () => _showDocumentDialog(
-        'Privacy Policy',
-        'https://gistcdn.githack.com/lemonbanan4/f40ab2f143dcc1574afdb5f5a98289ed/raw/privacy_policy.html',
-      );
+      ..onTap = () => _launchURL('https://orbitroutine.com/privacy.html');
   }
 
   @override
@@ -133,93 +124,6 @@ class _LoginScreenState extends State<LoginScreen> {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       if (context.mounted) _showErrorSnackBar(context, 'Could not open link.');
-    }
-  }
-
-  void _showDocumentDialog(String title, String url) async {
-    // Show a loading indicator while fetching
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-
-    try {
-      String content;
-      // 1. Check the cache first
-      if (_documentCache.containsKey(url)) {
-        content = _documentCache[url]!;
-      } else {
-        // 2. If not cached, fetch from network with a timeout
-        final response = await http
-            .get(Uri.parse(url))
-            .timeout(const Duration(seconds: 10));
-        if (response.statusCode == 200) {
-          content = response.body;
-          _documentCache[url] = content; // 3. Store in cache for next time
-        } else {
-          if (!context.mounted) return;
-          Navigator.pop(context); // Dismiss loading indicator
-          _showErrorSnackBar(context, 'Could not load document.');
-          return;
-        }
-      }
-
-      if (!context.mounted) return;
-      Navigator.pop(context); // Dismiss loading indicator
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF0A102A),
-          title: Text(title, style: const TextStyle(color: Colors.white)),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: SingleChildScrollView(
-              child: Html(
-                data: content,
-                onLinkTap: (tappedUrl, _, _) => _launchURL(tappedUrl),
-                style: {
-                  "body": Style(
-                    color: Colors.white70,
-                    fontSize: FontSize(15.0),
-                    margin: Margins.zero,
-                  ),
-                  "h1": Style(color: Colors.white, fontSize: FontSize(22.0)),
-                  "h2": Style(color: Colors.white, fontSize: FontSize(18.0)),
-                  "h3": Style(color: Colors.white, fontSize: FontSize(16.0)),
-                  "a": Style(
-                    color: const Color(0xFF00E5FF),
-                    textDecoration: TextDecoration.underline,
-                  ),
-                },
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Close',
-                style: TextStyle(
-                  color: Color(0xFF00E5FF),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-      );
-    } catch (e) {
-      if (!context.mounted) return;
-      Navigator.pop(context); // Dismiss loading indicator
-      _showErrorSnackBar(
-        context,
-        'Could not load document. Check your internet connection.',
-      );
     }
   }
 
