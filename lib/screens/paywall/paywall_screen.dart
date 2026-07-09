@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:purchases_flutter/purchases_flutter.dart'; // You will need this for the buy button!
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:confetti/confetti.dart';
@@ -29,6 +31,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
   bool _isLoadingPrice = true; // Shows a loading spinner until we get the price
   bool _isPurchasing = false; // For the main purchase button
   bool _isRestoring = false; // For the restore button
+  bool _isVerifying = false; // True while polling for entitlement post-purchase
   String _paywallTitle = "Unlock Your\nFull Potential.";
   String _paywallSubtitle =
       "Get unlimited access to all premium features, personalized plans, and deep insights.";
@@ -98,7 +101,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
         });
       }
     } catch (e) {
-      print("Error fetching packages: $e");
+      debugPrint("Error fetching packages: $e");
     } finally {
       if (mounted) {
         setState(() => _isLoadingPrice = false);
@@ -135,34 +138,32 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
     setState(() => _isPurchasing = true);
     try {
-      PurchaseResult result = await Purchases.purchasePackage(
-        _selectedPackage!,
+      PurchaseResult result = await Purchases.purchase(
+        PurchaseParams.package(_selectedPackage!),
       );
       CustomerInfo customerInfo = result.customerInfo;
       final isPro =
           customerInfo.entitlements.all["Orbit Pro"]?.isActive == true;
 
       if (isPro) {
-        if (mounted) {
-          _confettiController.play();
-          await _showPremiumSuccessModal();
-
-          if (mounted) {
-            await _finishOnboardingAndGoToDashboard(context);
-          }
-        }
+        if (mounted) await _handlePurchaseConfirmed();
       } else {
-        // This is an edge case. The purchase went through but the entitlement isn't active.
-        // This can happen with network delays. Best to inform the user and suggest restoring.
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              backgroundColor: Colors.orange,
-              content: Text(
-                "Purchase successful, but verification is pending. Please try 'Restore' if Pro is not active.",
-              ),
-            ),
-          );
+        // Sandbox/StoreKit entitlement sync can lag a few seconds behind the
+        // transaction itself. This is what tripped App Review under
+        // Guideline 2.1(b) — the purchase completed but the UI never
+        // reacted. Show a "verifying" state instead of silently stalling.
+        setState(() => _isVerifying = true);
+        final confirmed = await _pollForEntitlement();
+        if (!mounted) return;
+        setState(() => _isVerifying = false);
+
+        if (confirmed) {
+          await _handlePurchaseConfirmed();
+        } else {
+          // Still couldn't confirm the entitlement after polling. The
+          // transaction itself succeeded (no exception was thrown), so give
+          // the user actionable next steps rather than a dead-end SnackBar.
+          await _showResolutionOptions();
         }
       }
     } on PlatformException catch (e) {
@@ -188,6 +189,112 @@ class _PaywallScreenState extends State<PaywallScreen> {
       }
     } finally {
       if (mounted) setState(() => _isPurchasing = false);
+    }
+  }
+
+  /// Polls RevenueCat for the "Orbit Pro" entitlement to catch up after a
+  /// purchase whose initial [CustomerInfo] doesn't yet reflect it (a known
+  /// sandbox/StoreKit sync delay). Returns true once confirmed active, or
+  /// false after [maxRetries] attempts.
+  Future<bool> _pollForEntitlement({int maxRetries = 5}) async {
+    for (var attempt = 0; attempt < maxRetries; attempt++) {
+      await Future.delayed(const Duration(seconds: 1));
+      if (!mounted) return false;
+      final refreshed = await Purchases.getCustomerInfo();
+      if (refreshed.entitlements.all["Orbit Pro"]?.isActive == true) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Future<void> _handlePurchaseConfirmed() async {
+    if (!mounted) return;
+    _confettiController.play();
+    await _showPremiumSuccessModal();
+    if (mounted) {
+      await _finishOnboardingAndGoToDashboard(context);
+    }
+  }
+
+  /// Shown when a purchase transaction succeeded but the entitlement still
+  /// hasn't synced after polling. Gives the user actionable next steps
+  /// instead of leaving them stuck on the paywall with just a SnackBar.
+  Future<void> _showResolutionOptions() async {
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF13002B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text(
+          'Almost there!',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          "Your payment went through, but we're still waiting on confirmation "
+          "from the App Store. Try Restore Purchases, or contact support if "
+          "this doesn't resolve in a few minutes.",
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => _sendPurchaseSupportRequest(),
+            child: const Text('Contact Support'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _performRestore();
+            },
+            child: const Text('Restore Purchases'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _sendPurchaseSupportRequest() async {
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final user = FirebaseAuth.instance.currentUser;
+    final userEmail = user?.email ?? 'No Email Provided';
+    final uid = user?.uid ?? 'Unknown UID';
+
+    navigator.pop(); // close the resolution dialog
+
+    try {
+      await FirebaseFirestore.instance.collection('mail').add({
+        'to': 'contact@orbitroutine.com',
+        'message': {
+          'subject': 'Orbit Pro purchase not unlocking for $userEmail',
+          'html':
+              '''
+          <h3>Purchase entitlement did not sync</h3>
+          <p><strong>User:</strong> $userEmail</p>
+          <p><strong>UID:</strong> $uid</p>
+          <p>The customer completed a purchase in the app, but the "Orbit Pro"
+          entitlement had not activated after polling RevenueCat. Please check
+          their RevenueCat/App Store transaction history.</p>
+        ''',
+          'replyTo': userEmail,
+        },
+      });
+      if (mounted) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Support request sent successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('Failed to send request: $e')),
+        );
+      }
     }
   }
 
@@ -556,6 +663,19 @@ class _PaywallScreenState extends State<PaywallScreen> {
                             duration: 500.ms,
                             curve: Curves.easeOutBack,
                           ),
+
+                      if (_isVerifying)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 12),
+                          child: Text(
+                            "Verifying your purchase...",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
 
                       // --- LEGAL & RESTORE LINKS ---
                       const SizedBox(height: 16),
