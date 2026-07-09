@@ -21,7 +21,7 @@ class ShareMilestoneButton extends StatelessWidget {
         HapticFeedback.mediumImpact();
         final String shareText =
             "🚀 I just completed '$milestoneTitle' and hit a $streakCount day streak in Orbit! Join me in building better habits.";
-        Share.share(shareText);
+        SharePlus.instance.share(ShareParams(text: shareText));
       },
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),

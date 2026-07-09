@@ -653,8 +653,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     final refCode = user != null
                         ? user.uid.substring(0, 6).toUpperCase()
                         : 'ORBIT';
-                    Share.share(
-                      'I use Orbit to master my daily habits! Use my invite code $refCode to unlock 30 Days of Orbit Pro for free! 🚀 https://orbit.app/invite',
+                    SharePlus.instance.share(
+                      ShareParams(
+                        text:
+                            'I use Orbit to master my daily habits! Use my invite code $refCode to unlock 30 Days of Orbit Pro for free! 🚀 https://orbit.app/invite',
+                      ),
                     );
                   },
                   icon: Icons.favorite_rounded,

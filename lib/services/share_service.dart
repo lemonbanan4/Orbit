@@ -97,7 +97,9 @@ class ShareService {
                   subtitle: const Text('Share image and text via native sheet'),
                   onTap: () {
                     Navigator.pop(context);
-                    Share.shareXFiles([XFile(imageFile.path)], text: shareText);
+                    SharePlus.instance.share(
+                      ShareParams(files: [XFile(imageFile.path)], text: shareText),
+                    );
                   },
                 ),
                 ListTile(

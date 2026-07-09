@@ -178,9 +178,12 @@ class _CosmicMirrorScreenState extends State<CosmicMirrorScreen> {
     return OutlinedButton.icon(
       onPressed: () {
         HapticFeedback.mediumImpact();
-        Share.share(
-          "I'm on a $streakCount-day streak in Orbit! Here is my Cosmic Legend:\n\n\"$legendText\"\n\nCan you beat my high score? 🚀",
-          subject: 'My Orbit Progress',
+        SharePlus.instance.share(
+          ShareParams(
+            text:
+                "I'm on a $streakCount-day streak in Orbit! Here is my Cosmic Legend:\n\n\"$legendText\"\n\nCan you beat my high score? 🚀",
+            subject: 'My Orbit Progress',
+          ),
         );
       },
       icon: const Icon(Icons.auto_awesome, color: Colors.amberAccent),

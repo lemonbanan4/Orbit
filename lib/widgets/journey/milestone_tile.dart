@@ -1398,9 +1398,11 @@ class _MilestoneTileState extends State<MilestoneTile>
                         mimeType: 'image/png',
                         name: 'milestone_${widget.index}_watermarked.png',
                       );
-                      await Share.shareXFiles([xFile], text: shareText);
+                      await SharePlus.instance.share(
+                        ShareParams(files: [xFile], text: shareText),
+                      );
                     } else {
-                      await Share.share(shareText);
+                      await SharePlus.instance.share(ShareParams(text: shareText));
                     }
                   },
                   icon: const Icon(Icons.ios_share_rounded),

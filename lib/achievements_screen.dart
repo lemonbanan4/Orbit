@@ -218,8 +218,9 @@ class _AchievementCardState extends State<_AchievementCard> {
   void _showShareBottomSheet(File imageFile) {
     final String shareText =
         "I just unlocked the '${widget.achievement['title']}' badge in Orbit! 🚀 Can you beat my streak?";
-    // ignore: deprecated_member_use
-    Share.shareXFiles([XFile(imageFile.path)], text: shareText);
+    SharePlus.instance.share(
+      ShareParams(files: [XFile(imageFile.path)], text: shareText),
+    );
   }
 
   @override
