@@ -44,10 +44,13 @@ service cloud.firestore {
         'xp', 'avatar', 'mood_history', 'xp_history', 'displayName', 
         'intention_history', 'unlocked_journey_chapters', 'unlocked_milestones', 
         'audio_track', 'ambient_volume', 'last_updated', 'bookmarked_quotes', 
-        'unlocked_reader_badge', 'unlocked_themes', 'active_nebula_theme', 
-        'all_notifs', 'daily_summary_notifs', 'interests'
+        'unlocked_reader_badge', 'unlocked_themes', 'active_nebula_theme',
+        'all_notifs', 'daily_summary_notifs', 'interests',
+        'email', 'onboarding_completed_at', 'survey_answers',
+        'isGuest', 'createdAt', 'streakCount', 'completedMilestones',
+        'achievements', 'name', 'photoUrl', 'fcmToken', 'friends'
       ];
-      
+
       // Prevent 1MB string payload attacks on display name
       let isNameValid = !('displayName' in data) || isValidString(data.displayName, 0, 60);
       
@@ -65,6 +68,13 @@ service cloud.firestore {
       let allowedKeys = ['timestamp', 'reason'];
       return data.keys().hasOnly(allowedKeys) &&
              isValidString(data.reason, 0, 500);
+    }
+
+    function isValidFriendRequest(data) {
+      let allowedKeys = ['senderId', 'senderName', 'status', 'timestamp'];
+      return data.keys().hasOnly(allowedKeys) &&
+             isValidString(data.senderName, 0, 60) &&
+             data.status is string;
     }
 
     // ===============================================================
@@ -89,6 +99,25 @@ service cloud.firestore {
       match /notifications/{notificationId} {
         // Fallback for notifications queue
         allow read, write: if isOwner(userId);
+      }
+
+      match /friend_requests/{requestId} {
+        // The recipient (owner) can see and decline their own incoming requests,
+        // and mark one as accepted (nothing else about it is client-editable —
+        // the mutual friends-list write happens server-side in the
+        // notifyOnFriendRequestAccepted Cloud Function via the Admin SDK).
+        allow read, delete: if isOwner(userId);
+        allow update: if isOwner(userId) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
+          request.resource.data.status == 'accepted';
+
+        // Anyone can send a request to another user's subcollection, but only
+        // as themselves (the doc ID must be their own uid) and only pending.
+        allow create: if isAuthenticated() &&
+          request.auth.uid == requestId &&
+          request.resource.data.senderId == request.auth.uid &&
+          request.resource.data.status == 'pending' &&
+          isValidFriendRequest(request.resource.data);
       }
     }
 

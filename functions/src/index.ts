@@ -288,19 +288,33 @@ export const notifyOnFriendRequestAccepted = onDocumentUpdated(
 
       if (!senderId) return;
 
-      // 1. Fetch the user who accepted the request
+      const db = admin.firestore();
+
+      // 1. Establish the mutual friendship server-side. Clients can only
+      // write their own user document (isOwner-only security rules), so
+      // this cross-user write has to happen here via the Admin SDK, which
+      // bypasses Firestore rules. Also clean up the now-resolved request.
+      const batch = db.batch();
+      batch.update(db.collection("users").doc(targetUserId), {
+        friends: admin.firestore.FieldValue.arrayUnion(senderId),
+      });
+      batch.update(db.collection("users").doc(senderId), {
+        friends: admin.firestore.FieldValue.arrayUnion(targetUserId),
+      });
+      batch.delete(
+        db.collection("users").doc(targetUserId)
+          .collection("friend_requests").doc(event.params.requestId)
+      );
+      await batch.commit();
+
+      // 2. Fetch the user who accepted the request
       const targetUserDoc =
-        await admin.firestore()
-          .collection("users")
-          .doc(targetUserId).get();
+        await db.collection("users").doc(targetUserId).get();
       const acceptorName =
         targetUserDoc.data()?.displayName || "A user";
 
-      // 2. Fetch the sender to get their FCM token
-      const senderDoc = await admin
-        .firestore()
-        .collection("users")
-        .doc(senderId).get();
+      // 3. Fetch the sender to get their FCM token
+      const senderDoc = await db.collection("users").doc(senderId).get();
 
       const senderData = senderDoc.data();
 
