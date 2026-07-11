@@ -59,7 +59,6 @@ class FriendRequestsScreen extends StatelessWidget {
               final req = requests[index];
               final data = req.data() as Map<String, dynamic>;
               final senderName = data['senderName'] ?? 'Unknown';
-              final senderId = data['senderId'];
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12.0),
@@ -87,31 +86,12 @@ class FriendRequestsScreen extends StatelessWidget {
                         icon: const Icon(Icons.check_circle_rounded,
                             color: Colors.greenAccent),
                         onPressed: () async {
-                          final batch = FirebaseFirestore.instance.batch();
-
-                          // Clean up the pending request
-                          batch.delete(req.reference);
-
-                          // Add them to my friends list
-                          batch.update(
-                              FirebaseFirestore.instance
-                                  .collection('users')
-                                  .doc(currentUser.uid),
-                              {
-                                'friends': FieldValue.arrayUnion([senderId])
-                              });
-
-                          // Add me to their friends list
-                          batch.update(
-                              FirebaseFirestore.instance
-                                  .collection('users')
-                                  .doc(senderId),
-                              {
-                                'friends':
-                                    FieldValue.arrayUnion([currentUser.uid])
-                              });
-
-                          await batch.commit();
+                          // Only mark this request accepted here — security
+                          // rules only let a client write its own user
+                          // document, so the mutual friends-list update (and
+                          // deleting this request) happens server-side in
+                          // the notifyOnFriendRequestAccepted Cloud Function.
+                          await req.reference.update({'status': 'accepted'});
                         },
                       ),
                       IconButton(

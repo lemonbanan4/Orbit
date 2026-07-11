@@ -6,6 +6,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../widgets/common/base_orbit_screen.dart';
 import '../../widgets/common/premium_glass_card.dart';
 import '../../widgets/reward_popup.dart';
+import '../common/add_friend_screen.dart';
+import '../common/friend_requests_screen.dart';
 
 class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({super.key});
@@ -38,8 +40,49 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     final bool isDark = theme.brightness == Brightness.dark;
 
     return BaseOrbitScreen(
-      title: 'Global Ranks',
+      title: 'Friends Leaderboard',
       actions: [
+        if (currentUserId != null)
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(currentUserId)
+                .collection('friend_requests')
+                .where('status', isEqualTo: 'pending')
+                .snapshots(),
+            builder: (context, snapshot) {
+              final pendingCount = snapshot.data?.docs.length ?? 0;
+              return IconButton(
+                icon: Badge(
+                  isLabelVisible: pendingCount > 0,
+                  label: Text(pendingCount.toString()),
+                  child: Icon(
+                    Icons.mark_email_unread_rounded,
+                    color: textColor,
+                  ),
+                ),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const FriendRequestsScreen(),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        IconButton(
+          icon: Icon(Icons.person_add_alt_1_rounded, color: textColor),
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AddFriendScreen()),
+            );
+          },
+        ),
         IconButton(
           icon: Icon(Icons.refresh_rounded, color: textColor),
           onPressed: () {
@@ -75,130 +118,186 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               );
             },
           ),
-          StreamBuilder<QuerySnapshot>(
-            // Fetch the top 50 users globally, sorted by XP
-            stream: FirebaseFirestore.instance
-                .collection('users')
-                .orderBy('xp', descending: true)
-                .limit(50)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF00E5FF)));
-              }
+          if (currentUserId == null)
+            Center(
+              child: Text('Please log in.', style: TextStyle(color: textColor)),
+            )
+          else
+            StreamBuilder<DocumentSnapshot>(
+              // Only ranks the current user's friends (+ themselves), not
+              // every app user. A prior version queried all users globally,
+              // which exposed freely-editable display names to strangers
+              // with no report/block mechanism (App Store Guideline 1.2).
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(currentUserId)
+                  .snapshots(),
+              builder: (context, userSnap) {
+                if (userSnap.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+                  );
+                }
 
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return Center(
-                  child: Text(
-                    'No explorers found in orbit yet.',
-                    style: TextStyle(color: textColor.withValues(alpha: 0.5)),
-                  ),
-                );
-              }
+                final userData = userSnap.data?.data() as Map<String, dynamic>?;
+                final friends = (userData?['friends'] as List<dynamic>?) ?? [];
 
-              final docs = snapshot.data!.docs;
+                var queryIds = <String>[
+                  currentUserId,
+                  ...friends.cast<String>(),
+                ];
+                // Firestore 'in' queries allow a maximum of 30 items
+                if (queryIds.length > 30) queryIds = queryIds.sublist(0, 30);
 
-              return ListView.builder(
-                controller: _scrollController,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                physics: const BouncingScrollPhysics(),
-                itemCount: docs.length,
-                itemBuilder: (context, index) {
-                  final data = docs[index].data() as Map<String, dynamic>;
-                  final rank = index + 1;
-                  final isMe = docs[index].id == currentUserId;
+                return StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('users')
+                      .where(FieldPath.documentId, whereIn: queryIds)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF00E5FF),
+                        ),
+                      );
+                    }
 
-                  final name = data['name'] ?? 'Explorer';
-                  final xp = data['xp'] as int? ?? 0;
-                  final level = RewardPopup.getLevel(xp);
-                  final photoUrl = data['photoURL'] as String?;
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return Center(
+                        child: Text(
+                          'No explorers found in orbit yet.',
+                          style: TextStyle(
+                            color: textColor.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      );
+                    }
 
-                  final rankColor = _getRankColor(rank);
-                  final isTop3 = rank <= 3;
+                    final docs = snapshot.data!.docs.toList()
+                      ..sort((a, b) {
+                        final aXp =
+                            (a.data() as Map<String, dynamic>)['xp'] as int? ??
+                            0;
+                        final bXp =
+                            (b.data() as Map<String, dynamic>)['xp'] as int? ??
+                            0;
+                        return bXp.compareTo(aXp);
+                      });
 
-                  Widget card = PremiumGlassCard(
-                    padding: const EdgeInsets.all(4),
-                    child: ListTile(
-                      leading: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(
-                            width: 30,
-                            child: Text(
-                              '#$rank',
-                              textAlign: TextAlign.center,
+                    return ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: docs.length,
+                      itemBuilder: (context, index) {
+                        final data = docs[index].data() as Map<String, dynamic>;
+                        final rank = index + 1;
+                        final isMe = docs[index].id == currentUserId;
+
+                        final name = data['name'] ?? 'Explorer';
+                        final xp = data['xp'] as int? ?? 0;
+                        final level = RewardPopup.getLevel(xp);
+                        final photoUrl = data['photoUrl'] as String?;
+
+                        final rankColor = _getRankColor(rank);
+                        final isTop3 = rank <= 3;
+
+                        Widget card = PremiumGlassCard(
+                          padding: const EdgeInsets.all(4),
+                          child: ListTile(
+                            leading: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 30,
+                                  child: Text(
+                                    '#$rank',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: rank <= 3
+                                          ? rankColor
+                                          : textColor.withValues(alpha: 0.5),
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                CircleAvatar(
+                                  backgroundColor: rankColor.withValues(
+                                    alpha: 0.2,
+                                  ),
+                                  backgroundImage: photoUrl != null
+                                      ? NetworkImage(photoUrl)
+                                      : null,
+                                  child: photoUrl == null
+                                      ? Icon(Icons.person, color: rankColor)
+                                      : null,
+                                ),
+                              ],
+                            ),
+                            title: Text(
+                              isMe ? '$name (You)' : name,
                               style: TextStyle(
-                                color: rank <= 3
-                                    ? rankColor
-                                    : textColor.withValues(alpha: 0.5),
-                                fontWeight: FontWeight.w900,
+                                color: isMe
+                                    ? const Color(0xFF00E5FF)
+                                    : textColor,
+                                fontWeight: isMe
+                                    ? FontWeight.w900
+                                    : FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Text(
+                              'Level $level',
+                              style: TextStyle(
+                                color: textColor.withValues(alpha: 0.6),
+                              ),
+                            ),
+                            trailing: Text(
+                              '$xp XP',
+                              style: TextStyle(
+                                color: rankColor,
+                                fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          CircleAvatar(
-                            backgroundColor: rankColor.withValues(alpha: 0.2),
-                            backgroundImage: photoUrl != null
-                                ? NetworkImage(photoUrl)
-                                : null,
-                            child: photoUrl == null
-                                ? Icon(Icons.person, color: rankColor)
-                                : null,
-                          ),
-                        ],
-                      ),
-                      title: Text(
-                        isMe ? '$name (You)' : name,
-                        style: TextStyle(
-                          color: isMe ? const Color(0xFF00E5FF) : textColor,
-                          fontWeight: isMe ? FontWeight.w900 : FontWeight.bold,
-                        ),
-                      ),
-                      subtitle: Text(
-                        'Level $level',
-                        style:
-                            TextStyle(color: textColor.withValues(alpha: 0.6)),
-                      ),
-                      trailing: Text(
-                        '$xp XP',
-                        style: TextStyle(
-                          color: rankColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  );
-
-                  // Add a pulsing glow to the top 3 ranks!
-                  if (isTop3) {
-                    card = card
-                        .animate(onPlay: (c) => c.repeat(reverse: true))
-                        .boxShadow(
-                          begin: const BoxShadow(color: Colors.transparent),
-                          end: BoxShadow(
-                            color: rankColor.withValues(alpha: 0.5),
-                            blurRadius: 15,
-                            spreadRadius: 2,
-                          ),
-                          duration: 1.5.seconds,
                         );
-                  }
 
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
-                    child: card
-                        .animate()
-                        .fade(delay: (index * 50).ms)
-                        .slideX(begin: 0.1),
-                  );
-                },
-              );
-            },
-          ),
+                        // Add a pulsing glow to the top 3 ranks!
+                        if (isTop3) {
+                          card = card
+                              .animate(onPlay: (c) => c.repeat(reverse: true))
+                              .boxShadow(
+                                begin: const BoxShadow(
+                                  color: Colors.transparent,
+                                ),
+                                end: BoxShadow(
+                                  color: rankColor.withValues(alpha: 0.5),
+                                  blurRadius: 15,
+                                  spreadRadius: 2,
+                                ),
+                                duration: 1.5.seconds,
+                              );
+                        }
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: card
+                              .animate()
+                              .fade(delay: (index * 50).ms)
+                              .slideX(begin: 0.1),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
         ],
       ),
     );
