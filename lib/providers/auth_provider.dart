@@ -84,12 +84,14 @@ class AppAuthProvider extends ChangeNotifier {
     super.dispose();
   }
 
-  Future<void> signInWithGoogle() async {
-    await _authService.signInWithGoogle();
+  // Returns whether this sign-in just created a brand new account.
+  Future<bool> signInWithGoogle() async {
+    return await _authService.signInWithGoogle();
   }
 
-  Future<void> signInWithApple() async {
-    await _authService.signInWithApple();
+  // Returns whether this sign-in just created a brand new account.
+  Future<bool> signInWithApple() async {
+    return await _authService.signInWithApple();
   }
 
   // EMAIL / PASSWORD LOGIN

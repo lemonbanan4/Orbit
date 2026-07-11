@@ -162,9 +162,7 @@ class _EmailLinkScreenState extends State<EmailLinkScreen> {
                   style: const TextStyle(color: Colors.white),
                   obscureText: true,
                   decoration: _inputDecoration("Password", Icons.lock_rounded),
-                  validator: (v) => v!.length < 6
-                      ? "Password must be at least 6 characters"
-                      : null,
+                  validator: _validatePassword,
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton(
@@ -197,6 +195,18 @@ class _EmailLinkScreenState extends State<EmailLinkScreen> {
         ),
       ),
     );
+  }
+
+  // Matches login_screen.dart's sign-up password policy, kept in sync so
+  // both account-creation paths enforce the same rule.
+  String? _validatePassword(String? password) {
+    if (password == null || password.length < 8) {
+      return 'Password must be at least 8 characters.';
+    }
+    if (!password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
+      return 'Password needs at least one special character.';
+    }
+    return null;
   }
 
   InputDecoration _inputDecoration(String label, IconData icon) {

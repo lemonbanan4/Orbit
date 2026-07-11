@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../providers/auth_provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/gestures.dart';
@@ -27,10 +28,10 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoadingGuest = false;
   bool _isLoadingApple = false;
   bool _isLoadingEmail = false;
+  bool _isLoadingReset = false;
   bool _isSignUp = false;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
   late TapGestureRecognizer _termsRecognizer;
   late TapGestureRecognizer _privacyRecognizer;
@@ -48,7 +49,6 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _confirmPasswordController.dispose();
     _nameController.dispose();
     _termsRecognizer.dispose();
     _privacyRecognizer.dispose();
@@ -127,18 +127,20 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<bool> _performSignIn(
-    Future<void> Function() signInMethod,
+  // Returns null on failure; otherwise the "isNewUser" flag from
+  // signInMethod, so callers can tell a genuine sign-up from a returning
+  // user signing back in.
+  Future<bool?> _performSignIn(
+    Future<bool> Function() signInMethod,
     String provider,
     void Function(bool) setLoading,
   ) async {
     HapticFeedback.mediumImpact();
     setLoading(true);
     try {
-      await signInMethod();
-      return true;
+      return await signInMethod();
     } catch (e, stackTrace) {
-      if (!context.mounted) return false;
+      if (!context.mounted) return null;
 
       // Log the error securely to Crashlytics
       FirebaseCrashlytics.instance.recordError(
@@ -164,7 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       _showErrorSnackBar(context, errorMessage);
-      return false;
+      return null;
     } finally {
       if (context.mounted) setLoading(false);
     }
@@ -172,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isValidEmail(String email) {
     return RegExp(
-      r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
+      r"^[\w.!#$%&'*+\-/=?^`{|}~]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$",
     ).hasMatch(email);
   }
 
@@ -193,12 +195,10 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleEmailSignIn() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
-    final confirmPassword = _confirmPasswordController.text;
     final name = _nameController.text.trim();
 
     String? emailErr;
     String? passwordErr;
-    String? confirmPasswordErr;
     String? nameErr;
     bool hasError = false;
 
@@ -220,40 +220,37 @@ class _LoginScreenState extends State<LoginScreen> {
         passwordErr = passwordValidationError;
         hasError = true;
       }
-      if (password != confirmPassword) {
-        confirmPasswordErr = 'Passwords do not match.';
-        hasError = true;
-      }
     }
 
     if (hasError) {
       final firstError =
-          emailErr ??
-          nameErr ??
-          passwordErr ??
-          confirmPasswordErr ??
-          'Please check your inputs.';
+          emailErr ?? nameErr ?? passwordErr ?? 'Please check your inputs.';
       _showErrorSnackBar(context, firstError);
       return;
     }
 
-    final success = await _performSignIn(
-      () => _isSignUp
-          ? context.read<AppAuthProvider>().createUserWithEmailAndPassword(
-              email,
-              password,
-              name,
-            )
-          : context.read<AppAuthProvider>().signInWithEmailAndPassword(
-              email,
-              password,
-            ),
+    final isNewUser = await _performSignIn(
+      () async {
+        if (_isSignUp) {
+          await context.read<AppAuthProvider>().createUserWithEmailAndPassword(
+            email,
+            password,
+            name,
+          );
+        } else {
+          await context.read<AppAuthProvider>().signInWithEmailAndPassword(
+            email,
+            password,
+          );
+        }
+        return _isSignUp;
+      },
       _isSignUp ? 'Sign Up' : 'Email',
       (v) => setState(() => _isLoadingEmail = v),
     );
 
-    if (success && context.mounted) {
-      if (_isSignUp) {
+    if (isNewUser != null && context.mounted) {
+      if (isNewUser) {
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -266,7 +263,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // ignore: unused_element
   Future<void> _handleForgotPassword() async {
     final email = _emailController.text.trim();
     if (!_isValidEmail(email)) {
@@ -277,6 +273,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    setState(() => _isLoadingReset = true);
     try {
       await context.read<AppAuthProvider>().sendPasswordResetEmail(email);
       if (context.mounted) {
@@ -289,6 +286,8 @@ class _LoginScreenState extends State<LoginScreen> {
           'Failed to send reset email. Please try again.',
         );
       }
+    } finally {
+      if (mounted) setState(() => _isLoadingReset = false);
     }
   }
 
@@ -408,7 +407,33 @@ class _LoginScreenState extends State<LoginScreen> {
                             prefixIcon: Icons.lock_outline,
                             obscureText: true,
                           ),
-                          const SizedBox(height: 24),
+                          if (!_isSignUp) ...[
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: _isLoadingReset
+                                    ? null
+                                    : _handleForgotPassword,
+                                child: _isLoadingReset
+                                    ? const SizedBox(
+                                        height: 12,
+                                        width: 12,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white54,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Text(
+                                        "Forgot Password?",
+                                        style: TextStyle(
+                                          color: Colors.white54,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                          ] else
+                            const SizedBox(height: 16),
                           PrimaryButton(
                             text: _isSignUp ? "Create Orbit" : "Sign In",
                             onPressed: _handleEmailSignIn,
@@ -423,19 +448,25 @@ class _LoginScreenState extends State<LoginScreen> {
                     // SOCIAL BUTTONS
                     SocialAuthButton(
                       onPressed: () async {
-                        final success = await _performSignIn(
+                        final isNewUser = await _performSignIn(
                           () =>
                               context.read<AppAuthProvider>().signInWithApple(),
                           'Apple',
                           (v) => setState(() => _isLoadingApple = v),
                         );
-                        if (success && context.mounted) {
-                          // Push the letter so social sign-ups see the onboarding lore
+                        // Only genuinely new sign-ups see the welcome
+                        // letter/contract — a returning user signing back in
+                        // goes straight into the app via AuthWrapper.
+                        if (isNewUser == true && context.mounted) {
+                          final displayName =
+                              FirebaseAuth.instance.currentUser?.displayName;
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const FutureLetterScreen(
-                                userName: 'Explorer',
+                              builder: (context) => FutureLetterScreen(
+                                userName: (displayName?.isNotEmpty ?? false)
+                                    ? displayName!
+                                    : 'Explorer',
                               ),
                             ),
                           );
@@ -451,19 +482,26 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 12),
                     SocialAuthButton(
                       onPressed: () async {
-                        final success = await _performSignIn(
+                        final isNewUser = await _performSignIn(
                           () => context
                               .read<AppAuthProvider>()
                               .signInWithGoogle(),
                           'Google',
                           (v) => setState(() => _isLoadingGoogle = v),
                         );
-                        if (success && context.mounted) {
+                        // Only genuinely new sign-ups see the welcome
+                        // letter/contract — a returning user signing back in
+                        // goes straight into the app via AuthWrapper.
+                        if (isNewUser == true && context.mounted) {
+                          final displayName =
+                              FirebaseAuth.instance.currentUser?.displayName;
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const FutureLetterScreen(
-                                userName: 'Explorer',
+                              builder: (context) => FutureLetterScreen(
+                                userName: (displayName?.isNotEmpty ?? false)
+                                    ? displayName!
+                                    : 'Explorer',
                               ),
                             ),
                           );
@@ -495,7 +533,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     GuestAuthButton(
                       onPressed: () async {
                         await _performSignIn(
-                          () => context.read<AppAuthProvider>().signInAsGuest(),
+                          () async {
+                            await context
+                                .read<AppAuthProvider>()
+                                .signInAsGuest();
+                            return false;
+                          },
                           'Guest',
                           (v) => setState(() => _isLoadingGuest = v),
                         );

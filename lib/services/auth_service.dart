@@ -60,7 +60,10 @@ class AuthService {
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  Future<void> signInWithGoogle() async {
+  // Returns whether this sign-in just created a brand new account (vs. a
+  // returning user), so the UI can decide whether to show onboarding/welcome
+  // screens or just go straight into the app.
+  Future<bool> signInWithGoogle() async {
     // Assign to a local variable to enable Dart's null-safety type promotion
     final googleSignIn = _googleSignIn;
     if (googleSignIn == null) {
@@ -102,9 +105,17 @@ class AuthService {
       );
 
       // 5. Sign in or link with the credential
-      await _signInOrLink(credential);
+      final isNewUser = await _signInOrLink(credential);
 
       if (_auth.currentUser != null) {
+        // Google's credential doesn't automatically populate the Firebase
+        // Auth user's displayName, so set it explicitly (same as email
+        // sign-up already does) — otherwise currentUser.displayName stays
+        // null and callers fall back to a generic placeholder name.
+        if (googleUser.displayName != null &&
+            _auth.currentUser!.displayName != googleUser.displayName) {
+          await _auth.currentUser!.updateDisplayName(googleUser.displayName);
+        }
         await _ensureUserDocument(
           _auth.currentUser!,
           isGuest: false,
@@ -113,6 +124,8 @@ class AuthService {
           photoUrl: googleUser.photoUrl,
         );
       }
+
+      return isNewUser;
     } catch (e) {
       debugPrint("Google Sign-In Error: $e");
       rethrow; // Good practice to rethrow so the UI can catch and show an error!
@@ -153,7 +166,10 @@ class AuthService {
     await _auth.sendPasswordResetEmail(email: email);
   }
 
-  Future<void> signInWithApple() async {
+  // Returns whether this sign-in just created a brand new account (vs. a
+  // returning user), so the UI can decide whether to show onboarding/welcome
+  // screens or just go straight into the app.
+  Future<bool> signInWithApple() async {
     try {
       WebAuthenticationOptions? webOptions;
       // Apple Sign In on Web and Android requires a Service ID and redirect URI
@@ -197,12 +213,19 @@ class AuthService {
       ).credential(idToken: appleCredential.identityToken, rawNonce: rawNonce);
 
       // 3. Link or Sign-In
-      await _signInOrLink(credential);
+      final isNewUser = await _signInOrLink(credential);
 
       if (_auth.currentUser != null) {
+        // Apple only ever provides givenName/familyName on the very first
+        // authorization for this Apple ID + app, so this may be empty on
+        // subsequent sign-ins — only update when we actually have a name,
+        // never clobber a previously-set displayName with a blank one.
         final givenName = appleCredential.givenName ?? '';
         final familyName = appleCredential.familyName ?? '';
         final name = '$givenName $familyName'.trim();
+        if (name.isNotEmpty && _auth.currentUser!.displayName != name) {
+          await _auth.currentUser!.updateDisplayName(name);
+        }
         await _ensureUserDocument(
           _auth.currentUser!,
           isGuest: false,
@@ -211,6 +234,8 @@ class AuthService {
           photoUrl: _auth.currentUser!.photoURL,
         );
       }
+
+      return isNewUser;
     } catch (e) {
       debugPrint("Apple Sign-In Error: $e");
       rethrow;
@@ -258,11 +283,17 @@ class AuthService {
   }
 
   // --- Helpers for Authentication & Linking ---
-  Future<void> _signInOrLink(AuthCredential credential) async {
+  // Returns whether this credential just created a brand new account, so
+  // callers can tell a genuine sign-up from a returning user signing back
+  // in (they should NOT be sent through onboarding/welcome screens again).
+  Future<bool> _signInOrLink(AuthCredential credential) async {
     final currentUser = _auth.currentUser;
     if (currentUser != null && currentUser.isAnonymous) {
       try {
         await currentUser.linkWithCredential(credential);
+        // Linking a credential onto an existing guest account never counts
+        // as "new" — the guest already went through onboarding.
+        return false;
       } on FirebaseAuthException catch (e) {
         if (e.code == 'credential-already-in-use' ||
             e.code == 'email-already-in-use') {
@@ -281,8 +312,11 @@ class AuthService {
           try {
             await currentUser.delete();
           } catch (_) {}
+
+          return false;
         } else if (e.code == 'provider-already-linked') {
           // Safe to ignore, the account is already linked
+          return false;
         } else if (e.code == 'user-disabled') {
           throw Exception(
             'This account has been disabled by an administrator.',
@@ -293,7 +327,8 @@ class AuthService {
       }
     } else {
       try {
-        await _auth.signInWithCredential(credential);
+        final userCred = await _auth.signInWithCredential(credential);
+        return userCred.additionalUserInfo?.isNewUser ?? false;
       } on FirebaseAuthException catch (e) {
         if (e.code == 'user-disabled') {
           throw Exception(
