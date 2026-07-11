@@ -34,6 +34,7 @@
         .divider { color: rgba(255,255,255,0.15); }
         @keyframes floatIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
     </style>
+    <script src="/assets/cookie-consent.js" defer></script>
 </head>
 <body>
     <div class="cosmic-glow"></div>
@@ -62,6 +63,8 @@
             <a href="privacy.html">Privacy Policy</a>
             <span class="divider">|</span>
             <a href="terms.html">Terms of Service</a>
+            <span class="divider">|</span>
+            <a href="#" onclick="window.OrbitConsent && window.OrbitConsent.openPreferences(); return false;">Cookie Settings</a>
         </div>
     </div>
 </body>

@@ -19,11 +19,13 @@
         a:hover { text-decoration: underline; }
         .back-link { display: inline-block; margin-bottom: 2rem; color: rgba(255,255,255,0.5); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
     </style>
+    <script src="/assets/cookie-consent.js" defer></script>
 </head>
 <body>
     <div class="cosmic-glow"></div>
     <div class="legal-container">
         <a href="#" id="dynamic-back-btn" class="back-link" onclick="if(history.length > 1){ history.back(); return false; } else { this.href='index.html'; }">← Back</a>
+        <a href="#" class="back-link" style="float:right;" onclick="window.OrbitConsent && window.OrbitConsent.openPreferences(); return false;">Cookie Settings</a>
 
         <h1>Privacy Policy</h1>
         <p><strong>Last updated:</strong> July 9, 2026</p>
@@ -50,7 +52,16 @@
         <h2>3. Data Deletion & Account Termination Rights</h2>
         <p>In full compliance with regional regulations (including GDPR), users maintain complete control over their profiles. You can initiate a clean account deletion request at any time directly inside the App settings panel, or by contacting our processing desk. Upon request, all user data, logs, and account files will be permanently purged from active databases within 30 days.</p>
 
-        <h2>4. Contact Information</h2>
+        <h2 id="cookies">4. Cookies & Similar Technologies (orbitroutine.com website)</h2>
+        <p>This section covers only our website at orbitroutine.com. The Orbit mobile app does not use browser cookies; see Sections 1–2 above for how the app itself handles data.</p>
+        <ul>
+            <li><strong>Strictly necessary:</strong> Our hosting and content-delivery providers may set technical cookies required to serve the site securely (for example, distinguishing legitimate traffic from bots). These do not track you across sites and are not used for advertising. They don't require consent under applicable law, but we disclose them here for transparency.</li>
+            <li><strong>Analytics (opt-in only):</strong> We may use privacy-conscious analytics (such as Google Analytics) to understand aggregate visitor trends. These scripts are never loaded until you actively accept them via our cookie banner — nothing analytics-related runs before you opt in, and your choice is stored in your browser and can be changed at any time.</li>
+            <li><strong>Advertising:</strong> We do not currently use advertising or cross-site tracking cookies, and do not sell or share personal data for cross-context behavioral advertising.</li>
+        </ul>
+        <p>You can accept or reject non-essential cookies at any time using the "Cookie Settings" link in the site footer.</p>
+
+        <h2>5. Contact Information</h2>
         <p>CogCore LLC<br>30 N Gould St Ste R<br>Sheridan, WY 82801, USA<br>Email: contact@orbitroutine.com</p>
     </div>
 

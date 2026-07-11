@@ -18,11 +18,13 @@
         a:hover { text-decoration: underline; }
         .back-link { display: inline-block; margin-bottom: 2rem; color: rgba(255,255,255,0.5); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
     </style>
+    <script src="/assets/cookie-consent.js" defer></script>
 </head>
 <body>
     <div class="cosmic-glow"></div>
     <div class="legal-container">
         <a href="#" id="dynamic-back-btn" class="back-link" onclick="if(history.length > 1){ history.back(); return false; } else { this.href='index.html'; }">← Back</a>
+        <a href="#" class="back-link" style="float:right;" onclick="window.OrbitConsent && window.OrbitConsent.openPreferences(); return false;">Cookie Settings</a>
 
         <h1>Terms and Conditions</h1>
         <p><strong>Last updated:</strong> July 9, 2026</p>
