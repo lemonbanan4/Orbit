@@ -24,6 +24,14 @@ class PaywallScreen extends StatefulWidget {
 }
 
 class _PaywallScreenState extends State<PaywallScreen> {
+  // Shrinks each legal-link button's padding/tap target so all 4 fit
+  // without overflowing on narrower devices.
+  static final ButtonStyle _legalLinkButtonStyle = TextButton.styleFrom(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    minimumSize: Size.zero,
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  );
+
   late ConfettiController _confettiController;
   // NEW SUBSCRIPTIONS VARIABLES
   List<Package> _packages = []; // Holds both Monthly and Annual
@@ -705,10 +713,13 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
                       // --- LEGAL & RESTORE LINKS ---
                       const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 4,
+                        runSpacing: 4,
                         children: [
                           TextButton(
+                            style: _legalLinkButtonStyle,
                             onPressed: _isPurchasing || _isRestoring
                                 ? null
                                 : _performRestore,
@@ -730,6 +741,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                                   ),
                           ),
                           TextButton(
+                            style: _legalLinkButtonStyle,
                             onPressed: () async {
                               final url = Uri.parse(
                                 'https://orbitroutine.com/terms.html',
@@ -747,6 +759,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                             ),
                           ),
                           TextButton(
+                            style: _legalLinkButtonStyle,
                             onPressed: () async {
                               final url = Uri.parse(
                                 'https://orbitroutine.com/privacy.html',
@@ -764,11 +777,13 @@ class _PaywallScreenState extends State<PaywallScreen> {
                             ),
                           ),
                           TextButton(
+                            style: _legalLinkButtonStyle,
                             onPressed: redeemPromoCode,
                             child: const Text(
                               "Have a Promo Code?",
                               style: TextStyle(
                                 color: Colors.white70,
+                                fontSize: 12,
                                 decoration: TextDecoration.underline,
                               ),
                             ),
