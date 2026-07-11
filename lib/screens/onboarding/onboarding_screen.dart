@@ -178,10 +178,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       return; // Can't save if there's no user
     }
 
-    // Prepare the data for Firestore
+    // Prepare the data for Firestore. Keys here must stay in sync with
+    // firestore.rules' isValidUser() allowedKeys, or the write is silently
+    // rejected by security rules and this whole function throws before
+    // the caller ever reaches Navigator.pushReplacement.
     final Map<String, dynamic> surveyData = {
-      'uid': user.uid,
-      'name': _capturedUserName,
+      'displayName': _capturedUserName,
       'email': user.email, // Capture email from the authenticated user
       'onboarding_completed_at': FieldValue.serverTimestamp(),
       'interests': selectedInterests
@@ -223,8 +225,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       debugPrint('Error requesting notification permissions: $e');
     }
 
-    // Save the data to Firestore before navigating
-    await _saveSurveyToFirestore();
+    // Save the data to Firestore before navigating. This is best-effort:
+    // a write failure shouldn't strand the user on the onboarding survey.
+    try {
+      await _saveSurveyToFirestore();
+    } catch (e) {
+      debugPrint('Error saving survey to Firestore: $e');
+    }
 
     if (!mounted) return;
 
