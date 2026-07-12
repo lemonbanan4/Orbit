@@ -60,10 +60,34 @@ service cloud.firestore {
     }
 
     function isValidHabit(data) {
-      let allowedKeys = ['id', 'title', 'routineType', 'iconCodePoint', 'isCompleted', 'order'];
+      // Keys must match Habit.toMap() in lib/models/habit.dart exactly —
+      // note the field is 'routine', not 'routineType' (Habit.fromMap()
+      // reads 'routine' too; this allowlist previously didn't match either
+      // side of the app's own model, so every addHabit() call was rejected).
+      let allowedKeys = ['id', 'title', 'routine', 'iconCodePoint', 'color',
+        'completedDays', 'totalDays', 'order', 'skippedCount', 'time', 'isCompleted'];
       return data.keys().hasOnly(allowedKeys) &&
              isValidString(data.title, 1, 100) &&
-             isValidString(data.routineType, 1, 50);
+             isValidString(data.routine, 1, 50);
+    }
+
+    function isValidJournalEntry(data) {
+      let allowedKeys = ['content', 'timestamp', 'sourceCategory'];
+      return data.keys().hasOnly(allowedKeys) &&
+             isValidString(data.content, 0, 10000);
+    }
+
+    function isValidAiCache(data) {
+      // ai_coach_service.dart caches two different things under this
+      // subcollection ('ai_insight' and 'daily_intention' docs), each with
+      // a slightly different shape — allow the union of both.
+      let allowedKeys = ['stateKey', 'insight', 'intention', 'timestamp'];
+      return data.keys().hasOnly(allowedKeys) && data.stateKey is string;
+    }
+
+    function isValidFairyHistoryEntry(data) {
+      let allowedKeys = ['context', 'fairyMessage', 'userReply', 'timestamp'];
+      return data.keys().hasOnly(allowedKeys);
     }
 
     function isValidSkippedSession(data) {
@@ -91,6 +115,22 @@ service cloud.firestore {
       match /habits/{habitId} {
         allow read, delete: if isOwner(userId);
         allow create, update: if isOwner(userId) && isValidHabit(request.resource.data);
+      }
+
+      match /journal_entries/{entryId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidJournalEntry(request.resource.data);
+      }
+
+      match /cache/{docId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidAiCache(request.resource.data);
+      }
+
+      match /fairy_history/{entryId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidFairyHistoryEntry(request.resource.data);
+        allow update, delete: if false; // immutable history log
       }
 
       match /skipped_sessions/{sessionId} {
