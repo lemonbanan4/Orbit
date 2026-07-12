@@ -8,7 +8,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'future_letter_screen.dart';
+import 'onboarding_screen.dart';
 import '../../widgets/common/glow_orb.dart';
 import '../../widgets/common/glass_container.dart';
 import '../../widgets/common/auth_text_field.dart';
@@ -254,7 +254,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => FutureLetterScreen(userName: name),
+            builder: (context) => OnboardingScreen(initialName: name),
           ),
         );
       } else {
@@ -454,20 +454,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           'Apple',
                           (v) => setState(() => _isLoadingApple = v),
                         );
-                        // Only genuinely new sign-ups see the welcome
-                        // letter/contract — a returning user signing back in
-                        // goes straight into the app via AuthWrapper.
+                        // Only genuinely new sign-ups see onboarding — a
+                        // returning user signing back in goes straight into
+                        // the app via AuthWrapper.
                         if (isNewUser == true && context.mounted) {
                           final displayName =
                               FirebaseAuth.instance.currentUser?.displayName;
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => FutureLetterScreen(
-                                userName: (displayName?.isNotEmpty ?? false)
-                                    ? displayName!
-                                    : 'Explorer',
-                              ),
+                              builder: (context) =>
+                                  OnboardingScreen(initialName: displayName),
                             ),
                           );
                         }
@@ -489,20 +486,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           'Google',
                           (v) => setState(() => _isLoadingGoogle = v),
                         );
-                        // Only genuinely new sign-ups see the welcome
-                        // letter/contract — a returning user signing back in
-                        // goes straight into the app via AuthWrapper.
+                        // Only genuinely new sign-ups see onboarding — a
+                        // returning user signing back in goes straight into
+                        // the app via AuthWrapper.
                         if (isNewUser == true && context.mounted) {
                           final displayName =
                               FirebaseAuth.instance.currentUser?.displayName;
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => FutureLetterScreen(
-                                userName: (displayName?.isNotEmpty ?? false)
-                                    ? displayName!
-                                    : 'Explorer',
-                              ),
+                              builder: (context) =>
+                                  OnboardingScreen(initialName: displayName),
                             ),
                           );
                         }

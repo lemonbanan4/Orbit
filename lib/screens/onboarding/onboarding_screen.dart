@@ -9,7 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:orbit_app/theme/glass_button.dart';
 import '../../theme/custom_colors.dart';
-import 'package:orbit_app/screens/onboarding/contract_screen.dart';
+import 'future_letter_screen.dart';
 
 // --- UPGRADED DATA MODEL ---
 enum QuestionType { singleChoice, multiSelectGrid, textInput }
@@ -29,7 +29,13 @@ class SurveyQuestion {
 }
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key});
+  // Pre-fills the name question when it's already known (email sign-up
+  // collects it directly; Apple/Google may supply a profile name) so the
+  // user isn't asked to retype something they just gave us. They can still
+  // edit it before continuing.
+  final String? initialName;
+
+  const OnboardingScreen({super.key, this.initialName});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -137,6 +143,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void initState() {
     super.initState();
     _requestATT();
+    if (widget.initialName != null && widget.initialName!.isNotEmpty) {
+      _capturedUserName = widget.initialName!;
+      _nameController.text = widget.initialName!;
+    }
   }
 
   @override
@@ -235,11 +245,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     if (!mounted) return;
 
-    // Pass both the single-choice answers and the multi-select interests to the setup screen.
+    // Onward to the welcome letter -> commitment contract -> paywall flow,
+    // same as every other sign-up path.
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => ContractScreen(userName: _capturedUserName),
+        builder: (context) => FutureLetterScreen(userName: _capturedUserName),
       ),
     );
   }
