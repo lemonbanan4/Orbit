@@ -198,7 +198,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       'onboarding_completed_at': FieldValue.serverTimestamp(),
       'interests': selectedInterests
           .toList(), // Convert Set to List for Firestore
-      'survey_answers': {},
+      // Explicitly typed — an untyped {} here infers as Map<dynamic,
+      // dynamic>, which throws when cast to Map<String, dynamic> below and
+      // silently aborts this whole save (caught by the caller's try/catch,
+      // so nothing outwardly breaks, but no survey data ever got saved).
+      'survey_answers': <String, dynamic>{},
     };
 
     // Map question titles to answers for better readability in Firestore

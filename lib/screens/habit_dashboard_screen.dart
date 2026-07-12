@@ -934,20 +934,22 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
               ),
             ],
           ),
-          Align(
-            alignment: Alignment.topCenter,
-            child: ConfettiWidget(
-              confettiController: _confettiController,
-              blastDirectionality: BlastDirectionality.explosive,
-              emissionFrequency: 0.05,
-              numberOfParticles: 40,
-              gravity: 0.15,
-              colors: const [
-                Colors.orange,
-                Colors.cyan,
-                Colors.purple,
-                Colors.white,
-              ],
+          IgnorePointer(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConfettiWidget(
+                confettiController: _confettiController,
+                blastDirectionality: BlastDirectionality.explosive,
+                emissionFrequency: 0.05,
+                numberOfParticles: 40,
+                gravity: 0.15,
+                colors: const [
+                  Colors.orange,
+                  Colors.cyan,
+                  Colors.purple,
+                  Colors.white,
+                ],
+              ),
             ),
           ),
           const Align(

@@ -825,41 +825,51 @@ class _PaywallScreenState extends State<PaywallScreen> {
               .fade(duration: 500.ms),
 
           // LAYER 5: CELEBRATORY CONFETTI (STARS)
-          Align(
-            alignment: Alignment.center,
-            child: ConfettiWidget(
-              confettiController: _confettiController,
-              blastDirectionality: BlastDirectionality.explosive,
-              shouldLoop: false,
-              colors: const [
-                Color(0xFF00E5FF), // Cyan
-                Color(0xFFFFCC00), // Gold
-                Colors.white,
-              ],
-              createParticlePath: _drawStar, // Epic star explosion!
-              numberOfParticles: 40,
-              maxBlastForce: 100, // Massive room-filling blast
-              minBlastForce: 20,
-              gravity: 0.15,
+          // IgnorePointer: ConfettiWidget lays out an unconstrained
+          // CustomPaint that expands to fill the whole screen and hit-tests
+          // across its full area even when idle/invisible. Being the
+          // topmost layer, it was silently swallowing every tap on the
+          // paywall — including the close button — with zero visual
+          // feedback. Purely decorative, so it must never intercept touches.
+          IgnorePointer(
+            child: Align(
+              alignment: Alignment.center,
+              child: ConfettiWidget(
+                confettiController: _confettiController,
+                blastDirectionality: BlastDirectionality.explosive,
+                shouldLoop: false,
+                colors: const [
+                  Color(0xFF00E5FF), // Cyan
+                  Color(0xFFFFCC00), // Gold
+                  Colors.white,
+                ],
+                createParticlePath: _drawStar, // Epic star explosion!
+                numberOfParticles: 40,
+                maxBlastForce: 100, // Massive room-filling blast
+                minBlastForce: 20,
+                gravity: 0.15,
+              ),
             ),
           ),
 
           // LAYER 6: CELEBRATORY CONFETTI (PLANETS)
-          Align(
-            alignment: Alignment.center,
-            child: ConfettiWidget(
-              confettiController: _confettiController,
-              blastDirectionality: BlastDirectionality.explosive,
-              shouldLoop: false,
-              colors: const [
-                Color(0xFFBC13FE), // Purple
-                Color(0xFF7000FF), // Deep Purple
-              ],
-              createParticlePath: _drawPlanet, // Saturn-style planets!
-              numberOfParticles: 40, // 40 stars + 40 planets = 80 total
-              maxBlastForce: 100,
-              minBlastForce: 20,
-              gravity: 0.12, // Planets float just a tiny bit differently
+          IgnorePointer(
+            child: Align(
+              alignment: Alignment.center,
+              child: ConfettiWidget(
+                confettiController: _confettiController,
+                blastDirectionality: BlastDirectionality.explosive,
+                shouldLoop: false,
+                colors: const [
+                  Color(0xFFBC13FE), // Purple
+                  Color(0xFF7000FF), // Deep Purple
+                ],
+                createParticlePath: _drawPlanet, // Saturn-style planets!
+                numberOfParticles: 40, // 40 stars + 40 planets = 80 total
+                maxBlastForce: 100,
+                minBlastForce: 20,
+                gravity: 0.12, // Planets float just a tiny bit differently
+              ),
             ),
           ),
         ],

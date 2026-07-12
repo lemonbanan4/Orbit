@@ -249,27 +249,35 @@ class _ContractScreenState extends State<ContractScreen>
                                   curve: Curves.easeInOut,
                                 ),
                             // The Sparks!
-                            ConfettiWidget(
-                              confettiController: _confettiController,
-                              blastDirectionality: BlastDirectionality
-                                  .explosive, // Blasts in all directions
-                              // CUSTOM ICE SHARDS
-                              createParticlePath: drawIceShard,
-                              colors: const [
-                                Colors.white,
-                                Colors.lightBlueAccent,
-                                Color(0xFF81D4FA),
-                                Colors.cyanAccent,
-                              ],
-                              gravity:
-                                  0.2, // Make them fall a bit slower, like shards
-                              emissionFrequency: 0.05,
-                              numberOfParticles: 30,
+                            // IgnorePointer: an unconstrained ConfettiWidget
+                            // expands to fill all available space and stays
+                            // hit-testable even when idle, which would
+                            // otherwise balloon this GestureDetector's
+                            // effective tap target well beyond the visible
+                            // hold-to-commit circle.
+                            IgnorePointer(
+                              child: ConfettiWidget(
+                                confettiController: _confettiController,
+                                blastDirectionality: BlastDirectionality
+                                    .explosive, // Blasts in all directions
+                                // CUSTOM ICE SHARDS
+                                createParticlePath: drawIceShard,
+                                colors: const [
+                                  Colors.white,
+                                  Colors.lightBlueAccent,
+                                  Color(0xFF81D4FA),
+                                  Colors.cyanAccent,
+                                ],
+                                gravity:
+                                    0.2, // Make them fall a bit slower, like shards
+                                emissionFrequency: 0.05,
+                                numberOfParticles: 30,
 
-                              // emissionFrequency: 0.05,
-                              // numberOfParticles: 30,
-                              // gravity: 0.3,
-                              // colors: const [Color(0xFFFFD600), Colors.white, Color(0xFF00E5FF)], // Theme colors!
+                                // emissionFrequency: 0.05,
+                                // numberOfParticles: 30,
+                                // gravity: 0.3,
+                                // colors: const [Color(0xFFFFD600), Colors.white, Color(0xFF00E5FF)], // Theme colors!
+                              ),
                             ),
                           ],
                         ),

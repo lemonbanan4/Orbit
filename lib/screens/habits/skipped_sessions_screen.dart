@@ -161,20 +161,22 @@ class _SkippedSessionsScreenState extends State<SkippedSessionsScreen> {
                     );
                   },
                 ),
-          Align(
-            alignment: Alignment.topCenter,
-            child: ConfettiWidget(
-              confettiController: _confettiController,
-              blastDirectionality: BlastDirectionality.explosive,
-              emissionFrequency: 0.05,
-              numberOfParticles: 30,
-              gravity: 0.2,
-              colors: [
-                orbColor1,
-                orbColor2,
-                Colors.white,
-                theme.colorScheme.primary,
-              ],
+          IgnorePointer(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConfettiWidget(
+                confettiController: _confettiController,
+                blastDirectionality: BlastDirectionality.explosive,
+                emissionFrequency: 0.05,
+                numberOfParticles: 30,
+                gravity: 0.2,
+                colors: [
+                  orbColor1,
+                  orbColor2,
+                  Colors.white,
+                  theme.colorScheme.primary,
+                ],
+              ),
             ),
           ),
         ],
