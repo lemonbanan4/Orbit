@@ -48,7 +48,9 @@ service cloud.firestore {
         'all_notifs', 'daily_summary_notifs', 'interests',
         'email', 'onboarding_completed_at', 'survey_answers',
         'isGuest', 'createdAt', 'streakCount', 'completedMilestones',
-        'achievements', 'name', 'photoUrl', 'fcmToken', 'friends'
+        'achievements', 'name', 'photoUrl', 'fcmToken', 'friends',
+        'fairy_taps', 'unlocked_fairy_badge', 'global_xp', 'current_level',
+        'wisdomStreak', 'lastWisdomDate'
       ];
 
       // Prevent 1MB string payload attacks on display name
@@ -124,7 +126,14 @@ service cloud.firestore {
     // Let users send emails via the Firebase Trigger Email Extension
     match /mail/{document} {
       allow create: if isAuthenticated();
-      allow read, update, delete: if false; 
+      allow read, update, delete: if false;
+    }
+
+    // Admin-managed wisdom quote content shown in the Sanctuary's Sacred
+    // Scroll feature. Read-only for signed-in users; never client-writable.
+    match /wisdom_library/{document} {
+      allow read: if isAuthenticated();
+      allow write: if false;
     }
 
     // Global deny for everything else (Default Deny)

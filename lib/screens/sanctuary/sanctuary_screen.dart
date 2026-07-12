@@ -65,6 +65,7 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    var loadingDialogShowing = true;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -97,6 +98,7 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
 
       if (mounted) {
         Navigator.pop(context);
+        loadingDialogShowing = false;
 
         showDialog(
           context: context,
@@ -130,7 +132,16 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
         }
       }
     } catch (e) {
-      if (mounted) Navigator.pop(context);
+      debugPrint('Sacred Scroll error: $e');
+      if (mounted) {
+        // Only pop the loading spinner if it's still the thing showing —
+        // the WisdomScrollOverlay itself might be up if the streak update
+        // (a non-critical follow-up write) is what failed.
+        if (loadingDialogShowing) Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open the Sacred Scroll. Please try again.')),
+        );
+      }
     }
   }
 
