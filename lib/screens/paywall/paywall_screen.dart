@@ -203,10 +203,12 @@ class _PaywallScreenState extends State<PaywallScreen> {
   /// Polls RevenueCat for the "Orbit Pro" entitlement to catch up after a
   /// purchase whose initial [CustomerInfo] doesn't yet reflect it (a known
   /// sandbox/StoreKit sync delay). Returns true once confirmed active, or
-  /// false after [maxRetries] attempts.
-  Future<bool> _pollForEntitlement({int maxRetries = 5}) async {
+  /// false after [maxRetries] attempts. Backs off between attempts since
+  /// this is waiting on a server-to-server webhook, not a fixed-latency call.
+  Future<bool> _pollForEntitlement({int maxRetries = 8}) async {
     for (var attempt = 0; attempt < maxRetries; attempt++) {
-      await Future.delayed(const Duration(seconds: 1));
+      final delay = Duration(seconds: attempt < 4 ? 1 : 2); // ~1,1,1,1,2,2,2,2s = 12s total
+      await Future.delayed(delay);
       if (!mounted) return false;
       final refreshed = await Purchases.getCustomerInfo();
       if (refreshed.entitlements.all["Orbit Pro"]?.isActive == true) {

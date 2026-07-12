@@ -48,6 +48,16 @@ class _PaywallVideoBackgroundState extends State<PaywallVideoBackground> {
   }
 
   @override
+  void deactivate() {
+    // Freeze on the current frame the instant this leaves the tree (e.g. the
+    // paywall's pop transition starting), rather than letting the video
+    // keep decoding/rendering new frames on its native texture mid-animation
+    // — that's what causes the torn "broken glass" flash on dismiss.
+    _controller?.pause();
+    super.deactivate();
+  }
+
+  @override
   void dispose() {
     _controller?.dispose();
     super.dispose();
