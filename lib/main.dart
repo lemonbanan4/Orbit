@@ -92,8 +92,15 @@ void main() async {
   // 2. Capture the binding
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
 
-  // Set the iOS App Group ID here!
-  await HomeWidget.setAppGroupId('group.com.orbitroutine.orbit');
+  // Set the iOS App Group ID here! HomeWidget has no web implementation, and
+  // this runs before runApp() with nothing to catch it — on web it threw
+  // MissingPluginException and aborted startup entirely, leaving the app
+  // stuck on the splash screen forever.
+  try {
+    await HomeWidget.setAppGroupId('group.com.orbitroutine.orbit');
+  } catch (e) {
+    debugPrint('HomeWidget.setAppGroupId unsupported on this platform: $e');
+  }
 
   // 3. Keep the splash screen visible while loading
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
@@ -101,22 +108,31 @@ void main() async {
   // --- INITIALIZE CORE SERVICES ---
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Initialize app check with debug providers
-  await FirebaseAppCheck.instance.activate(
-    // androidProvider: kReleaseMode
-    //     ? AndroidProvider.playIntegrity
-    //     : AndroidProvider.debug,
-    // //webProvider: ReCaptchaEnterpriseProvider('YOUR_RECAPTCHA_SITE_KEY'),
-    // appleProvider: kReleaseMode
-    //     ? AppleProvider.deviceCheck
-    //     : AppleProvider.debug,
+  // Initialize app check with debug providers. No webProvider is configured
+  // (would need a ReCAPTCHA site key), so activate() throws
+  // [app-check/no-provider] on web — caught here so it doesn't abort startup
+  // before runApp() the way the HomeWidget call above used to.
+  try {
+    await FirebaseAppCheck.instance.activate(
+      // androidProvider: kReleaseMode
+      //     ? AndroidProvider.playIntegrity
+      //     : AndroidProvider.debug,
+      // //webProvider: ReCaptchaEnterpriseProvider('YOUR_RECAPTCHA_SITE_KEY'),
+      // appleProvider: kReleaseMode
+      //     ? AppleProvider.deviceCheck
+      //     : AppleProvider.debug,
 
-    // debugging
-    androidProvider: kDebugMode
-        ? AndroidProvider.debug
-        : AndroidProvider.playIntegrity,
-    appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
-  );
+      // debugging
+      androidProvider: kDebugMode
+          ? AndroidProvider.debug
+          : AndroidProvider.playIntegrity,
+      appleProvider: kDebugMode
+          ? AppleProvider.debug
+          : AppleProvider.deviceCheck,
+    );
+  } catch (e) {
+    debugPrint('FirebaseAppCheck.activate failed on this platform: $e');
+  }
 
   // --- JUST AUDIO BACKGROUND ---
   // Must be called before any AudioPlayer is created.  Without this the

@@ -89,6 +89,10 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
             title.toLowerCase().replaceAll(' ', '_') +
                 DateTime.now().millisecondsSinceEpoch.toString();
 
+        // Keys must match firestore.rules' isValidHabit() allowlist exactly
+        // (which mirrors Habit.toMap()) — a 'createdAt' field here used to
+        // get every write rejected with PERMISSION_DENIED, silently, since
+        // the failure was only ever debugPrint'd.
         final habitData = {
           'title': title,
           'routine': _selectedRoutine,
@@ -96,7 +100,6 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
           'completedDays': 0,
           'totalDays': 21,
           'color': 0xFF00E5FF,
-          'createdAt': FieldValue.serverTimestamp(),
           'isCompleted': false,
         };
 
@@ -135,6 +138,11 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
       }
     } catch (e) {
       debugPrint('Error creating habit: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not save habit. Please try again.')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
