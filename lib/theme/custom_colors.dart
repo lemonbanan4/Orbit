@@ -72,17 +72,6 @@ const Color deepIndigo = Color(0xFF4B0082);
 const Color deepRed = Color(0xFFFF0000);
 const Color deepViolet = Color(0xFF8A2BE2);
 
-extension ColorOpacity on Color {
-  Color withValues({double? alpha, double? red, double? green, double? blue}) {
-    return Color.fromARGB(
-      ((alpha ?? (a * 255)).clamp(0, 255)).toInt(),
-      ((red ?? this.red).clamp(0, 255)).toInt(),
-      ((green ?? this.green).clamp(0, 255)).toInt(),
-      ((blue ?? this.blue).clamp(0, 255)).toInt(),
-    );
-  }
-}
-
 class AuroraPalette {
   // Deep, dark base reminiscent of the arctic night sky
   static const Color nightSky = Color(0xFF0B191E);

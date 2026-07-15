@@ -84,7 +84,7 @@ class _WeeklyRecapScreenState extends State<WeeklyRecapScreen> {
       _audioPlayer.play();
 
       // Fun vibration pattern to pair with the chime and explosion
-      if (await Vibration.hasVibrator() ?? false) {
+      if (await Vibration.hasVibrator()) {
         Vibration.vibrate(pattern: [0, 150, 100, 250]);
       }
     } catch (e) {

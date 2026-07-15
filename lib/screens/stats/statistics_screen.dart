@@ -11,6 +11,7 @@ import '../../widgets/common/premium_glass_card.dart';
 import '../../widgets/common/base_orbit_screen.dart';
 import '../../widgets/common/user_metrics_grid.dart';
 import '../../theme/orbit_colors.dart'; // For accessing our custom theme colors
+import '../coaching/mood_chart_widget.dart';
 
 class StatisticsScreen extends StatelessWidget {
   const StatisticsScreen({super.key});
@@ -23,7 +24,6 @@ class StatisticsScreen extends StatelessWidget {
     // These colors are part of the app's branding for charts.
     // Consider moving them to a theme extension for better reusability.
     const Color orbColor1 = Color(0xFF00E5FF); // Cyan accent
-    const Color orbColor2 = Color(0xFF7000FF); // Purple accent
 
     return BaseOrbitScreen(
       title: 'Your Stats',
@@ -72,6 +72,8 @@ class StatisticsScreen extends StatelessWidget {
                     const _XpHistoryGraph(),
                     const SizedBox(height: 40),
                     const _PastMoodEntries(),
+                    const SizedBox(height: 40),
+                    const MoodChartWidget(),
                     const SizedBox(height: 40),
                     const _PastIntentions(),
                   ],
@@ -437,8 +439,8 @@ class _XpHistoryGraph extends StatelessWidget {
                       );
                     }),
                   ),
-                  swapAnimationDuration: const Duration(milliseconds: 800),
-                  swapAnimationCurve: Curves.easeOutBack,
+                  duration: const Duration(milliseconds: 800),
+                  curve: Curves.easeOutBack,
                 );
               },
             ),

@@ -16,8 +16,6 @@ class _AccountLinkPromptSheetState extends State<AccountLinkPromptSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.read<AppAuthProvider>();
-
     return Container(
       padding: const EdgeInsets.all(24.0),
       decoration: const BoxDecoration(
@@ -73,9 +71,9 @@ class _AccountLinkPromptSheetState extends State<AccountLinkPromptSheet> {
                   setState(() => _loadingProvider = 'apple');
                   try {
                     await context.read<AppAuthProvider>().signInWithApple();
-                    if (mounted) Navigator.pop(context);
+                    if (mounted && context.mounted) Navigator.pop(context);
                   } catch (e) {
-                    if (mounted) {
+                    if (mounted && context.mounted) {
                       setState(() => _loadingProvider = null);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text("Apple sign in failed: $e")),
@@ -100,9 +98,9 @@ class _AccountLinkPromptSheetState extends State<AccountLinkPromptSheet> {
                 setState(() => _loadingProvider = 'google');
                 try {
                   await context.read<AppAuthProvider>().signInWithGoogle();
-                  if (mounted) Navigator.pop(context);
+                  if (mounted && context.mounted) Navigator.pop(context);
                 } catch (e) {
-                  if (mounted) {
+                  if (mounted && context.mounted) {
                     setState(() => _loadingProvider = null);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text("Google sign in failed: $e")),

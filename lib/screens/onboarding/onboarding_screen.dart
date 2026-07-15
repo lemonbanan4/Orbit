@@ -10,6 +10,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:orbit_app/theme/glass_button.dart';
 import '../../theme/custom_colors.dart';
 import 'future_letter_screen.dart';
+import '../../screens/paywall/clay_button.dart';
 
 // --- UPGRADED DATA MODEL ---
 enum QuestionType { singleChoice, multiSelectGrid, textInput }
@@ -168,17 +169,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } else {
       _triggerAnalysis();
     }
-  }
-
-  void _toggleGridSelection(String option) {
-    HapticFeedback.selectionClick();
-    setState(() {
-      if (selectedInterests.contains(option)) {
-        selectedInterests.remove(option);
-      } else {
-        selectedInterests.add(option);
-      }
-    });
   }
 
   Future<void> _saveSurveyToFirestore() async {
@@ -442,7 +432,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           AnimatedOpacity(
             opacity: _capturedUserName.isNotEmpty ? 1.0 : 0.4,
             duration: const Duration(milliseconds: 300),
-            child: GlassButton(
+            child: ClayButton(
               text: 'CONTINUE',
               onPressed: () {
                 if (_capturedUserName.isNotEmpty) {
@@ -521,16 +511,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   // --- UI FOR MULTI-SELECT GRID (The Image Cards) ---
   Widget _buildMultiSelectGridPage(SurveyQuestion question) {
-    // Beautiful placeholder gradients to use until you insert real images!
-    final List<List<Color>> placeholderGradients = [
-      [const Color(0xFF00c6ff), const Color(0xFF0072ff)],
-      [const Color(0xFFf093fb), const Color(0xFFf5576c)],
-      [const Color(0xFF4facfe), const Color(0xFF00f2fe)],
-      [const Color(0xFF43e97b), const Color(0xFF38f9d7)],
-      [const Color(0xFFfa709a), const Color(0xFFfee140)],
-      [const Color(0xFFa18cd1), const Color(0xFFfbc2eb)],
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

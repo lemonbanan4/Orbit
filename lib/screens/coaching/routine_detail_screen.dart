@@ -16,7 +16,6 @@ import '../../widgets/manage_habit_dialog.dart';
 import '../../widgets/common/premium_glass_card.dart';
 import 'coaching_session_screen.dart';
 import '../../theme/custom_colors.dart';
-import '../../models/habit.dart';
 import '../../widgets/common/ai_fairy_overlay.dart';
 import '../../widgets/preset_habit_selector.dart';
 import '../../utils/time_picker_utils.dart';
@@ -564,8 +563,7 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                               child: ReorderableListView(
                                 physics: const BouncingScrollPhysics(),
                                 buildDefaultDragHandles: false,
-                                onReorder: (oldIndex, newIndex) {
-                                  if (oldIndex < newIndex) newIndex -= 1;
+                                onReorderItem: (oldIndex, newIndex) {
                                   context.read<RoutineProvider>().reorderHabits(
                                     widget.sessionType,
                                     oldIndex,
@@ -1200,15 +1198,15 @@ class RoutineAlarmsSheet extends StatelessWidget {
     final status = await Permission.notification.request();
 
     if (status.isGranted) {
-      print("Notification permission granted.");
+      debugPrint("Notification permission granted.");
       return true;
     } else if (status.isPermanentlyDenied) {
-      print("Notification permission permanently denied.");
+      debugPrint("Notification permission permanently denied.");
 
       await openAppSettings();
       return false;
     } else {
-      print("Notification permission denied.");
+      debugPrint("Notification permission denied.");
       return false;
     }
   }

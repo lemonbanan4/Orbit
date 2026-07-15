@@ -19,9 +19,6 @@ class CoachingPlayerScreen extends StatefulWidget {
 
 class _CoachingPlayerScreenState extends State<CoachingPlayerScreen> {
   final AudioPlayer _player = AudioPlayer();
-  final PlayerState _playerState = PlayerState.stopped;
-  final Duration _duration = Duration.zero;
-  final Duration _position = Duration.zero;
 
   @override
   void initState() {

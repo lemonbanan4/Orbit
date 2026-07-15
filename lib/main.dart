@@ -114,21 +114,15 @@ void main() async {
   // before runApp() the way the HomeWidget call above used to.
   try {
     await FirebaseAppCheck.instance.activate(
-      // androidProvider: kReleaseMode
-      //     ? AndroidProvider.playIntegrity
-      //     : AndroidProvider.debug,
       // //webProvider: ReCaptchaEnterpriseProvider('YOUR_RECAPTCHA_SITE_KEY'),
-      // appleProvider: kReleaseMode
-      //     ? AppleProvider.deviceCheck
-      //     : AppleProvider.debug,
 
       // debugging
-      androidProvider: kDebugMode
-          ? AndroidProvider.debug
-          : AndroidProvider.playIntegrity,
-      appleProvider: kDebugMode
-          ? AppleProvider.debug
-          : AppleProvider.deviceCheck,
+      providerAndroid: kDebugMode
+          ? const AndroidDebugProvider()
+          : const AndroidPlayIntegrityProvider(),
+      providerApple: kDebugMode
+          ? const AppleDebugProvider()
+          : const AppleDeviceCheckProvider(),
     );
   } catch (e) {
     debugPrint('FirebaseAppCheck.activate failed on this platform: $e');
@@ -259,13 +253,6 @@ void main() async {
       );
     }
   }
-  // --- PRE-LOAD PREFS ---
-  final prefs = await SharedPreferences.getInstance();
-  final hasSeenOnboarding = prefs.getBool('has_seen_onboarding') ?? false;
-  final lastSeenVersion = prefs.getString('last_seen_version') ?? '1.0.0';
-  final showWhatsNew =
-      hasSeenOnboarding && (lastSeenVersion != globalAppVersion);
-
   runApp(
     MultiProvider(
       providers: [
@@ -551,14 +538,7 @@ class _OrbitAppState extends State<OrbitApp> {
     // That caused InheritedElement.notifyClients() to traverse stale
     // parent-chain references mid-frame → assertion failure at framework.dart
     // line 6417.
-    final themeModeStr = context.select<RoutineProvider, String>(
-      (p) => p.themeMode,
-    );
-    final themeMode = switch (themeModeStr) {
-      'Dark' => ThemeMode.dark,
-      'Light' => ThemeMode.light,
-      _ => ThemeMode.system,
-    };
+    context.select<RoutineProvider, String>((p) => p.themeMode);
 
     return MaterialApp.router(
       title: 'Orbit',

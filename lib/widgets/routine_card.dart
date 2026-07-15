@@ -677,10 +677,7 @@ class _RoutineCardState extends State<RoutineCard> {
                                           ),
                                           buildDefaultDragHandles: false,
                                           itemCount: widget.habits.length,
-                                          onReorder: (oldIndex, newIndex) {
-                                            if (oldIndex < newIndex) {
-                                              newIndex -= 1;
-                                            }
+                                          onReorderItem: (oldIndex, newIndex) {
                                             widget.onReorder(
                                               oldIndex,
                                               newIndex,
@@ -981,6 +978,11 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                           );
                                                                   if (allCompleted) {
                                                                     await NotificationService.clearActiveRoutineReminders();
+                                                                  }
+
+                                                                  if (!context
+                                                                      .mounted) {
+                                                                    return;
                                                                   }
 
                                                                   if (!wasCompleted) {

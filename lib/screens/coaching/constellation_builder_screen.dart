@@ -1,6 +1,7 @@
 // lib/screens/coaching/constellation_builder_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../widgets/common/premium_glass_card.dart';
 import '../../services/ai_coach_service.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import '../../services/cosmic_mirror_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../widgets/ai_fairy_bubble.dart';
 import '../../theme/glass_button.dart';
@@ -27,8 +29,18 @@ class _ConstellationBuilderScreenState
   List<Map<String, dynamic>> _constellation = [];
   bool _isLoading = false;
   final stt.SpeechToText _speech = stt.SpeechToText();
+  Future<String>? _greetingFuture;
   bool _isListening = false;
   double _soundLevel = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch the dynamic greeting when the screen loads
+    _greetingFuture = context
+        .read<CosmicMirrorService>()
+        .generateRoutineGenieGreeting();
+  }
 
   @override
   void dispose() {
@@ -399,12 +411,30 @@ class _ConstellationBuilderScreenState
             ValueListenableBuilder<TextEditingValue>(
               valueListenable: _goalController,
               builder: (context, value, child) {
-                final textValue = value.text;
-                return AIFairyBubble(
-                  message: textValue.isEmpty
-                      ? "I am listening to your cosmic desires..."
-                      : '"$textValue"',
-                  isListening: _isListening,
+                if (value.text.isNotEmpty) {
+                  return AIFairyBubble(
+                    message: '"${value.text}"',
+                    isListening: _isListening,
+                  );
+                }
+                // When input is empty, show the dynamic greeting
+                return FutureBuilder<String>(
+                  future: _greetingFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const AIFairyBubble(
+                        message: "...",
+                        isListening: true,
+                      );
+                    }
+                    final message =
+                        snapshot.data ??
+                        "The cosmos is silent. What is your desire?";
+                    return AIFairyBubble(
+                      message: message,
+                      isListening: _isListening,
+                    );
+                  },
                 );
               },
             ),

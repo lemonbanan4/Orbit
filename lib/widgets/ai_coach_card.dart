@@ -21,7 +21,6 @@ class AICoachCard extends StatefulWidget {
 class _AICoachCardState extends State<AICoachCard> {
   // 3D Matrix manipulation values based on pointer location
   double _localX = 0;
-  double _localY = 0;
   bool _defaultPosition = true;
 
   @override
@@ -35,7 +34,6 @@ class _AICoachCardState extends State<AICoachCard> {
         if (_defaultPosition) return;
         setState(() {
           _localX = details.localPosition.dx - (details.size / 2);
-          _localY = details.localPosition.dy - (details.size / 2);
         });
       },
       child: AnimatedRotation(

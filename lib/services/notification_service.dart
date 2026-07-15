@@ -450,7 +450,7 @@ class NotificationService {
 
     // If the user tapped "Enable Notifications" in our custom UI,
     // trigger the actual OS prompt.
-    if (userAgreed == true) {
+    if (userAgreed == true && context.mounted) {
       await checkAndRequestPermissions(context);
     }
   }

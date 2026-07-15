@@ -167,7 +167,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           throw Exception("Invalid referral code.");
                         }
 
-                        if (mounted) {
+                        if (mounted && context.mounted) {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -180,12 +180,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         }
                       } catch (e) {
                         setDialogState(() => isRedeeming = false);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Failed to redeem: $e'),
-                            backgroundColor: Colors.redAccent,
-                          ),
-                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to redeem: $e'),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                        }
                       }
                     },
               child: isRedeeming

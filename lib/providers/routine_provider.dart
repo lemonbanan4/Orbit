@@ -1220,24 +1220,6 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     await batch.commit();
   }
 
-  // Optional: Initialize / load step (you can call this in _loadData if desired)
-  Future<void> _loadCachedOrder(String routineType) async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? cachedOrder = prefs.getString("habit_order_$routineType");
-
-    if (cachedOrder != null) {
-      final Map<String, dynamic> orderMap = jsonDecode(cachedOrder);
-
-      for (var habit in _habits.values) {
-        // fixed typo: was .value
-        if (orderMap.containsKey(habit.id)) {
-          habit.order = orderMap[habit.id];
-        }
-      }
-      notifyListeners();
-    }
-  }
-
   // --- ONBOARDING PERSONALIZATION ---
   List<String> _morningHabits = [];
   List<String> _workHabits = [];

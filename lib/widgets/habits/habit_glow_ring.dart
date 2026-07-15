@@ -111,11 +111,11 @@ class _HabitGlowRingState extends State<HabitGlowRing> {
                 }
 
                 // 3. Proper await for Vibration
-                if (await Vibration.hasVibrator() ?? false) {
+                if (await Vibration.hasVibrator()) {
                   Vibration.vibrate(pattern: [0, 10, 5, 10]);
                 }
 
-                if (!mounted) return;
+                if (!mounted || !context.mounted) return;
 
                 // Update the Atmosphere
                 context.read<AtmosphereProvider>().setAura(OrbitAura.nova);

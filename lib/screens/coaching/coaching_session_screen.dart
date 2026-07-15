@@ -7,6 +7,7 @@ import '../../providers/routine_provider.dart';
 import 'dart:ui';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:orbit_app/services/cosmic_mirror_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 // --- DIALOGUE DATA MODELS ---
@@ -58,6 +59,8 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
   late Map<String, CoachingNode> _currentTree;
   String _currentNodeId = 'start';
   final TextEditingController _noteController = TextEditingController();
+  Future<String>? _messageFuture;
+  String? _selectedMood;
   final AudioPlayer _hypnoticAudioPlayer = AudioPlayer();
 
   // --- HARDCODED TREES ---
@@ -175,6 +178,21 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
     ),
   };
 
+  final Map<String, CoachingNode> _weeklyReviewTree = {
+    'start': CoachingNode(
+      id: 'start',
+      fairyMessage:
+          'You have returned to the Cosmic Mirror to reflect upon your journey. The stars have recorded your efforts. Let us gaze into the nebula of your past week.',
+      options: [
+        CoachingOption(text: 'Reveal my legend', nextNodeId: 'legend_dynamic'),
+      ],
+    ),
+    'legend_dynamic': CoachingNode(
+      id: 'legend_dynamic',
+      fairyMessage: 'Generating your weekly legend...', // Placeholder
+      options: [CoachingOption(text: 'Finish Session', nextNodeId: 'exit')],
+    ),
+  };
   // --- UPGRADED HARDCODED TREES ---
   final Map<String, CoachingNode> _nightlyTree = {
     'start': CoachingNode(
@@ -235,24 +253,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
 
     'mental_dynamic': CoachingNode(
       id: 'mental_dynamic',
-      fairyMessage: [
-        'Taking care of your mind isn\'t a fixed destination; it\'s a daily trajectory. Even a tiny 2% shift in your evening routine can completely alter your baseline orbit. Let\'s build that foundation.',
-        'Mind altering practices are like cosmic fertilizers for your mental ecosystem. They help your inner garden flourish even when the external weather is stormy. What practice calls to you tonight?',
-        'The ancient practice of mindfulness meditation is like a cosmic anchor for your wandering thoughts. Just a few minutes of focused breathing can create a ripple effect of calm throughout your entire system. Let\'s claim that stillness tonight.',
-        'Marcus Aurelius said, "You have power over your mind - not outside events. Realize this, and you will find strength." Let\'s find that strength together.',
-        'Your mind is like a vast universe, full of untapped potential and hidden beauty. Sometimes it just needs a little guidance to navigate through the cosmic noise. Let\'s chart a course to mental clarity.',
-        'In the darkest nights, the stars shine the brightest. When your mental space feels overwhelming, it\'s a sign that you\'re on the verge of a breakthrough. Let\'s harness that energy and turn it into a supernova of calm and focus.',
-        'Science shows that even a brief evening ritual can significantly improve sleep quality and reduce stress. It\'s like setting a cosmic alarm clock for your nervous system. What small ritual can you commit to tonight?',
-        'Dr. Andrew Huberman, a renowned neuroscientist, emphasizes the importance of light exposure in regulating our circadian rhythms. Dimming the lights and reducing screen time in the evening can help signal to your brain that it\'s time to wind down. Let\'s create a sleep-friendly environment together.',
-        'The ancient practice of mindfulness meditation is like a cosmic anchor for your wandering thoughts. Just a few minutes of focused breathing can create a ripple effect of calm throughout your entire system. Let\'s claim that stillness tonight.',
-        'Philosopher Alan Watts said, "The only way to make sense out of change is to plunge into it, move with it, and join the dance." When your mental space feels chaotic, it\'s an invitation to dance with the present moment. Let\'s find the rhythm together.',
-        'Your mental health is the foundation of your entire orbit. Just like a spaceship needs a stable core to navigate through space, you need a stable mind to navigate through life. Let\'s fortify that core with some intentional practices tonight.',
-        'The cosmic mirror reflects not just what is, but what can be. By taking care of your mental space, you\'re not just surviving the stormy weather; you\'re learning to dance in the rain and even find beauty in it. Let\'s cultivate that resilience together.',
-        'When you feel mentally overwhelmed, it\'s like being caught in a cosmic storm. But remember, even the fiercest storms eventually pass, and they often leave behind clearer skies and brighter stars. Let\'s weather this together and find the calm on the other side.',
-        'Your mind is a powerful tool, but it can also be a tricky one to manage. It\'s like trying to hold onto stardust - the more you try to grasp it tightly, the more it slips through your fingers. Let\'s learn how to gently hold and guide your thoughts instead.',
-        'The journey to mental well-being is not a straight path; it\'s more like navigating through a complex galaxy. There will be twists, turns, and unexpected discoveries along the way. Let\'s embrace the adventure together and find the stars that guide you to a calmer, clearer mind.',
-        'Remember, even the most brilliant stars need darkness to shine. When your mental space feels overwhelming, it\'s a sign that you\'re on the verge of a breakthrough. Let\'s harness that energy and turn it into a supernova of calm and focus.',
-      ],
+      fairyMessage: 'Generating wisdom...', // Placeholder
       options: [
         CoachingOption(text: 'Tap to continue', nextNodeId: 'mental_followup'),
       ],
@@ -342,23 +343,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
 
     'focus_dynamic': CoachingNode(
       id: 'focus_dynamic',
-      fairyMessage: [
-        'Focus isn\'t about forcing raw concentration; it\'s about ruthlessly eliminating internal and external friction. Your environment dictates your attention.',
-        'Your attention is like a beam of light. It can illuminate your path or scatter into a million directions. The key to mastering focus is learning how to direct that beam with precision and intention.',
-        'In the age of endless digital distractions, your ability to focus is like a rare cosmic gem. It requires intentional cultivation and protection from the noise that seeks to fragment it.',
-        'The quality of your focus is directly tied to the quality of your environment. Just like a plant needs the right soil and light to thrive, your attention needs the right conditions to flourish. Let\'s optimize your environment for deep focus.',
-        'Your attention is a powerful force, but it can also be easily hijacked by low-value loops and distractions. It\'s like trying to hold onto stardust - the more you try to grasp it tightly, the more it slips through your fingers. Let\'s learn how to gently hold and guide your attention instead.',
-        'Your focus is like a beam of starlight cutting through the cosmic darkness.',
-        'In a universe full of noise, focus is your superpower—it is the lens that directs your light.',
-        'Focus is the cosmic glue that binds your intentions to your actions.',
-        'Focus is the cosmic compass that guides you through the vast expanse of possibilities.',
-        'Focus is the cosmic lens that brings your goals into sharp clarity.',
-        'Focus is the cosmic engine that propels you towards your dreams.',
-        'Focus is the cosmic anchor that keeps you grounded amidst the chaos.',
-        'Focus is the cosmic key that unlocks your potential and opens doors to new dimensions of achievement.',
-        'Focus is the cosmic force that transforms your aspirations into reality.',
-        'Focus is the cosmic rhythm that synchronizes your efforts with the flow of the universe.',
-      ],
+      fairyMessage: 'Generating wisdom...', // Placeholder
       options: [
         CoachingOption(
           text: 'Let\'s optimize it',
@@ -384,13 +369,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
 
     'focus_followup_dynamic': CoachingNode(
       id: 'focus_followup_dynamic',
-      fairyMessage: [
-        'Energy flows where attention goes. Mastering your deep focus means safeguarding your morning and deep-work blocks from low-value loops.',
-        'Your attention is a powerful force, but it can also be easily hijacked by low-value loops and distractions. It\'s like trying to hold onto stardust - the more you try to grasp it tightly, the more it slips through your fingers. Let\'s learn how to gently hold and guide your attention instead.',
-        'The quality of your focus is directly tied to the quality of your environment. Just like a plant needs the right soil and light to thrive, your attention needs the right conditions to flourish. Let\'s optimize your environment for deep focus.',
-        'In a universe full of endless digital distractions, your ability to focus is like a rare cosmic gem. It requires intentional cultivation and protection from the noise that seeks to fragment it.',
-        'Your environment dictates your attention.',
-      ],
+      fairyMessage: 'Generating wisdom...', // Placeholder
       options: [
         CoachingOption(text: 'Lock it in', nextNodeId: 'fact_dynamic'),
         CoachingOption(
@@ -403,11 +382,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
     // --- NOT SURE / GENERAL UTILITY BRANCH ---
     'not_sure_dynamic': CoachingNode(
       id: 'not_sure_dynamic',
-      fairyMessage: [
-        'That\'s completely fine. Sometimes clarity isn\'t found through thinking, but through a tiny, practical physical experiment. Where should we start tomorrow?',
-        'When you\'re not sure where to start, the best thing you can do is take a small action that creates a powerful feedback loop. It\'s like throwing a pebble into a pond and watching the ripples unfold. What small action can you take tomorrow to create some momentum?',
-        'That\'s okay. Sometimes the best way to find clarity is to take a small step and see how it feels. It\'s like exploring a new planet - you have to take a few steps on the surface to really understand the terrain. What small step can you take tomorrow to start exploring?',
-      ],
+      fairyMessage: 'Generating wisdom...', // Placeholder
       options: [
         CoachingOption(
           text: 'A 5-minute mental reset',
@@ -422,14 +397,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
 
     'meditation_dynamic': CoachingNode(
       id: 'meditation_dynamic',
-      fairyMessage: [
-        'Meditation is a literal cosmic reset button for an overheated processor. Even just 5 minutes cuts the noise. Let\'s claim that stillness.',
-        'The beauty of meditation is that it creates a powerful feedback loop of calm. The more you practice, the easier it becomes to access that state of presence and clarity, even in the midst of chaos.',
-        'Science shows that meditation can significantly reduce symptoms of anxiety and depression, improve focus, and even increase gray matter in the brain. It\'s like a superpower for your mental well-being.',
-        'The great philosopher Lao Tzu said, "To the mind that is still, the whole universe surrenders." By cultivating a still mind through meditation, you\'re opening yourself up to the infinite possibilities of the cosmos.',
-        'Meditation is not about escaping reality; it\'s about fully embracing it with a clear and calm mind. It\'s like cleaning the lens through which you view the world, allowing you to see things as they truly are.',
-        'The cosmic mirror reflects not just what is, but what can be. By taking care of your inner space with meditation, you\'re not just surviving the stormy weather; you\'re learning to dance in the rain and even find beauty in it. Let\'s cultivate that resilience together.',
-      ],
+      fairyMessage: 'Generating wisdom...', // Placeholder
       options: [
         CoachingOption(text: 'Tap to continue', nextNodeId: 'fact_dynamic'),
       ],
@@ -437,14 +405,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
 
     'exercise_dynamic': CoachingNode(
       id: 'exercise_dynamic',
-      fairyMessage: [
-        'Movement is like fueling a rocket engine. It flushes cortisol and completely recalibrates your cognitive chemistry. What type of physical expression calls to you?',
-        'When your mental space feels crowded, sometimes the best thing you can do is move your body. Exercise is like a cosmic reset button that can help clear the mental fog and create a powerful feedback loop of calm and focus.',
-        'Science shows that physical activity can significantly reduce symptoms of anxiety and depression, improve sleep quality, and boost overall mood. It\'s like a natural mood booster that floods your system with endorphins and helps clear the mental fog.',
-        'The great philosopher Friedrich Nietzsche said, "That which does not kill us makes us stronger." By pushing your physical limits through exercise, you\'re not just strengthening your body; you\'re cultivating a sharper, more resilient mind.',
-        'When you push your physical limits, it creates a powerful feedback loop that can help break the cycle of overthinking. The intense focus required during exercise can help redirect your mental energy and provide a much-needed release from racing thoughts.',
-        'The beauty of exercise is that it demands your full attention. It\'s like a cosmic reset button that forces your mind to drop all distractions and focus solely on the physical sensations of the moment.',
-      ],
+      fairyMessage: 'Generating wisdom...', // Placeholder
       options: [
         CoachingOption(
           text: 'A brisk, meditative walk',
@@ -463,14 +424,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
 
     'workout_dynamic': CoachingNode(
       id: 'workout_dynamic',
-      fairyMessage: [
-        'Pushing your physical limits forces absolute presence. When you challenge your muscles heavy and deep, there is zero room for mental worry. Your mind clears out of pure necessity.',
-        'The beauty of a heavy workout is that it demands your full attention. It\'s like a cosmic reset button that forces your mind to drop all distractions and focus solely on the physical sensations of the moment.',
-        'When you push your physical limits, it creates a powerful feedback loop that can help break the cycle of overthinking. The intense focus required during a heavy workout can help redirect your mental energy and provide a much-needed release from racing thoughts.',
-        'Science shows that high-intensity exercise can significantly reduce symptoms of anxiety and depression. It\'s like a natural mood booster that floods your system with endorphins and helps clear the mental fog.',
-        'Mike Tyson once said, "Everyone has a plan until they get punched in the mouth." A heavy workout is like a controlled punch to your system that can help you break through mental barriers and find clarity in the chaos.',
-        'The great Bruce Lee emphasized the importance of physical fitness for mental clarity, saying, "A fit body, a calm mind, a house full of love. These things cannot be bought – they must be earned." By pushing your physical limits, you\'re not just strengthening your body; you\'re cultivating a sharper, more resilient mind.',
-      ],
+      fairyMessage: 'Generating wisdom...', // Placeholder
       options: [
         CoachingOption(text: 'Tap to continue', nextNodeId: 'fact_dynamic'),
       ],
@@ -479,23 +433,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
     // --- THE CENTRAL CORE PIPELINE ---
     'fact_dynamic': CoachingNode(
       id: 'fact_dynamic',
-      fairyMessage: [
-        'Did you know that research shows deliberately slowing down your audio or environmental stimuli can reduce active stress biomarkers by up to 40%? Imagine yourself floating weightless in a serene cosmic expanse.',
-        'Science shows that even a brief evening ritual can significantly improve sleep quality and reduce stress. It\'s like setting a cosmic alarm clock for your nervous system. What small ritual can you commit to tonight?',
-        'Dr. Andrew Huberman, a renowned neuroscientist, emphasizes the importance of light exposure in regulating our circadian rhythms. Dimming the lights and reducing screen time in the evening can help signal to your brain that it\'s time to wind down. Let\'s create a sleep-friendly environment together.',
-        'The ancient practice of mindfulness meditation is like a cosmic anchor for your wandering thoughts. Just a few minutes of focused breathing can create a ripple effect of calm throughout your entire system. Let\'s claim that stillness tonight.',
-        'Philosopher Alan Watts said, "To the mind that is still, the whole universe surrenders." By cultivating a still mind through meditation, you\'re opening yourself up to the infinite possibilities of the cosmos.',
-        'The cosmic mirror reflects not just what is, but what can be. By taking care of your inner space, you\'re not just surviving the stormy weather; you\'re learning to dance in the rain and even find beauty in it. Let\'s cultivate that resilience together.',
-        'When you feel mentally overwhelmed, it\'s like being caught in a cosmic storm. But remember, even the fiercest storms eventually pass, and they often leave behind clearer skies and brighter stars. Let\'s weather this together and find the calm on the other side.',
-        'Your mind is a powerful tool, but it can also be a tricky one to manage. It\'s like trying to hold onto stardust - the more you try to grasp it tightly, the more it slips through your fingers. Let\'s learn how to gently hold and guide your thoughts instead.',
-        'The journey to mental well-being is not a straight path; it\'s more like navigating through a complex galaxy. There will be twists, turns, and unexpected discoveries along the way. Let\'s embrace the adventure together and find the stars that guide you to a calmer, clearer mind.',
-        'Remember, even the most brilliant stars need darkness to shine. When your mental space feels overwhelming, it\'s a sign that you\'re on the verge of a breakthrough. Let\'s harness that energy and turn it into a supernova of calm and focus.',
-        'A research study published in the Journal of Positive Psychology found that people who wrote down three good things that happened each day for a week reported significantly higher levels of happiness and lower levels of depressive symptoms. It\'s like planting seeds of positivity in the fertile soil of your mind.',
-        'The great philosopher Seneca said, "We suffer more often in imagination than in reality." By reflecting on the positive aspects of your day, you\'re training your mind to focus on the good and reduce the power of negative thoughts. Let\'s cultivate that mindset together.',
-        'Gratitude is like a cosmic magnet that attracts more of what you appreciate into your life. By taking a moment to acknowledge the good, you\'re creating a powerful feedback loop of positivity that can help shift your overall perspective and mood.',
-        'The cosmic mirror reflects not just what is, but what can be. By focusing on the positive aspects of your day, you\'re not just surviving the stormy weather; you\'re learning to dance in the rain and even find beauty in it. Let\'s cultivate that resilience together.',
-        'When you focus on the good, it\'s like turning on a light in a dark room. The more you look for the positive, the more it illuminates your perspective and helps you find your way through challenges.',
-      ],
+      fairyMessage: 'Generating wisdom...', // Placeholder
       options: [CoachingOption(text: 'Tap to continue', nextNodeId: 'breathe')],
     ),
 
@@ -513,30 +451,14 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
 
     'input_dynamic': CoachingNode(
       id: 'input_dynamic',
-      fairyMessage: [
-        'What is the single most vital intention or perspective you want to transition into your orbit tomorrow?',
-        'If you could set a single, powerful intention for tomorrow that would guide your actions and mindset, what would it be?',
-        'What is one small but powerful perspective or intention you want to carry with you into tomorrow?',
-        'If you could plant a single seed of intention in the fertile soil of tomorrow, what would it be?',
-        'What is one powerful intention or mindset you want to anchor into your day tomorrow?',
-        'If you could choose one guiding star to navigate by tomorrow, what would it be?',
-        'What is one small but impactful intention you want to set for yourself tomorrow?',
-        'If you could distill your aspirations for tomorrow into a single, guiding intention, what would it be?',
-        'What is one powerful perspective or intention you want to carry with you into tomorrow to help you navigate the challenges and opportunities that come your way?',
-        'If you could choose one guiding principle to live by tomorrow, what would it be?',
-      ],
+      fairyMessage: 'Generating wisdom...', // Placeholder
       isInput: true,
     ),
 
     'done_dynamic': CoachingNode(
       id: 'done_dynamic',
       fairyMessage: [
-        'Beautifully anchored. Today you set out to "[INTENTION]". Your orbit is secure, and your trajectory is clear. Rest deeply, Commander.',
-        //   'Your cosmic mirror reflects not just what is, but what can be. By taking care of your inner space, you\'re not just surviving the stormy weather; you\'re learning to dance in the rain and even find beauty in it. Rest well and wake ready to dance again tomorrow.',
-        //   'When you feel mentally overwhelmed, it\'s like being caught in a cosmic storm. But remember, even the fiercest storms eventually pass, and they often leave behind clearer skies and brighter stars. Rest well tonight, knowing that calm is on the other side.',
-        //   'Your mind is a powerful tool, but it can also be a tricky one to manage. It\'s like trying to hold onto stardust - the more you try to grasp it tightly, the more it slips through your fingers. By gently holding and guiding your thoughts tonight, you\'re setting yourself up for a calmer, clearer mind tomorrow. Rest well, Cosmic Navigator.',
-        //   'The journey to mental well-being is not a straight path; it\'s more like navigating through a complex galaxy. There will be twists, turns, and unexpected discoveries along the way. By embracing this adventure and finding the stars that guide you to a calmer, clearer mind tonight, you\'re preparing for an even more enlightening journey tomorrow. Rest well, Cosmic Explorer.',
-        //   'Remember, even the most brilliant stars need darkness to shine. When your mental space feels overwhelming, it\'s a sign that you\'re on the verge of a breakthrough. By harnessing that energy and turning it into a supernova of calm and focus tonight, you\'re setting yourself up for an even brighter tomorrow. Rest well, Cosmic Star.',
+        'Beautifully anchored. Your intention to "[INTENTION]" is locked in. Your orbit is secure, and your trajectory is clear. Rest deeply, Commander.',
       ],
       options: [CoachingOption(text: 'Finish Session', nextNodeId: 'exit')],
     ),
@@ -547,6 +469,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
   @override
   void initState() {
     super.initState();
+    _fetchInitialMessage();
     _setupSession();
     _playHypnoticAudio();
   }
@@ -592,6 +515,8 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
       _currentTree = _dailyTree;
     } else if (widget.sessionType == 'workday') {
       _currentTree = _workdayTree;
+    } else if (widget.sessionType == 'weekly_review') {
+      _currentTree = _weeklyReviewTree;
     } else {
       _currentTree = _nightlyTree;
     }
@@ -599,6 +524,47 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
     _routineProvider = context.read<RoutineProvider>();
     if (!_routineProvider.isPlayingAmbient) {
       _routineProvider.toggleAmbientAudio();
+    }
+  }
+
+  void _fetchInitialMessage() {
+    // Pre-fetch the message for the very first node
+    _fetchMessageForNode('start');
+  }
+
+  void _fetchMessageForNode(String nodeId) {
+    // 'done_dynamic' keeps its own static, locally-interpolated message (see
+    // build()) rather than an AI-generated one, since it substitutes the
+    // user's actual typed intention via '[INTENTION]' — something the AI
+    // prompt has no way to know.
+    if (nodeId == 'done_dynamic') return;
+
+    final cosmicMirror = context.read<CosmicMirrorService>();
+
+    if (nodeId == 'legend_dynamic') {
+      final habits = _routineProvider.habits.values;
+      final habitsDone = habits
+          .where((h) => h.isCompleted)
+          .map((h) => h.title)
+          .toList();
+      final habitsMissed = habits
+          .where((h) => !h.isCompleted)
+          .map((h) => h.title)
+          .toList();
+      setState(() {
+        _messageFuture = cosmicMirror.generateWeeklyLegend(
+          habitsDone,
+          habitsMissed,
+        );
+      });
+      return;
+    }
+
+    if (nodeId.endsWith('_dynamic')) {
+      // This triggers the FutureBuilder to update
+      setState(
+        () => _messageFuture = cosmicMirror.generateCoachingMessage(nodeId),
+      );
     }
   }
 
@@ -620,6 +586,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
     }
     setState(() {
       _currentNodeId = nextId;
+      _fetchMessageForNode(nextId);
     });
   }
 
@@ -629,6 +596,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
 
     if (noteText.isNotEmpty) {
       final user = FirebaseAuth.instance.currentUser;
+      final moodToSave = _selectedMood; // Capture mood at time of submission
       if (user != null) {
         try {
           await FirebaseFirestore.instance
@@ -639,6 +607,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
                 // Slice it to max 2000 chars to guarantee it passes our strict Firestore rules
                 'text': noteText.substring(0, min(noteText.length, 2000)),
                 'createdAt': FieldValue.serverTimestamp(),
+                'mood': ?moodToSave,
               });
         } catch (e) {
           debugPrint('Error saving coaching note: $e');
@@ -647,6 +616,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
     }
 
     _noteController.clear();
+    setState(() => _selectedMood = null); // Reset mood after submission
     _advanceNode('done_dynamic');
   }
 
@@ -656,7 +626,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
 
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         await _handleExit();
       },
@@ -799,26 +769,56 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                Text(
-                                      currentNode.fairyMessages.isEmpty
-                                          ? ''
-                                          : currentNode.displayMessage
-                                                .replaceAll(
-                                                  '[INTENTION]',
-                                                  _routineProvider
-                                                          .dailyIntention ??
-                                                      'master your day',
-                                                ),
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        height: 1.4,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    )
-                                    .animate()
-                                    .fade(duration: 400.ms)
-                                    .moveY(begin: 10, end: 0),
+                                if ((_currentNodeId.endsWith('_dynamic') ||
+                                        _currentNodeId == 'legend_dynamic') &&
+                                    _currentNodeId != 'done_dynamic')
+                                  FutureBuilder<String>(
+                                    future: _messageFuture,
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting) {
+                                        return const Center(
+                                          child: SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              color: Color(0xFF00E5FF),
+                                              strokeWidth: 2,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                      final message =
+                                          snapshot.data ??
+                                          'The cosmos is silent...';
+                                      return Text(
+                                        message,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          height: 1.4,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      );
+                                    },
+                                  )
+                                else
+                                  Text(
+                                        currentNode.displayMessage.replaceAll(
+                                          '[INTENTION]',
+                                          _routineProvider.dailyIntention ??
+                                              'master your day',
+                                        ),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          height: 1.4,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      )
+                                      .animate()
+                                      .fade(duration: 400.ms)
+                                      .moveY(begin: 10, end: 0),
                               ],
                             ),
                           ),
@@ -829,32 +829,83 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
 
                     // --- DYNAMIC OPTIONS OR INPUT ---
                     if (currentNode.isInput)
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: TextField(
-                          controller: _noteController,
-                          style: const TextStyle(color: Colors.white),
-                          maxLines: 3,
-                          decoration: InputDecoration(
-                            hintText: 'Type your reflection here...',
-                            hintStyle: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.5),
-                            ),
-                            contentPadding: const EdgeInsets.all(16),
-                            border: InputBorder.none,
-                            suffixIcon: IconButton(
-                              icon: const Icon(
-                                Icons.send_rounded,
-                                color: Color(0xFF00E5FF),
+                      ...[
+                            // --- MOOD SELECTOR ---
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                _buildMoodIcon(
+                                  'Energized',
+                                  Icons.local_fire_department_rounded,
+                                ),
+                                _buildMoodIcon(
+                                  'Focused',
+                                  Icons.center_focus_strong_rounded,
+                                ),
+                                _buildMoodIcon(
+                                  'Calm',
+                                  Icons.self_improvement_rounded,
+                                ),
+                                _buildMoodIcon(
+                                  'Tired',
+                                  Icons.battery_alert_rounded,
+                                ),
+                                _buildMoodIcon('Stressed', Icons.storm_rounded),
+                              ],
+                            ).animate().fade(delay: 200.ms).slideY(begin: 0.2),
+                            const SizedBox(height: 20),
+                            // --- TEXT INPUT FIELD ---
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: _selectedMood != null
+                                      ? const Color(
+                                          0xFF00E5FF,
+                                        ).withValues(alpha: 0.5)
+                                      : Colors.transparent,
+                                  width: 1.5,
+                                ),
                               ),
-                              onPressed: _submitNote,
+                              child: TextField(
+                                controller: _noteController,
+                                style: const TextStyle(color: Colors.white),
+                                maxLines: 3,
+                                decoration: InputDecoration(
+                                  hintText: _selectedMood == null
+                                      ? 'Select your mood to begin...'
+                                      : 'Type your reflection here...',
+                                  hintStyle: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.5),
+                                  ),
+                                  contentPadding: const EdgeInsets.all(16),
+                                  border: InputBorder.none,
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      Icons.send_rounded,
+                                      color:
+                                          _noteController.text.isNotEmpty &&
+                                              _selectedMood != null
+                                          ? const Color(0xFF00E5FF)
+                                          : Colors.white24,
+                                    ),
+                                    onPressed:
+                                        _noteController.text.isNotEmpty &&
+                                            _selectedMood != null
+                                        ? _submitNote
+                                        : null,
+                                  ),
+                                ),
+                                onChanged: (text) => setState(
+                                  () {},
+                                ), // Rebuild to check button state
+                              ),
                             ),
-                          ),
-                        ),
-                      ).animate().fade().scale()
+                          ]
+                          .animate(interval: 100.ms)
+                          .fade()
+                          .scale(begin: const Offset(0.95, 0.95))
                     else
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -863,6 +914,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
                             padding: const EdgeInsets.only(bottom: 12.0),
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
+                                // ... existing style
                                 backgroundColor: const Color(
                                   0xFF1A1F36,
                                 ).withValues(alpha: 0.6),
@@ -892,6 +944,35 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMoodIcon(String mood, IconData icon) {
+    final isSelected = _selectedMood == mood;
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        setState(() => _selectedMood = mood);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isSelected
+              ? const Color(0xFF00E5FF).withValues(alpha: 0.2)
+              : Colors.white.withValues(alpha: 0.05),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF00E5FF) : Colors.white24,
+            width: 1.5,
+          ),
+        ),
+        child: Icon(
+          icon,
+          color: isSelected ? const Color(0xFF00E5FF) : Colors.white,
+          size: 28,
         ),
       ),
     );

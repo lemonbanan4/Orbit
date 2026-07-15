@@ -130,12 +130,14 @@ class _SleepAudioBottomSheetState extends State<SleepAudioBottomSheet>
         setState(() => _isPlaying = true);
       } catch (e) {
         // Handle audio playback errors gracefully
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error playing audio: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error playing audio: $e'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
       }
     }
   }

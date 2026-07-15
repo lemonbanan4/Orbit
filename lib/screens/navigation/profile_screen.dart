@@ -343,7 +343,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return const Center(child: Text("Not logged in"));
 
-    final routineProvider = context.watch<RoutineProvider>();
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final textColor = theme.colorScheme.onSurface;

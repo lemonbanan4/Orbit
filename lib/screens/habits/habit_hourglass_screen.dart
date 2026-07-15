@@ -241,7 +241,7 @@ class _HabitHourglassScreenState extends State<HabitHourglassScreen>
               await NotificationService.scheduleReattemptReminder(
                   widget.habitTitle, const Duration(hours: 2));
 
-              if (mounted) {
+              if (mounted && context.mounted) {
                 Navigator.pop(context); // Close the dialog
                 _stopAmbientIfNeeded();
                 Navigator.pop(context); // Close the hourglass screen

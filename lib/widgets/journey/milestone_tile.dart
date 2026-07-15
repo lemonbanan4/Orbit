@@ -498,6 +498,7 @@ class _MilestoneTileState extends State<MilestoneTile>
               if (_isUnlocking) return;
 
               final atmosphereProvider = context.read<AtmosphereProvider>();
+              final aiFairyProvider = context.read<AIFairyProvider>();
 
               if (isCompleted) {
                 // If it's already unlocked, just show the dialog so they can share!
@@ -557,20 +558,19 @@ class _MilestoneTileState extends State<MilestoneTile>
                       widget.index > 5 ? OrbitAura.nova : OrbitAura.dawn);
 
                   // Save to the cloud sequence!
-                  context.read<RoutineProvider>().unlockMilestone(widget.index);
+                  routineProvider.unlockMilestone(widget.index);
 
                   // Play custom milestone sound!
-                  if (context.read<RoutineProvider>().soundsEnabled) {
+                  if (routineProvider.soundsEnabled) {
                     _audioPlayer
                         .play(AssetSource('audio/milestone_unlock.mp3'));
                   }
 
                   try {
-                    context.read<AIFairyProvider>().cheerForHabit(
+                    aiFairyProvider.cheerForHabit(
                           "Milestone ${widget.index + 1}",
                           7,
-                          playSound:
-                              context.read<RoutineProvider>().soundsEnabled,
+                          playSound: routineProvider.soundsEnabled,
                         );
                   } catch (_) {}
 
@@ -671,7 +671,6 @@ class _MilestoneTileState extends State<MilestoneTile>
             baseBgColor = const Color(0xFF1A002A);
             break;
           case OrbitAura.voidSpace:
-          default:
             baseBgColor = const Color(0xFF051024);
         }
         canvas.drawRect(bgRect, Paint()..color = baseBgColor);
@@ -884,8 +883,10 @@ class _MilestoneTileState extends State<MilestoneTile>
 
         final qrPainter = QrPainter.withQr(
           qr: qrCode,
-          color: Colors.white.withValues(alpha: 0.9),
-          emptyColor: Colors.transparent,
+          eyeStyle: QrEyeStyle(color: Colors.white.withValues(alpha: 0.9)),
+          dataModuleStyle: QrDataModuleStyle(
+            color: Colors.white.withValues(alpha: 0.9),
+          ),
           gapless: true,
         );
 
@@ -1320,7 +1321,7 @@ class _MilestoneTileState extends State<MilestoneTile>
                             if (!hasAccess) {
                               final granted = await Gal.requestAccess();
                               if (!granted) {
-                                if (mounted) {
+                                if (mounted && context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: const Text(
@@ -1342,7 +1343,7 @@ class _MilestoneTileState extends State<MilestoneTile>
                                 await _generateWatermarkedImage();
                             if (imageBytes != null) {
                               await Gal.putImageBytes(imageBytes);
-                              if (mounted) {
+                              if (mounted && context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content:
@@ -1354,7 +1355,7 @@ class _MilestoneTileState extends State<MilestoneTile>
                               }
                             }
                           } catch (e) {
-                            if (mounted) {
+                            if (mounted && context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text("Failed to save image."),
