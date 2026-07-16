@@ -442,7 +442,10 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
             child: AnimatedBuilder(
               animation: Listenable.merge([_scrollController, _panController]),
               child: Opacity(
-                opacity: isDark ? 0.4 : 0.1,
+                // Quiet ambient texture, not a competing artwork — the
+                // pitch's look comes from a near-black ground where the
+                // cards and accents carry the hierarchy.
+                opacity: isDark ? 0.14 : 0.06,
                 child: Image.asset(
                   'assets/images/nebula_bg.png',
                   fit: BoxFit.cover,

@@ -4,13 +4,14 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import '../services/auth_service.dart';
 import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import '../utils/dev_overrides.dart';
 
 class AppAuthProvider extends ChangeNotifier {
   final AuthService _authService;
 
   // global pro status that can be updated from anywhere in the app, and will persist across sessions
   bool? _isPro;
-  bool? get isPro => _isPro;
+  bool? get isPro => DevOverrides.isProUnlocked ? true : _isPro;
   void updateProStatus(bool? isPro) {
     _isPro = isPro;
     notifyListeners();

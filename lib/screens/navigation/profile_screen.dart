@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/orbit_colors.dart';
+import '../../utils/dev_overrides.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -77,6 +78,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _checkProStatus() async {
+    if (DevOverrides.isProUnlocked) {
+      setState(() => _isPro = true);
+      return;
+    }
     try {
       CustomerInfo customerInfo = await Purchases.getCustomerInfo();
       if (customerInfo.entitlements.all["Orbit Pro"]?.isActive == true &&

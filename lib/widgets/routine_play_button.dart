@@ -3,6 +3,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../screens/paywall/premium_checker.dart';
 import 'common/premium_glass_card.dart';
+import '../utils/dev_overrides.dart';
 
 class RoutinePlayButton extends StatefulWidget {
   final String audioTitle;
@@ -27,6 +28,13 @@ class _RoutinePlayButtonState extends State<RoutinePlayButton> {
   }
 
   Future<void> _checkProStatus() async {
+    if (DevOverrides.isProUnlocked) {
+      setState(() {
+        _isPro = true;
+        _isLoadingPro = false;
+      });
+      return;
+    }
     try {
       CustomerInfo customerInfo = await Purchases.getCustomerInfo();
       if (customerInfo.entitlements.all["Orbit Pro"]?.isActive == true &&

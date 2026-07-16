@@ -12,6 +12,7 @@ import '../../widgets/reward_popup.dart';
 import '../paywall/premium_checker.dart';
 import '../coaching/coaching_session_screen.dart';
 import '../../theme/orbit_tokens.dart';
+import '../../utils/dev_overrides.dart';
 
 class SanctuaryScreen extends StatefulWidget {
   const SanctuaryScreen({super.key});
@@ -23,8 +24,9 @@ class SanctuaryScreen extends StatefulWidget {
 class _SanctuaryScreenState extends State<SanctuaryScreen> {
   bool _isPro = false;
 
-  // 👑 SET THIS TO TRUE TO TEST AUDIO WITHOUT THE PAYWALL!
-  final bool _isDeveloper = true;
+  // Debug-only paywall bypass (was a hardcoded `true` that leaked the
+  // bypass into release builds — DevOverrides is inert outside debug).
+  final bool _isDeveloper = DevOverrides.isProUnlocked;
 
   @override
   void initState() {
@@ -33,6 +35,10 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
   }
 
   Future<void> _checkProStatus() async {
+    if (DevOverrides.isProUnlocked) {
+      setState(() => _isPro = true);
+      return;
+    }
     try {
       CustomerInfo customerInfo = await Purchases.getCustomerInfo();
       if (customerInfo.entitlements.all["Orbit Pro"]?.isActive == true &&
@@ -185,7 +191,7 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
         children: [
           Positioned.fill(
             child: Opacity(
-              opacity: 0.3,
+              opacity: 0.14,
               child: Image.asset(
                 'assets/images/nebula_bg.png',
                 fit: BoxFit.cover,

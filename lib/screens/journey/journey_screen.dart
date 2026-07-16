@@ -123,7 +123,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
                 left: 0,
                 right: 0,
                 child: Opacity(
-                  opacity: 0.5,
+                  opacity: 0.18,
                   child: Image.asset(
                     'assets/images/contract_bg.png',
                     fit: BoxFit.cover,

@@ -199,7 +199,7 @@ class _ConstellationBuilderScreenState
           // 1. COSMIC BACKGROUND LAYER
           Positioned.fill(
             child: Opacity(
-              opacity: 0.3,
+              opacity: 0.14,
               child: Image.asset(
                 'assets/images/nebula_bg.png',
                 fit: BoxFit.cover,
