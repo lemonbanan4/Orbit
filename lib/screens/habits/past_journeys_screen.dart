@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/services.dart';
 import '../../widgets/common/journey_card.dart';
 import 'package:audioplayers/audioplayers.dart';
+import '../../theme/orbit_tokens.dart';
 
 class PastJourneysScreen extends StatelessWidget {
   const PastJourneysScreen({super.key});
@@ -14,7 +15,7 @@ class PastJourneysScreen extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF050112), // Premium dark theme bg
+      backgroundColor: OrbitTokens.ground,
       appBar: AppBar(
         title: const Text('Past Journeys',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -24,7 +25,7 @@ class PastJourneysScreen extends StatelessWidget {
       ),
       body: user == null
           ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF00E5FF)))
+              child: CircularProgressIndicator(color: OrbitTokens.teal))
           : StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('users')
@@ -35,7 +36,7 @@ class PastJourneysScreen extends StatelessWidget {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
                       child:
-                          CircularProgressIndicator(color: Color(0xFF00E5FF)));
+                          CircularProgressIndicator(color: OrbitTokens.teal));
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {

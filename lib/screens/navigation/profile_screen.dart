@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/orbit_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -256,7 +257,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         width: double.infinity,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF00E5FF),
+                            backgroundColor:
+                                Theme.of(context).extension<OrbitColors>()
+                                        ?.orbColor1 ??
+                                    const Color(0xFF00E5FF),
                             foregroundColor: Colors.black,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
@@ -346,6 +350,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final textColor = theme.colorScheme.onSurface;
+    final accent =
+        theme.extension<OrbitColors>()?.orbColor1 ?? const Color(0xFF00E5FF);
     final subtitleColor = textColor.withValues(alpha: 0.6);
     final tileColor = isDark
         ? Colors.white.withValues(alpha: 0.05)
@@ -398,8 +404,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                  child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+                return Center(
+                  child: CircularProgressIndicator(color: accent),
                 );
               }
 
@@ -453,16 +459,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(
-                              0xFF00E5FF,
-                            ).withValues(alpha: 0.2),
+                            color: accent.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF00E5FF)),
+                            border: Border.all(color: accent),
                           ),
-                          child: const Text(
+                          child: Text(
                             'PRO',
                             style: TextStyle(
-                              color: Color(0xFF00E5FF),
+                              color: accent,
                               fontSize: 10,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 1.0,
@@ -496,7 +500,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: 'Detailed Statistics',
                     subtitle: 'View consistency, XP & streaks',
                     icon: Icons.bar_chart_rounded,
-                    accentColor: const Color(0xFF00E5FF),
+                    accentColor: accent,
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -596,10 +600,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             );
                           },
-                          child: const Text(
+                          child: Text(
                             'View All',
                             style: TextStyle(
-                              color: Color(0xFF00E5FF),
+                              color: accent,
                               fontWeight: FontWeight.bold,
                             ),
                           ),

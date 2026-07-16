@@ -15,6 +15,7 @@ import '../../widgets/common/auth_text_field.dart';
 import '../../widgets/common/social_auth_button.dart';
 import '../../widgets/common/guest_auth_button.dart';
 import '../../widgets/common/primary_button.dart';
+import '../../theme/orbit_tokens.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -294,52 +295,30 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: OrbitTokens.ground,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: const Alignment(0, -0.7),
+            radius: 1.3,
             colors: [
-              // Color(0xFFFF512F),
-              // Color(0xFFDD2476),
-              // Color(0xFF13002B),
-              // Color(0xFFFF5E00), // Vibrant Orange // Navy Blue
-              // // Color(0xFF051024),
-              // Color(0xFF2B0057),
-              // Color(0xFF051024),
-              Colors.cyan,
-              //Colors.blueAccent,
-
-              //Color.fromARGB(255, 0, 251, 213),r
-              Color(0xFF051024),
-              Colors.black,
-              // Deep Purple
+              OrbitTokens.teal.withValues(alpha: 0.16),
+              OrbitTokens.ground,
             ],
+            stops: const [0.0, 0.75],
           ),
         ),
         child: Stack(
           children: [
             // --- 3D POP BACKGROUND ---
             GlowOrb(
-              // color: const Color.fromARGB(
-              //   255,
-              //   255,
-              //   94,
-              //   0,
-              color: //const Color(0xFFFF5E00).withValues(alpha: 0.1),
-                  //).withValues(alpha: 0.3),
-                  const Color(
-                    0xFF051024,
-                  ).withValues(alpha: 0.1).withValues(alpha: 0.3),
+              color: OrbitTokens.teal.withValues(alpha: 0.12),
               size: 400,
               top: -100,
               left: -50,
             ),
             GlowOrb(
-              color: //const Color(0xFF2B0057).withValues(alpha: 0.6),
-              const Color(
-                0xFF051024,
-              ).withValues(alpha: 0.6),
+              color: OrbitTokens.violet.withValues(alpha: 0.18),
               size: 300,
               bottom: 50,
               right: -50,
@@ -358,7 +337,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Icon(
                           Icons.blur_on_rounded,
                           size: 80,
-                          color: Color(0xFF00E5FF),
+                          color: OrbitTokens.teal,
                         )
                         .animate(onPlay: (c) => c.repeat())
                         .shimmer(duration: 2.seconds),

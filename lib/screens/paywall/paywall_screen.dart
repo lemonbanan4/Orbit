@@ -10,11 +10,12 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:confetti/confetti.dart';
 import 'dart:math' as math;
 import 'dart:io';
-import '../../widgets/common/animated_frosty_button.dart';
 import '../../widgets/package_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/common/paywall_video_background.dart';
+import '../../widgets/common/gradient_pill_button.dart';
+import '../../theme/orbit_tokens.dart';
 
 class PaywallScreen extends StatefulWidget {
   const PaywallScreen({super.key});
@@ -235,17 +236,17 @@ class _PaywallScreenState extends State<PaywallScreen> {
     await showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF13002B),
+        backgroundColor: OrbitTokens.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: const Text(
           'Almost there!',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: OrbitTokens.ink, fontWeight: FontWeight.bold),
         ),
         content: const Text(
           "Your payment went through, but we're still waiting on confirmation "
           "from the App Store. Try Restore Purchases, or contact support if "
           "this doesn't resolve in a few minutes.",
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: OrbitTokens.inkDim),
         ),
         actions: [
           TextButton(
@@ -313,7 +314,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF13002B),
+        backgroundColor: OrbitTokens.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         contentPadding: const EdgeInsets.all(32),
         content: Column(
@@ -321,7 +322,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
           children: [
             const Icon(
                   Icons.workspace_premium_rounded,
-                  color: Colors.amber,
+                  color: OrbitTokens.gold,
                   size: 80,
                 )
                 .animate(onPlay: (c) => c.repeat(reverse: true))
@@ -330,7 +331,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
             const Text(
               'Welcome to Pro!',
               style: TextStyle(
-                color: Colors.white,
+                color: OrbitTokens.ink,
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
               ),
@@ -339,7 +340,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
             const Text(
               'Your journey has just begun.',
               style: TextStyle(
-                color: Color(0xFF00E5FF),
+                color: OrbitTokens.teal,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -348,15 +349,15 @@ class _PaywallScreenState extends State<PaywallScreen> {
             const Text(
               'You now have unlimited access to premium coaching, custom app icons, and all focus areas.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+              style: TextStyle(color: OrbitTokens.inkDim, fontSize: 14),
             ),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00E5FF),
-                  foregroundColor: Colors.black,
+                  backgroundColor: OrbitTokens.teal,
+                  foregroundColor: OrbitTokens.ground,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -480,24 +481,27 @@ class _PaywallScreenState extends State<PaywallScreen> {
         final priceString = _selectedPackage!.storeProduct.priceString;
         if (_selectedPackage!.packageType == PackageType.annual) {
           buttonText = "START 7-DAY FREE TRIAL"; // Make it clear!
+          // Apple Guideline 3.1.2(c): state title, length, and price of the
+          // subscription in-app, not just in the App Store listing.
           renewalDisclosure =
-              "7-day free trial, then $priceString/year. Subscription "
-              "automatically renews unless canceled at least 24 hours "
-              "before the end of the current period. Any unused portion of "
-              "a free trial is forfeited once you purchase a subscription.";
+              "Orbit Pro (Annual, 12 months): 7-day free trial, then "
+              "$priceString/year. Subscription automatically renews unless "
+              "canceled at least 24 hours before the end of the current "
+              "period. Any unused portion of a free trial is forfeited once "
+              "you purchase a subscription.";
         } else {
           buttonText = "SUBSCRIBE MONTHLY";
           renewalDisclosure =
-              "$priceString/month. Subscription automatically renews unless "
-              "canceled at least 24 hours before the end of the current "
-              "period.";
+              "Orbit Pro (Monthly): $priceString/month. Subscription "
+              "automatically renews unless canceled at least 24 hours "
+              "before the end of the current period.";
         }
       } else {
         buttonText = "CONTINUE";
       }
     }
     return Scaffold(
-      backgroundColor: Colors.black, // Fallback color
+      backgroundColor: OrbitTokens.ground, // Fallback color
       body: Stack(
         children: [
           // LAYER 1: THE VIDEO BACKGROUND
@@ -510,9 +514,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withValues(alpha: 0.3),
-                  Colors.black.withValues(
-                    alpha: 0.8,
+                  OrbitTokens.ground.withValues(alpha: 0.35),
+                  OrbitTokens.ground.withValues(
+                    alpha: 0.94,
                   ), // Gets darker at the bottom near the button
                 ],
               ),
@@ -522,30 +526,91 @@ class _PaywallScreenState extends State<PaywallScreen> {
           // LAYER 3: YOUR FROSTY UI & REVENUECAT BUTTON
           SafeArea(
                 child: Padding(
-                  padding: const EdgeInsets.all(24.0),
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          reverse: true,
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                      // "ORBIT PRO" eyebrow badge
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: OrbitTokens.signal,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              "ORBIT PRO",
+                              style: TextStyle(
+                                color: OrbitTokens.inkDim,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 2,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
                       // Your Marketing Text
                       Text(
                         _paywallTitle,
                         style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 40,
-                          fontWeight: FontWeight.bold,
-                          height: 1.1,
+                          color: OrbitTokens.ink,
+                          fontSize: 34,
+                          fontWeight: FontWeight.w800,
+                          height: 1.12,
+                          letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 10),
                       Text(
                         _paywallSubtitle,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 16,
+                        style: TextStyle(
+                          color: OrbitTokens.inkDim,
+                          fontSize: 14.5,
+                          height: 1.4,
                         ),
                       ),
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 22),
+
+                      // Grounded, concrete feature list — what Pro actually
+                      // unlocks, not generic "unlimited everything" copy.
+                      const _PaywallFeatureRow(
+                        icon: Icons.auto_awesome_rounded,
+                        title: "Daily AI coaching",
+                        subtitle:
+                            "Personalized insight from your streaks & skips",
+                      ),
+                      const SizedBox(height: 10),
+                      const _PaywallFeatureRow(
+                        icon: Icons.self_improvement_rounded,
+                        title: "Sanctuary & guided audio",
+                        subtitle: "Full ambient library, always unlocked",
+                      ),
+                      const SizedBox(height: 10),
+                      const _PaywallFeatureRow(
+                        icon: Icons.forum_rounded,
+                        title: "Pro coaching sessions",
+                        subtitle: "Structured sessions in the Coaching hub",
+                      ),
+                      const SizedBox(height: 22),
 
                       // THE DYNAMIC PRICE DISPLAY
                       Builder(
@@ -563,7 +628,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                           if (_isLoadingPrice) {
                             return const Center(
                               child: CircularProgressIndicator(
-                                color: Colors.white,
+                                color: OrbitTokens.teal,
                               ),
                             );
                           } else if (displayPackages.isNotEmpty) {
@@ -596,33 +661,33 @@ class _PaywallScreenState extends State<PaywallScreen> {
                             return Container(
                               padding: const EdgeInsets.all(24),
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.05),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.white10),
+                                color: OrbitTokens.surface,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: OrbitTokens.hairline),
                               ),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.cloud_off_rounded,
-                                    color: Colors.white60,
+                                    color: OrbitTokens.inkDim,
                                     size: 40,
                                   ),
                                   const SizedBox(height: 12),
                                   const Text(
                                     "Unable to load plans",
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: OrbitTokens.ink,
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    "Please check your internet connection or ${Platform.isIOS ? 'Apple' : 'Google Play'} account status and try again.",
+                                    "Please check your internet connection or ${defaultTargetPlatform == TargetPlatform.iOS ? 'Apple' : 'Google Play'} account status and try again.",
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
-                                      color: Colors.white60,
+                                      color: OrbitTokens.inkDim,
                                       fontSize: 14,
                                     ),
                                   ),
@@ -632,14 +697,14 @@ class _PaywallScreenState extends State<PaywallScreen> {
                                       setState(() => _isLoadingPrice = true);
                                       _fetchPackages(); // Let them manually retry!
                                     },
-                                    icon: const Icon(
+                                    icon: Icon(
                                       Icons.refresh_rounded,
-                                      color: Colors.cyan,
+                                      color: OrbitTokens.teal,
                                     ),
-                                    label: const Text(
+                                    label: Text(
                                       "Retry",
                                       style: TextStyle(
-                                        color: Colors.cyan,
+                                        color: OrbitTokens.teal,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -653,25 +718,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
                         },
                       ),
 
-                      // BOUNCING INDICATOR FOR FREE TRIAL
-                      if (buttonText == "START 7-DAY FREE TRIAL")
-                        const Center(
-                              child: Icon(
-                                Icons.keyboard_arrow_down,
-                                color: Color(0xFF00E5FF),
-                                size: 32,
-                              ),
-                            )
-                            .animate(onPlay: (c) => c.repeat(reverse: true))
-                            .moveY(
-                              begin: -8,
-                              end: 0,
-                              duration: 600.ms,
-                              curve: Curves.easeInOut,
-                            ),
+                      const SizedBox(height: 6),
 
-                      // THE REVENUECAT BUY BUTTON (Using your Frosty Glass style!)
-                      AnimatedFrostyButton(
+                      // THE REVENUECAT BUY BUTTON
+                      GradientPillButton(
                             text: buttonText,
                             isLoading: _isPurchasing,
                             onPressed: _isLoadingPrice || _isPurchasing
@@ -688,13 +738,13 @@ class _PaywallScreenState extends State<PaywallScreen> {
                           ),
 
                       if (_isVerifying)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 12),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
                           child: Text(
                             "Verifying your purchase...",
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: Colors.white70,
+                              color: OrbitTokens.inkDim,
                               fontSize: 13,
                             ),
                           ),
@@ -706,9 +756,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
                           child: Text(
                             renewalDisclosure,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white54,
+                            style: TextStyle(
+                              color: OrbitTokens.inkFaint,
                               fontSize: 11,
+                              height: 1.4,
                             ),
                           ),
                         ),
@@ -726,18 +777,18 @@ class _PaywallScreenState extends State<PaywallScreen> {
                                 ? null
                                 : _performRestore,
                             child: _isRestoring
-                                ? const SizedBox(
+                                ? SizedBox(
                                     height: 12,
                                     width: 12,
                                     child: CircularProgressIndicator(
-                                      color: Colors.white70,
+                                      color: OrbitTokens.inkDim,
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : const Text(
+                                : Text(
                                     "Restore",
                                     style: TextStyle(
-                                      color: Colors.white70,
+                                      color: OrbitTokens.inkDim,
                                       fontSize: 12,
                                     ),
                                   ),
@@ -752,10 +803,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
                                 debugPrint('Could not launch $url');
                               }
                             },
-                            child: const Text(
+                            child: Text(
                               "Terms",
                               style: TextStyle(
-                                color: Colors.white70,
+                                color: OrbitTokens.inkDim,
                                 fontSize: 12,
                               ),
                             ),
@@ -770,10 +821,31 @@ class _PaywallScreenState extends State<PaywallScreen> {
                                 debugPrint('Could not launch $url');
                               }
                             },
-                            child: const Text(
+                            child: Text(
                               "Privacy",
                               style: TextStyle(
-                                color: Colors.white70,
+                                color: OrbitTokens.inkDim,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            style: _legalLinkButtonStyle,
+                            onPressed: () async {
+                              // Apple Guideline 3.1.2(c) requires a functional
+                              // link to the EULA. Orbit uses Apple's standard
+                              // EULA rather than a custom one.
+                              final url = Uri.parse(
+                                'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
+                              );
+                              if (!await launchUrl(url)) {
+                                debugPrint('Could not launch $url');
+                              }
+                            },
+                            child: Text(
+                              "EULA",
+                              style: TextStyle(
+                                color: OrbitTokens.inkDim,
                                 fontSize: 12,
                               ),
                             ),
@@ -781,10 +853,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
                           TextButton(
                             style: _legalLinkButtonStyle,
                             onPressed: redeemPromoCode,
-                            child: const Text(
-                              "Have a Promo Code?",
+                            child: Text(
+                              "Promo Code",
                               style: TextStyle(
-                                color: Colors.white70,
+                                color: OrbitTokens.teal,
                                 fontSize: 12,
                                 decoration: TextDecoration.underline,
                               ),
@@ -793,6 +865,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -806,17 +882,27 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 child: Align(
                   alignment: Alignment.topRight,
                   child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.close,
-                        color: Colors.white70,
-                        size: 32,
-                      ),
-                      onPressed: () async {
+                    padding: const EdgeInsets.all(16.0),
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () async {
                         HapticFeedback.lightImpact();
                         await _finishOnboardingAndGoToDashboard(context);
                       },
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: OrbitTokens.surface2,
+                          border: Border.all(color: OrbitTokens.hairline),
+                        ),
+                        child: Icon(
+                          Icons.close_rounded,
+                          color: OrbitTokens.inkDim,
+                          size: 20,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -839,9 +925,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 blastDirectionality: BlastDirectionality.explosive,
                 shouldLoop: false,
                 colors: const [
-                  Color(0xFF00E5FF), // Cyan
-                  Color(0xFFFFCC00), // Gold
-                  Colors.white,
+                  OrbitTokens.teal,
+                  OrbitTokens.gold,
+                  OrbitTokens.ink,
                 ],
                 createParticlePath: _drawStar, // Epic star explosion!
                 numberOfParticles: 40,
@@ -861,8 +947,8 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 blastDirectionality: BlastDirectionality.explosive,
                 shouldLoop: false,
                 colors: const [
-                  Color(0xFFBC13FE), // Purple
-                  Color(0xFF7000FF), // Deep Purple
+                  OrbitTokens.violet,
+                  OrbitTokens.surface2,
                 ],
                 createParticlePath: _drawPlanet, // Saturn-style planets!
                 numberOfParticles: 40, // 40 stars + 40 planets = 80 total
@@ -927,5 +1013,62 @@ class _PaywallScreenState extends State<PaywallScreen> {
     );
 
     return path;
+  }
+}
+
+/// A single "what Pro unlocks" line: icon chip, title, one-line detail.
+class _PaywallFeatureRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  const _PaywallFeatureRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 26,
+          height: 26,
+          margin: const EdgeInsets.only(top: 1),
+          decoration: BoxDecoration(
+            color: OrbitTokens.surface,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: OrbitTokens.hairline),
+          ),
+          child: Icon(icon, color: OrbitTokens.teal, size: 14),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: OrbitTokens.ink,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 1),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: OrbitTokens.inkDim,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }

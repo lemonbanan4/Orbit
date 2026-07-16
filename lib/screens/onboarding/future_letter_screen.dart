@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'contract_screen.dart';
+import '../../theme/orbit_tokens.dart';
 
 class FutureLetterScreen extends StatefulWidget {
   final String userName;
@@ -15,7 +16,7 @@ class _FutureLetterScreenState extends State<FutureLetterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF050112),
+      backgroundColor: OrbitTokens.ground,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
@@ -48,7 +49,7 @@ class _FutureLetterScreenState extends State<FutureLetterScreen> {
               Center(
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00E5FF),
+                    backgroundColor: OrbitTokens.teal,
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 32, vertical: 16),

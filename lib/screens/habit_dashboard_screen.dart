@@ -28,7 +28,7 @@ import 'features/nebula_forge_screen.dart';
 import 'features/pro_coaching_screen.dart';
 import '../widgets/sleep_audio_bottom_sheet.dart';
 import 'coaching/coaching_session_screen.dart';
-import 'package:orbit_app/theme/custom_colors.dart';
+import '../theme/orbit_tokens.dart';
 import '../widgets/paywall/premium_paywall_dialog.dart';
 import '../utils/time_picker_utils.dart';
 
@@ -73,18 +73,22 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
       'type': 'Work',
       'title': 'Work Routine',
       'session': 'workday',
+      // Was near-black (0xFF2B0057) — invisible as a full-bleed card and
+      // just as invisible as an accent stripe. Deep purple actually reads.
       'colors': [
-        const Color(0xFF2B0057),
-        const Color(0xFF2B0057).withValues(alpha: 0.7),
+        const Color(0xFF8E2DE2),
+        const Color(0xFF8E2DE2).withValues(alpha: 0.7),
       ],
     },
     {
       'type': 'Night',
       'title': 'Night Routine',
       'session': 'nightly',
+      // Was near-black (0xFF051024) for the same reason — swapped for a
+      // moonlit blue that still reads as "night" but is actually visible.
       'colors': [
-        const Color(0xFF051024),
-        const Color(0xFF051024).withValues(alpha: 0.7),
+        const Color(0xFF1E90FF),
+        const Color(0xFF1E90FF).withValues(alpha: 0.7),
       ],
     },
   ];
@@ -294,7 +298,7 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
       title: 'Orbit',
       actions: [
         IconButton(
-          icon: const Icon(Icons.group_add_rounded, color: Color(0xFF00E5FF)),
+          icon: Icon(Icons.group_add_rounded, color: orbColor1),
           onPressed: () {
             HapticFeedback.selectionClick();
             Navigator.push(
@@ -365,10 +369,9 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
                   ),
                 );
               },
-              backgroundColor: const Color(0xFF051024).withValues(
-                alpha: 0.7,
-              ), //const Color(0xFF00E5FF).withValues(alpha: 0.6),
-              foregroundColor: Color(0xFF00E5FF), //Colors.black,
+              backgroundColor: (isDark ? Colors.black : Colors.white)
+                  .withValues(alpha: 0.7),
+              foregroundColor: orbColor1,
               icon: const Icon(Icons.add_rounded, size: 24),
               label: const Text(
                 'New Habit',
@@ -710,11 +713,11 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
                       Consumer<RoutineProvider>(
                         builder: (context, routineProvider, child) {
                           if (!routineProvider.isDataLoaded) {
-                            return const Padding(
-                              padding: EdgeInsets.only(top: 40.0),
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 40.0),
                               child: Center(
                                 child: CircularProgressIndicator(
-                                  color: Color(0xFF00E5FF),
+                                  color: orbColor1,
                                 ),
                               ),
                             );
@@ -817,9 +820,7 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
                                                   ),
                                                   action: SnackBarAction(
                                                     label: 'UNDO',
-                                                    textColor: const Color(
-                                                      0xFF00E5FF,
-                                                    ),
+                                                    textColor: orbColor1,
                                                     onPressed: () {
                                                       routineProvider
                                                           .restoreHabit(
@@ -1022,7 +1023,8 @@ class _PremiumCarousel extends StatelessWidget {
                 subtitle: "Unroll today's wisdom.",
                 duration: "1 min",
                 gradient: const [
-                  deepPurple, black87, //Color(0xFF4A00E0)
+                  OrbitTokens.violet,
+                  OrbitTokens.ground,
                 ],
                 icon: Icons.auto_stories_rounded,
                 onTap: onOpenSanctuary,
@@ -1033,7 +1035,7 @@ class _PremiumCarousel extends StatelessWidget {
                 title: "Celestial Reflection",
                 subtitle: "Find your center and relax.",
                 duration: "3 min",
-                gradient: const [deepOrange, black87],
+                gradient: const [OrbitTokens.morning, OrbitTokens.ground],
                 icon: Icons.bubble_chart_rounded,
                 onTap: () {
                   HapticFeedback.selectionClick();
@@ -1055,9 +1057,8 @@ class _PremiumCarousel extends StatelessWidget {
                 subtitle: "Analyze your gravitational synergy.",
                 duration: "Telemetry",
                 gradient: const [
-                  deepBlue,
-                  black87,
-                  //Color.fromARGB(255, 7, 0, 0),
+                  Color(0xFF3D5CFF),
+                  OrbitTokens.ground,
                 ],
                 icon: Icons.hub_rounded,
                 onTap: () {
@@ -1087,8 +1088,8 @@ class _PremiumCarousel extends StatelessWidget {
                 subtitle: "Binaural beats for recovery.",
                 duration: "45 min",
                 gradient: const [
-                  cosmicWhite, black87,
-                  //Color(0xFF0B191E)
+                  OrbitTokens.teal,
+                  OrbitTokens.ground,
                 ],
                 icon: Icons.nightlight_round_rounded,
                 onTap: () {
@@ -1111,12 +1112,9 @@ class _PremiumCarousel extends StatelessWidget {
                 subtitle: "Unlock advanced AI insights.",
                 duration: "Exclusive",
                 gradient: const [
-                  cosmicCyan,
-                  black87,
-                  //Color(0xFF1A1F36), //.withValues(alpha: 0.1),
-                  //Color(0xFF1A1F36), //.withValues(alpha: 0.1),
+                  OrbitTokens.gold,
+                  OrbitTokens.ground,
                 ],
-                //Color(0xFFFF416C), Color(0xFFFF4B2B)],
                 icon: Icons.workspace_premium_rounded,
                 onTap: () {
                   HapticFeedback.lightImpact();

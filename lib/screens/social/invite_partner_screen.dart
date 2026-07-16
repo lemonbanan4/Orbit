@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/orbit_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -87,6 +88,9 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final myCode = user?.uid.substring(0, 6).toUpperCase() ?? "------";
+    final accent =
+        Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
+        const Color(0xFF00E5FF);
 
     return BaseOrbitScreen(
       title: 'Partner Link',
@@ -96,7 +100,7 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 20),
-            const Icon(Icons.hub_rounded, size: 80, color: Color(0xFF00E5FF))
+            Icon(Icons.hub_rounded, size: 80, color: accent)
                 .animate(onPlay: (c) => c.repeat(reverse: true))
                 .scaleXY(begin: 0.9, end: 1.1, duration: 2.seconds)
                 .shimmer(color: Colors.white, duration: 3.seconds),
@@ -133,8 +137,8 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
                           content: Text('Code copied to clipboard!')));
                     },
                     child: Text(myCode,
-                        style: const TextStyle(
-                            color: Color(0xFF00E5FF),
+                        style: TextStyle(
+                            color: accent,
                             fontSize: 48,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 8.0)),
@@ -173,7 +177,7 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00E5FF),
+                    backgroundColor: accent,
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(

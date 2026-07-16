@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
-import 'dart:ui';
+import '../theme/orbit_tokens.dart';
 
 class PackageCard extends StatelessWidget {
   final Package package;
@@ -17,9 +17,9 @@ class PackageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isAnnual = package.packageType == PackageType.annual;
-    final String title = isAnnual ? "Orbit Pro Annual" : "Orbit Pro Monthly";
+    final String title = isAnnual ? "Annual" : "Monthly";
     final String priceString = package.storeProduct.priceString;
-    final String period = isAnnual ? "/ year" : "/ month";
+    final String period = isAnnual ? "/yr" : "/mo";
 
     // 🧠 PRICE ANCHORING: Calculate a rough "original" price to cross out
     // You can hardcode this to "950 kr" if you prefer, but this dynamically
@@ -29,145 +29,112 @@ class PackageCard extends StatelessWidget {
     final String originalPriceAnchor =
         "${(rawPrice * 2).toStringAsFixed(0)} $currencyCode";
 
-    return GestureDetector(
-      onTap: () => onSelect(package),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
-        margin: const EdgeInsets.only(bottom: 16),
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: GestureDetector(
+        onTap: () => onSelect(package),
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(
-                    20,
-                    24,
-                    20,
-                    20,
-                  ), // Extra top padding for the badge
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? const Color(0xFF00E5FF).withValues(alpha: 0.15)
-                        : Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isSelected
-                          ? const Color(0xFF00E5FF)
-                          : Colors.white.withValues(alpha: 0.1),
-                      width: isSelected ? 2 : 1,
-                    ),
-                  ),
-                  child: Row(
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? OrbitTokens.teal.withValues(alpha: 0.10)
+                    : OrbitTokens.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isSelected ? OrbitTokens.teal : OrbitTokens.hairline,
+                  width: isSelected ? 1.5 : 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Icon(
                         isSelected
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_unchecked,
-                        color: isSelected
-                            ? const Color(0xFF00E5FF)
-                            : Colors.white54,
+                            ? Icons.radio_button_checked_rounded
+                            : Icons.radio_button_unchecked_rounded,
+                        color:
+                            isSelected ? OrbitTokens.teal : OrbitTokens.inkFaint,
+                        size: 22,
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 14),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            if (isAnnual) ...[
-                              // 🔥 THE CROSSED-OUT PRICE
-                              Row(
-                                children: [
-                                  Text(
-                                    originalPriceAnchor,
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.4,
-                                      ),
-                                      fontSize: 14,
-                                      decoration: TextDecoration
-                                          .lineThrough, // Cross it out!
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    "$priceString $period",
-                                    style: const TextStyle(
-                                      color: Color(0xFF00E5FF),
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                "Includes 7-Day Free Trial",
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ] else ...[
-                              // Standard Monthly View
-                              Text(
-                                "$priceString $period",
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ],
-                          ],
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            color: OrbitTokens.ink,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        "$priceString$period",
+                        style: TextStyle(
+                          color:
+                              isSelected ? OrbitTokens.teal : OrbitTokens.inkDim,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
-                ),
+                  if (isAnnual) ...[
+                    const SizedBox(height: 6),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 36),
+                      child: Row(
+                        children: [
+                          Text(
+                            originalPriceAnchor,
+                            style: TextStyle(
+                              color: OrbitTokens.inkFaint,
+                              fontSize: 11.5,
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            "Includes 7-Day Free Trial",
+                            style: TextStyle(
+                              color: OrbitTokens.inkDim,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
-
-            // 🔥 THE "MOST POPULAR" BADGE
             if (isAnnual)
               Positioned(
-                top: -10,
-                right: 20,
+                top: -2,
+                left: 16,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
+                    horizontal: 9,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF00E5FF), Color(0xFF00B4D8)],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    color: OrbitTokens.teal,
+                    borderRadius: BorderRadius.circular(100),
                   ),
                   child: const Text(
                     "MOST POPULAR",
                     style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                      color: OrbitTokens.ground,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w800,
                       letterSpacing: 0.5,
                     ),
                   ),

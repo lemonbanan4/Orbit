@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'orbit_tokens.dart';
 
 class GlassButton extends StatelessWidget {
   final String text;
@@ -26,13 +27,13 @@ class GlassButton extends StatelessWidget {
               ? const []
               : [
                   BoxShadow(
-                    color: const Color(0xFF00E5FF).withValues(alpha: 0.35),
+                    color: OrbitTokens.teal.withValues(alpha: 0.35),
                     blurRadius: 24,
                     spreadRadius: -4,
                     offset: const Offset(0, 8),
                   ),
                   BoxShadow(
-                    color: const Color(0xFF7000FF).withValues(alpha: 0.25),
+                    color: OrbitTokens.violet.withValues(alpha: 0.25),
                     blurRadius: 20,
                     spreadRadius: -6,
                     offset: const Offset(0, 4),
@@ -54,14 +55,15 @@ class GlassButton extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.4),
                   width: 1.2,
                 ),
-                // Vibrant cyan-to-purple glass gradient
+                // Vibrant teal-to-violet glass gradient, matching the
+                // paywall's signal gradient family.
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    const Color(0xFF00E5FF).withValues(alpha: 0.55),
-                    const Color(0xFF7000FF).withValues(alpha: 0.45),
-                    const Color(0xFF1A1F36).withValues(alpha: 0.5),
+                    OrbitTokens.teal.withValues(alpha: 0.55),
+                    OrbitTokens.violet.withValues(alpha: 0.45),
+                    OrbitTokens.surface.withValues(alpha: 0.5),
                   ],
                 ),
               ),

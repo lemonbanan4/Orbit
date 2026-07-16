@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../theme/orbit_colors.dart';
 
 class ProfileAvatar extends StatelessWidget {
   final String? photoUrl;
@@ -15,6 +16,10 @@ class ProfileAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final orbitColors = Theme.of(context).extension<OrbitColors>();
+    final Color accent1 = orbitColors?.orbColor1 ?? const Color(0xFF00E5FF);
+    final Color accent2 = orbitColors?.orbColor2 ?? const Color(0xFF7000FF);
+
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
@@ -27,15 +32,10 @@ class ProfileAvatar extends StatelessWidget {
             Container(
               width: 106,
               height: 106,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: SweepGradient(
-                  colors: [
-                    Color(0xFF00E5FF),
-                    Color(0xFF7000FF),
-                    Colors.amber,
-                    Color(0xFF00E5FF),
-                  ],
+                  colors: [accent1, accent2, Colors.amber, accent1],
                 ),
               ),
             ).animate(onPlay: (c) => c.repeat()).rotate(duration: 3.seconds),
@@ -55,13 +55,12 @@ class ProfileAvatar extends StatelessWidget {
               backgroundImage:
                   photoUrl != null ? NetworkImage(photoUrl!) : null,
               child: photoUrl == null
-                  ? const Icon(Icons.person_rounded,
-                      size: 48, color: Color(0xFF00E5FF))
+                  ? Icon(Icons.person_rounded, size: 48, color: accent1)
                   : null,
             ),
             if (isUploading)
-              const Positioned.fill(
-                  child: CircularProgressIndicator(color: Color(0xFF00E5FF))),
+              Positioned.fill(
+                  child: CircularProgressIndicator(color: accent1)),
             Positioned(
               bottom: 0,
               right: 0,
@@ -70,10 +69,10 @@ class ProfileAvatar extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: const Color(0xFF13002B),
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF00E5FF), width: 2),
+                  border: Border.all(color: accent1, width: 2),
                 ),
-                child: const Icon(Icons.camera_alt_rounded,
-                    color: Color(0xFF00E5FF), size: 16),
+                child: Icon(Icons.camera_alt_rounded,
+                    color: accent1, size: 16),
               ),
             ),
           ],

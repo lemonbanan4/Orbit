@@ -12,6 +12,7 @@ import '../../widgets/common/base_orbit_screen.dart';
 import '../../widgets/common/user_metrics_grid.dart';
 import '../../theme/orbit_colors.dart'; // For accessing our custom theme colors
 import '../coaching/mood_chart_widget.dart';
+import '../../theme/orbit_tokens.dart';
 
 class StatisticsScreen extends StatelessWidget {
   const StatisticsScreen({super.key});
@@ -21,14 +22,14 @@ class StatisticsScreen extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
     final routineProvider = context.watch<RoutineProvider>();
 
-    // These colors are part of the app's branding for charts.
-    // Consider moving them to a theme extension for better reusability.
-    const Color orbColor1 = Color(0xFF00E5FF); // Cyan accent
+    final Color orbColor1 =
+        Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
+        const Color(0xFF00E5FF);
 
     return BaseOrbitScreen(
       title: 'Your Stats',
       body: user == null
-          ? const Center(
+          ? Center(
               child: CircularProgressIndicator(color: orbColor1),
             )
           : StreamBuilder<DocumentSnapshot>(
@@ -39,7 +40,7 @@ class StatisticsScreen extends StatelessWidget {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting &&
                     !snapshot.hasData) {
-                  return const Center(
+                  return Center(
                     child: CircularProgressIndicator(color: orbColor1),
                   );
                 }
@@ -92,7 +93,9 @@ class _ConsistencyCalendar extends StatelessWidget {
     final theme = Theme.of(context);
     final textColor = theme.colorScheme.onSurface;
     final routineProvider = context.watch<RoutineProvider>();
-    const Color orbColor2 = Color(0xFF7000FF);
+    final orbitColors = theme.extension<OrbitColors>();
+    final Color orbColor1 = orbitColors?.orbColor1 ?? const Color(0xFF00E5FF);
+    final Color orbColor2 = orbitColors?.orbColor2 ?? const Color(0xFF7000FF);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -151,8 +154,8 @@ class _ConsistencyCalendar extends StatelessWidget {
                 color: orbColor2.withValues(alpha: 0.5),
                 shape: BoxShape.circle,
               ),
-              markerDecoration: const BoxDecoration(
-                color: Color(0xFF00E5FF),
+              markerDecoration: BoxDecoration(
+                color: orbColor1,
                 shape: BoxShape.circle,
               ),
             ),
@@ -179,6 +182,7 @@ class _WeeklyConsistencyChart extends StatelessWidget {
 
     // Extract custom colors from the theme safely!
     final orbitColors = theme.extension<OrbitColors>();
+    final Color orbColor1 = orbitColors?.orbColor1 ?? const Color(0xFF00E5FF);
     final Color orbColor2 = orbitColors?.orbColor2 ?? const Color(0xFF7000FF);
 
     return Column(
@@ -276,8 +280,8 @@ class _WeeklyConsistencyChart extends StatelessWidget {
                         .map(
                           (spot) => LineTooltipItem(
                             '${(spot.y * 100).toInt()}%\n',
-                            const TextStyle(
-                              color: Color(0xFF00E5FF),
+                            TextStyle(
+                              color: orbColor1,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -302,7 +306,8 @@ class _XpHistoryGraph extends StatelessWidget {
     final theme = Theme.of(context);
     final textColor = theme.colorScheme.onSurface;
     final routineProvider = context.watch<RoutineProvider>();
-    const Color orbColor1 = Color(0xFF00E5FF);
+    final Color orbColor1 =
+        theme.extension<OrbitColors>()?.orbColor1 ?? const Color(0xFF00E5FF);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -358,8 +363,8 @@ class _XpHistoryGraph extends StatelessWidget {
 
                           return BarTooltipItem(
                             '$formattedXp XP\n',
-                            const TextStyle(
-                              color: Color(0xFF00E5FF),
+                            TextStyle(
+                              color: orbColor1,
                               fontWeight: FontWeight.bold,
                             ),
                           );
@@ -554,7 +559,8 @@ class _PastIntentions extends StatelessWidget {
     final theme = Theme.of(context);
     final textColor = theme.colorScheme.onSurface;
     final routineProvider = context.watch<RoutineProvider>();
-    const Color orbColor1 = Color(0xFF00E5FF);
+    final Color orbColor1 =
+        theme.extension<OrbitColors>()?.orbColor1 ?? const Color(0xFF00E5FF);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -593,7 +599,7 @@ class _PastIntentions extends StatelessWidget {
                               color: orbColor1.withValues(alpha: 0.15),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.flare_rounded,
                               color: orbColor1,
                               size: 24,
@@ -655,6 +661,9 @@ class WeeklyProgressChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final progress = context.watch<RoutineProvider>().weeklyProgress;
+    final Color accent =
+        Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
+        const Color(0xFF00E5FF);
 
     // Convert data array to graph coordinates
     final spots = List.generate(
@@ -681,13 +690,13 @@ class WeeklyProgressChart extends StatelessWidget {
                 borderData: FlBorderData(show: false),
                 lineTouchData: LineTouchData(
                   touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (_) => const Color(0xFF1A1F36),
+                    getTooltipColor: (_) => OrbitTokens.surface,
                     getTooltipItems: (touchedSpots) {
                       return touchedSpots
                           .map((spot) => LineTooltipItem(
                                 '${spot.y.toInt()}%',
-                                const TextStyle(
-                                    color: Color(0xFF00E5FF),
+                                TextStyle(
+                                    color: accent,
                                     fontWeight: FontWeight.bold),
                               ))
                           .toList();
@@ -698,7 +707,7 @@ class WeeklyProgressChart extends StatelessWidget {
                   LineChartBarData(
                     spots: spots,
                     isCurved: true,
-                    color: const Color(0xFF00E5FF),
+                    color: accent,
                     barWidth: 4,
                     isStrokeCapRound: true,
                     dotData: FlDotData(
@@ -708,14 +717,14 @@ class WeeklyProgressChart extends StatelessWidget {
                         radius: 4,
                         color: Colors.white,
                         strokeWidth: 2,
-                        strokeColor: const Color(0xFF00E5FF),
+                        strokeColor: accent,
                       ),
                     ),
                     belowBarData: BarAreaData(
                       show: true,
                       gradient: LinearGradient(
                         colors: [
-                          const Color(0xFF00E5FF).withValues(alpha: 0.3),
+                          accent.withValues(alpha: 0.3),
                           Colors.transparent,
                         ],
                         begin: Alignment.topCenter,

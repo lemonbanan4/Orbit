@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../theme/orbit_colors.dart';
+import '../../theme/orbit_tokens.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../widgets/common/base_orbit_screen.dart';
@@ -27,6 +29,8 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textColor = theme.colorScheme.onSurface;
+    final accent =
+        theme.extension<OrbitColors>()?.orbColor1 ?? const Color(0xFF00E5FF);
     final currentUser = FirebaseAuth.instance.currentUser;
 
     return BaseOrbitScreen(
@@ -89,9 +93,9 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
-                          return const Center(
+                          return Center(
                               child: CircularProgressIndicator(
-                                  color: Color(0xFF00E5FF)));
+                                  color: accent));
                         }
 
                         if (snapshot.hasError) {
@@ -148,8 +152,8 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
                                           ),
                                           Text(
                                             '$xp XP',
-                                            style: const TextStyle(
-                                              color: Color(0xFF00E5FF),
+                                            style: TextStyle(
+                                              color: accent,
                                               fontSize: 12,
                                             ),
                                           ),
@@ -209,8 +213,7 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
                                                           content: Text(
                                                               'Friend request sent to $name!'),
                                                           backgroundColor:
-                                                              const Color(
-                                                                  0xFF00E5FF),
+                                                              accent,
                                                           behavior:
                                                               SnackBarBehavior
                                                                   .floating,
@@ -243,7 +246,7 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
                                             backgroundColor: isSent
                                                 ? Colors.grey
                                                     .withValues(alpha: 0.3)
-                                                : const Color(0xFF7000FF),
+                                                : OrbitTokens.violet,
                                             foregroundColor: isSent
                                                 ? Colors.white54
                                                 : Colors.white,

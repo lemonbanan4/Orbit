@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../theme/orbit_colors.dart';
 
 class StatBox extends StatelessWidget {
   final String title;
   final String value;
   final IconData icon;
-  final Color color;
+  final Color? color;
   final int delay;
 
   const StatBox({
@@ -13,12 +14,15 @@ class StatBox extends StatelessWidget {
     required this.title,
     required this.value,
     required this.icon,
-    this.color = const Color(0xFF00E5FF),
+    this.color,
     required this.delay,
   });
 
   @override
   Widget build(BuildContext context) {
+    final resolvedColor = color ??
+        Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
+        const Color(0xFF00E5FF);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -29,7 +33,7 @@ class StatBox extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 24),
+          Icon(icon, color: resolvedColor, size: 24),
           const SizedBox(height: 12),
           Text(
             value,

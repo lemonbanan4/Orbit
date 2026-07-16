@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/orbit_colors.dart';
 
 class PrimaryButton extends StatelessWidget {
   final String text;
@@ -14,11 +15,14 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent =
+        Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
+        const Color(0xFF00E5FF);
     return ElevatedButton(
       onPressed: isLoading ? null : onPressed,
       style: ElevatedButton.styleFrom(
         minimumSize: const Size(double.infinity, 54),
-        backgroundColor: const Color(0xFF00E5FF),
+        backgroundColor: accent,
         foregroundColor: Colors.black,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),

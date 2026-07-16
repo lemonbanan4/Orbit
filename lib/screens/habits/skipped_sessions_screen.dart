@@ -59,9 +59,9 @@ class _SkippedSessionsScreenState extends State<SkippedSessionsScreen> {
                       .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
+                      return Center(
                           child: CircularProgressIndicator(
-                              color: Color(0xFF00E5FF)));
+                              color: orbColor1));
                     }
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                       return Center(

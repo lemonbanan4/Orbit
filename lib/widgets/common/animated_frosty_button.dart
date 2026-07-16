@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import '../../theme/orbit_colors.dart';
 
 class AnimatedFrostyButton extends StatelessWidget {
   final String text;
@@ -16,6 +17,9 @@ class AnimatedFrostyButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isDisabled = onPressed == null;
+    final accent =
+        Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
+        const Color(0xFF00E5FF);
 
     return GestureDetector(
       onTap: onPressed,
@@ -31,12 +35,12 @@ class AnimatedFrostyButton extends StatelessWidget {
             decoration: BoxDecoration(
               color: isDisabled
                   ? Colors.white.withValues(alpha: 0.05)
-                  : const Color(0xFF00E5FF).withValues(alpha: 0.2),
+                  : accent.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: isDisabled
                     ? Colors.white.withValues(alpha: 0.1)
-                    : const Color(0xFF00E5FF).withValues(alpha: 0.5),
+                    : accent.withValues(alpha: 0.5),
                 width: 1.5,
               ),
             ),

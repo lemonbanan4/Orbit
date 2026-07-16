@@ -14,6 +14,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../widgets/ai_fairy_bubble.dart';
 import '../../theme/glass_button.dart';
 import '../../widgets/common/animated_frosty_button.dart';
+import '../../theme/orbit_tokens.dart';
 
 class ConstellationBuilderScreen extends StatefulWidget {
   const ConstellationBuilderScreen({super.key});
@@ -167,7 +168,7 @@ class _ConstellationBuilderScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Destiny accepted! Check your active habits. 🌌"),
-            backgroundColor: Color(0xFF7000FF),
+            backgroundColor: OrbitTokens.violet,
           ),
         );
       }
@@ -192,7 +193,7 @@ class _ConstellationBuilderScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF050112),
+      backgroundColor: OrbitTokens.ground,
       body: Stack(
         children: [
           // 1. COSMIC BACKGROUND LAYER
@@ -248,7 +249,7 @@ class _ConstellationBuilderScreenState
                   boxShadow: _isListening
                       ? [
                           BoxShadow(
-                            color: const Color(0xFF00E5FF).withValues(
+                            color: OrbitTokens.teal.withValues(
                               alpha: (0.2 + (glowIntensity * 0.3)).clamp(
                                 0.0,
                                 1.0,
@@ -263,7 +264,7 @@ class _ConstellationBuilderScreenState
                 child: IconButton(
                   icon: Icon(
                     _isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
-                    color: const Color(0xFF00E5FF),
+                    color: OrbitTokens.teal,
                   ),
                   onPressed: () async {
                     if (!_isListening) {
@@ -345,7 +346,7 @@ class _ConstellationBuilderScreenState
                   child: Text(
                     "listening...",
                     style: TextStyle(
-                      color: Color(0xFF00E5FF),
+                      color: OrbitTokens.teal,
                       fontSize: 10,
                       fontStyle: FontStyle.italic,
                     ),
@@ -368,7 +369,7 @@ class _ConstellationBuilderScreenState
                   width: 4,
                   height: 16 * adjustedScale.clamp(0.3, 2.0),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00E5FF),
+                    color: OrbitTokens.teal,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 );
@@ -558,15 +559,15 @@ class _ConstellationBuilderScreenState
               child:
                   ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7000FF),
+                          backgroundColor: OrbitTokens.violet,
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
                           elevation: 10,
-                          shadowColor: const Color(
-                            0xFF7000FF,
-                          ).withValues(alpha: 0.5),
+                          shadowColor: OrbitTokens.violet.withValues(
+                            alpha: 0.5,
+                          ),
                         ),
                         onPressed: _isLoading ? null : _acceptDestiny,
                         child: _isLoading
@@ -612,7 +613,7 @@ class _ConstellationBuilderScreenState
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
+                      color: OrbitTokens.teal.withValues(alpha: 0.3),
                       blurRadius: 25,
                       spreadRadius: 2,
                     ),
@@ -635,7 +636,7 @@ class _ConstellationBuilderScreenState
           Text(
             "WEEK ${habit['week']}",
             style: const TextStyle(
-              color: Color(0xFF00E5FF),
+              color: OrbitTokens.teal,
               fontSize: 10,
               fontWeight: FontWeight.w900,
               letterSpacing: 1,
@@ -665,15 +666,15 @@ class _ConstellationBuilderScreenState
           margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: const Color(0xFF050112).withValues(alpha: 0.9),
+            color: OrbitTokens.ground.withValues(alpha: 0.9),
             borderRadius: BorderRadius.circular(32),
             border: Border.all(
-              color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
+              color: OrbitTokens.teal.withValues(alpha: 0.3),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF00E5FF).withValues(alpha: 0.2),
+                color: OrbitTokens.teal.withValues(alpha: 0.2),
                 blurRadius: 30,
               ),
             ],
@@ -691,13 +692,13 @@ class _ConstellationBuilderScreenState
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF00E5FF).withValues(alpha: 0.2),
+                  color: OrbitTokens.teal.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   "PHASE ${habit['week']}",
                   style: const TextStyle(
-                    color: Color(0xFF00E5FF),
+                    color: OrbitTokens.teal,
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                   ),
@@ -760,7 +761,7 @@ class StarLinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF00E5FF).withValues(alpha: 0.3)
+      ..color = OrbitTokens.teal.withValues(alpha: 0.3)
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 

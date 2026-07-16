@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../widgets/common/premium_glass_card.dart';
+import '../theme/orbit_colors.dart';
 
 class TimePickerUtils {
   static Future<TimeOfDay?> showPremiumTimePicker({
     required BuildContext context,
     required TimeOfDay initialTime,
   }) {
+    final accent =
+        Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
+        const Color(0xFF00E5FF);
     return showTimePicker(
       context: context,
       initialTime: initialTime,
       builder: (BuildContext context, Widget? child) {
         return Theme(
           data: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF00E5FF),
+            colorScheme: ColorScheme.dark(
+              primary: accent,
               onPrimary: Colors.black,
               surface: Colors.transparent,
               onSurface: Colors.white,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'metric_card.dart';
+import '../../theme/orbit_colors.dart';
 
 class UserMetricsGrid extends StatelessWidget {
   final int currentStreak;
@@ -18,8 +19,9 @@ class UserMetricsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color orbColor1 = Color(0xFF00E5FF);
-    const Color orbColor2 = Color(0xFF7000FF);
+    final orbitColors = Theme.of(context).extension<OrbitColors>();
+    final Color orbColor1 = orbitColors?.orbColor1 ?? const Color(0xFF00E5FF);
+    final Color orbColor2 = orbitColors?.orbColor2 ?? const Color(0xFF7000FF);
 
     return Column(
       children: [

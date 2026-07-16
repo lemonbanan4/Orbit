@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../theme/orbit_colors.dart';
 
 class PremiumGlassCard extends StatefulWidget {
   final Widget child;
@@ -25,7 +26,14 @@ class _PremiumGlassCardState extends State<PremiumGlassCard> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    // Reads the app's actual brand accent instead of a hardcoded cyan —
+    // the theme's dark-mode accent is orange, so a hardcoded cyan glow was
+    // silently mismatching every "isPro" card in dark mode.
+    final orbitColors = theme.extension<OrbitColors>();
+    final Color proAccent = orbitColors?.orbColor1 ?? const Color(0xFF00E5FF);
+    final Color proAccent2 = orbitColors?.orbColor2 ?? const Color(0xFF7000FF);
 
     // RepaintBoundary gives BackdropFilter its own compositing layer with
     // fixed pixel bounds. Without it, when PremiumGlassCard is placed inside
@@ -106,7 +114,7 @@ class _PremiumGlassCardState extends State<PremiumGlassCard> {
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(
                     color: widget.isPro
-                        ? const Color(0xFF00E5FF).withValues(alpha: 0.5)
+                        ? proAccent.withValues(alpha: 0.5)
                         : Colors.white.withValues(alpha: 0.12),
                     width: widget.isPro ? 2.0 : 1.5,
                   ),
@@ -115,8 +123,8 @@ class _PremiumGlassCardState extends State<PremiumGlassCard> {
                     end: Alignment.bottomRight,
                     colors: widget.isPro
                         ? [
-                            const Color(0xFF00E5FF).withValues(alpha: 0.2),
-                            const Color(0xFF7000FF).withValues(alpha: 0.1),
+                            proAccent.withValues(alpha: 0.2),
+                            proAccent2.withValues(alpha: 0.1),
                           ]
                         : [
                             Colors.white.withValues(alpha: 0.1),

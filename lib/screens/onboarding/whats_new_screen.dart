@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../widgets/common/feature_row.dart';
 import '../navigation/main_navigation_screen.dart';
+import '../../theme/orbit_tokens.dart';
 
 class WhatsNewScreen extends StatelessWidget {
   final String currentVersion;
@@ -26,7 +27,7 @@ class WhatsNewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF050112),
+      backgroundColor: OrbitTokens.ground,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
@@ -34,7 +35,7 @@ class WhatsNewScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.rocket_launch_rounded,
-                      size: 80, color: Color(0xFF00E5FF))
+                      size: 80, color: OrbitTokens.teal)
                   .animate(onPlay: (c) => c.repeat(reverse: true))
                   .moveY(begin: -10, end: 10, duration: 2.seconds),
               const SizedBox(height: 32),
@@ -49,7 +50,7 @@ class WhatsNewScreen extends StatelessWidget {
               Text(
                 "Version $currentVersion",
                 style: const TextStyle(
-                    color: Color(0xFF00E5FF),
+                    color: OrbitTokens.teal,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 2),
@@ -83,7 +84,7 @@ class WhatsNewScreen extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00E5FF),
+                    backgroundColor: OrbitTokens.teal,
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(

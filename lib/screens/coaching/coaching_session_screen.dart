@@ -9,6 +9,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:orbit_app/services/cosmic_mirror_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../theme/orbit_tokens.dart';
 
 // --- DIALOGUE DATA MODELS ---
 class CoachingNode {
@@ -710,16 +711,16 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(
-                                        0xFF00E5FF,
-                                      ).withValues(alpha: 0.35),
+                                      color: OrbitTokens.teal.withValues(
+                                        alpha: 0.35,
+                                      ),
                                       blurRadius: 40,
                                       spreadRadius: 5,
                                     ),
                                     BoxShadow(
-                                      color: const Color(
-                                        0xFF00E5FF,
-                                      ).withValues(alpha: 0.2),
+                                      color: OrbitTokens.teal.withValues(
+                                        alpha: 0.2,
+                                      ),
                                       blurRadius: 80,
                                       spreadRadius: 20,
                                     ),
@@ -754,7 +755,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
                               color: Colors.white.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: Colors.cyan.withValues(alpha: 0.2),
+                                color: OrbitTokens.teal.withValues(alpha: 0.2),
                               ),
                             ),
                             child: Column(
@@ -763,7 +764,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
                                 const Text(
                                   'Cosmica',
                                   style: TextStyle(
-                                    color: Color(0xFF00E5FF),
+                                    color: OrbitTokens.teal,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 12,
                                   ),
@@ -782,7 +783,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
                                             width: 20,
                                             height: 20,
                                             child: CircularProgressIndicator(
-                                              color: Color(0xFF00E5FF),
+                                              color: OrbitTokens.teal,
                                               strokeWidth: 2,
                                             ),
                                           ),
@@ -861,9 +862,9 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
                                   color: _selectedMood != null
-                                      ? const Color(
-                                          0xFF00E5FF,
-                                        ).withValues(alpha: 0.5)
+                                      ? OrbitTokens.teal.withValues(
+                                          alpha: 0.5,
+                                        )
                                       : Colors.transparent,
                                   width: 1.5,
                                 ),
@@ -887,7 +888,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
                                       color:
                                           _noteController.text.isNotEmpty &&
                                               _selectedMood != null
-                                          ? const Color(0xFF00E5FF)
+                                          ? OrbitTokens.teal
                                           : Colors.white24,
                                     ),
                                     onPressed:
@@ -914,10 +915,8 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
                             padding: const EdgeInsets.only(bottom: 12.0),
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                // ... existing style
-                                backgroundColor: const Color(
-                                  0xFF1A1F36,
-                                ).withValues(alpha: 0.6),
+                                backgroundColor: OrbitTokens.surface
+                                    .withValues(alpha: 0.6),
 
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(
@@ -962,16 +961,16 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: isSelected
-              ? const Color(0xFF00E5FF).withValues(alpha: 0.2)
+              ? OrbitTokens.teal.withValues(alpha: 0.2)
               : Colors.white.withValues(alpha: 0.05),
           border: Border.all(
-            color: isSelected ? const Color(0xFF00E5FF) : Colors.white24,
+            color: isSelected ? OrbitTokens.teal : Colors.white24,
             width: 1.5,
           ),
         ),
         child: Icon(
           icon,
-          color: isSelected ? const Color(0xFF00E5FF) : Colors.white,
+          color: isSelected ? OrbitTokens.teal : Colors.white,
           size: 28,
         ),
       ),

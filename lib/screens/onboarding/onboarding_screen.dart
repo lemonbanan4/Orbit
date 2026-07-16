@@ -8,7 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:orbit_app/theme/glass_button.dart';
-import '../../theme/custom_colors.dart';
+import '../../theme/orbit_tokens.dart';
 import 'future_letter_screen.dart';
 import '../../screens/paywall/clay_button.dart';
 
@@ -284,30 +284,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // final backgroundGradient = LinearGradient(
-    //   begin: Alignment.topCenter,
-    //   end: Alignment.bottomCenter,
-    //   colors: [
-    //     const Color(0xFFFF512F).withOpacity(0.8),
-    //     const Color(0xFFDD2476).withOpacity(0.9),
-    //     const Color(0xFF13002B),
-    //   ],
-    // );
-
     return Scaffold(
+      backgroundColor: OrbitTokens.ground,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [cosmicCyan, deepNavy, cosmicBlack],
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: const Alignment(0, -0.6),
+            radius: 1.3,
+            colors: [
+              OrbitTokens.violet.withValues(alpha: 0.20),
+              OrbitTokens.ground,
+            ],
+            stops: const [0.0, 0.75],
           ),
         ),
-        //const BoxDecoration(color: Color(0xFF050112)),
-        // decoration: const BoxDecoration(
-        //     image: DecorationImage(
-        //         image: AssetImage('assets/images/deep_nebula.jpg'),
-        //         fit: BoxFit.cover)),
         child: SafeArea(
           child: Column(
             children: [
@@ -339,7 +329,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         child: LinearProgressIndicator(
                           value: (_currentPage + 1) / questions.length,
                           backgroundColor: Colors.white.withValues(alpha: 0.2),
-                          color: const Color(0xFF00E5FF),
+                          color: OrbitTokens.teal,
                           minHeight: 6,
                         ),
                       ),
@@ -415,7 +405,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
               focusedBorder: const UnderlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF00E5FF), width: 2),
+                borderSide: BorderSide(color: OrbitTokens.teal, width: 2),
               ),
             ),
             onChanged: (val) => setState(() => _capturedUserName = val.trim()),
@@ -481,7 +471,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     horizontal: 20,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
+                    color: OrbitTokens.teal.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(

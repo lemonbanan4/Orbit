@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/orbit_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -29,13 +30,17 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     if (rank == 1) return const Color(0xFFFFD700); // Gold
     if (rank == 2) return const Color(0xFFC0C0C0); // Silver
     if (rank == 3) return const Color(0xFFCD7F32); // Bronze
-    return const Color(0xFF00E5FF); // Standard Cyan
+    // Everyone below the podium takes the theme accent.
+    return Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
+        const Color(0xFF00E5FF);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textColor = theme.colorScheme.onSurface;
+    final accent =
+        theme.extension<OrbitColors>()?.orbColor1 ?? const Color(0xFF00E5FF);
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     final bool isDark = theme.brightness == Brightness.dark;
 
@@ -134,8 +139,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   .snapshots(),
               builder: (context, userSnap) {
                 if (userSnap.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+                  return Center(
+                    child: CircularProgressIndicator(color: accent),
                   );
                 }
 
@@ -156,10 +161,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF00E5FF),
-                        ),
+                      return Center(
+                        child: CircularProgressIndicator(color: accent),
                       );
                     }
 
@@ -243,9 +246,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                             title: Text(
                               isMe ? '$name (You)' : name,
                               style: TextStyle(
-                                color: isMe
-                                    ? const Color(0xFF00E5FF)
-                                    : textColor,
+                                color: isMe ? accent : textColor,
                                 fontWeight: isMe
                                     ? FontWeight.w900
                                     : FontWeight.bold,

@@ -15,24 +15,29 @@ import '../../widgets/create_habit_sheet.dart';
 import '../../widgets/manage_habit_dialog.dart';
 import '../../widgets/common/premium_glass_card.dart';
 import 'coaching_session_screen.dart';
-import '../../theme/custom_colors.dart';
+import '../../theme/orbit_tokens.dart';
 import '../../widgets/common/ai_fairy_overlay.dart';
 import '../../widgets/preset_habit_selector.dart';
 import '../../utils/time_picker_utils.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+// Same three routine-identity hues used on the dashboard card and its
+// accent stripe, carried through as an ambient backdrop here instead of
+// each session type inventing its own unrelated gradient (previously
+// Morning was a loud solid orange while Work/Night were both near-black
+// gradients differing only by a couple of tonal steps).
 List<Color> _getBackgroundGradientColors(String sessionType) {
   switch (sessionType.toLowerCase()) {
     case 'morning':
-      return const [cosmicOrange, Color(0xFF140526)];
+      return [OrbitTokens.morning.withValues(alpha: 0.35), OrbitTokens.ground];
     case 'work':
     case 'workday':
-      return const [Color(0xFF090514), Color(0xFF1B0D3A), Color(0xFF05020A)];
+      return [OrbitTokens.violet.withValues(alpha: 0.35), OrbitTokens.ground];
     case 'night':
     case 'nightly':
     default:
-      return const [Color(0xFF050E1E), Color(0xFF0B192C), Color(0xFF02060D)];
+      return [OrbitTokens.teal.withValues(alpha: 0.35), OrbitTokens.ground];
   }
 }
 
@@ -185,9 +190,7 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                             top: 0,
                             child: Icon(
                               _getHeaderIconData(widget.sessionType),
-                              color: const Color(
-                                0xFF00E5FF,
-                              ).withValues(alpha: 0.12),
+                              color: OrbitTokens.teal.withValues(alpha: 0.12),
                               size: 120,
                             ),
                           ),
@@ -311,7 +314,7 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                 IconButton(
                                   icon: const Icon(
                                     Icons.arrow_back_ios_new_rounded,
-                                    color: Color(0xFF00E5FF),
+                                    color: OrbitTokens.teal,
                                   ),
                                   onPressed: () => Navigator.pop(context),
                                 ),
@@ -340,7 +343,7 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                 IconButton(
                                   icon: const Icon(
                                     Icons.add_rounded,
-                                    color: Color(0xFF00E5FF),
+                                    color: OrbitTokens.teal,
                                     size: 30,
                                   ),
                                   onPressed: () {
@@ -370,10 +373,10 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                 PopupMenuButton<String>(
                                   icon: const Icon(
                                     Icons.more_vert_rounded,
-                                    color: Color(0xFF00E5FF),
+                                    color: OrbitTokens.teal,
                                     size: 30,
                                   ),
-                                  color: const Color(0xFF1F1235),
+                                  color: OrbitTokens.surface,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
                                   ),
@@ -518,9 +521,9 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(
-                                      0xFF6B52FF,
-                                    ).withValues(alpha: 0.5),
+                                    color: OrbitTokens.violet.withValues(
+                                      alpha: 0.5,
+                                    ),
                                     blurRadius: 20,
                                     spreadRadius: 2,
                                     offset: const Offset(0, 4),
@@ -529,7 +532,7 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                               ),
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF6B52FF),
+                                  backgroundColor: OrbitTokens.violet,
                                   foregroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
@@ -592,15 +595,15 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                     color: Colors.transparent,
                                     child: Container(
                                       decoration: BoxDecoration(
-                                        color: const Color(
-                                          0xFF1F1235,
-                                        ).withValues(alpha: 0.9),
+                                        color: OrbitTokens.surface.withValues(
+                                          alpha: 0.9,
+                                        ),
                                         borderRadius: BorderRadius.circular(16),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: const Color(
-                                              0xFF00E5FF,
-                                            ).withValues(alpha: 0.25),
+                                            color: OrbitTokens.teal.withValues(
+                                              alpha: 0.25,
+                                            ),
                                             blurRadius: 15,
                                             spreadRadius: 2,
                                           ),
@@ -616,9 +619,7 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                   final index = entry.key;
                                   final habit = entry.value;
                                   final isCompleted = habit.isCompleted;
-                                  const highlightColor = Color(
-                                    0xFF00E5FF,
-                                  );
+                                  const highlightColor = OrbitTokens.teal;
                                   final isGoal = habit.isGoal;
                                   final isDeleting = _deletingIds.contains(
                                     habit.id,
@@ -664,9 +665,9 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                       );
                                                     },
                                                     backgroundColor:
-                                                        const Color(0xFF1F1235),
+                                                        OrbitTokens.surface,
                                                     foregroundColor:
-                                                        const Color(0xFF00E5FF),
+                                                        OrbitTokens.teal,
                                                     icon: Icons.edit_outlined,
                                                     label: 'Edit',
                                                   ),
@@ -750,9 +751,8 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                             action: SnackBarAction(
                                                               label: 'UNDO',
                                                               textColor:
-                                                                  const Color(
-                                                                    0xFF00E5FF,
-                                                                  ),
+                                                                  OrbitTokens
+                                                                      .teal,
                                                               onPressed: () {
                                                                 context
                                                                     .read<
@@ -773,9 +773,8 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                                   ),
                                                             ),
                                                             backgroundColor:
-                                                                const Color(
-                                                                  0xFF1F1235,
-                                                                ),
+                                                                OrbitTokens
+                                                                    .surface,
                                                           ),
                                                         );
                                                       }
@@ -902,9 +901,9 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                                   const Icon(
                                                                     Icons
                                                                         .emoji_events_rounded,
-                                                                    color: Color(
-                                                                      0xFFFFD700,
-                                                                    ),
+                                                                    color:
+                                                                        OrbitTokens
+                                                                            .gold,
                                                                     size: 28,
                                                                   ),
                                                                   const SizedBox(
@@ -928,9 +927,8 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                                                 12,
                                                                             letterSpacing:
                                                                                 1.2,
-                                                                            color: Color(
-                                                                              0xFFFFD700,
-                                                                            ),
+                                                                            color:
+                                                                                OrbitTokens.gold,
                                                                           ),
                                                                         ),
                                                                         Text(
@@ -950,9 +948,8 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                                 ],
                                                               ),
                                                               backgroundColor:
-                                                                  const Color(
-                                                                    0xFF1F1235,
-                                                                  ),
+                                                                  OrbitTokens
+                                                                      .surface,
                                                               behavior:
                                                                   SnackBarBehavior
                                                                       .floating,
@@ -962,10 +959,9 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                                       16,
                                                                     ),
                                                                 side: BorderSide(
-                                                                  color:
-                                                                      const Color(
-                                                                        0xFFFFD700,
-                                                                      ).withValues(
+                                                                  color: OrbitTokens
+                                                                      .gold
+                                                                      .withValues(
                                                                         alpha:
                                                                             0.5,
                                                                       ),
@@ -1219,7 +1215,7 @@ class RoutineAlarmsSheet extends StatelessWidget {
         height: MediaQuery.of(context).size.height * 0.75,
         padding: const EdgeInsets.all(24),
         decoration: const BoxDecoration(
-          color: Color(0xFF1F1235), // Deep space background
+          color: OrbitTokens.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
         child: Column(
@@ -1250,7 +1246,7 @@ class RoutineAlarmsSheet extends StatelessWidget {
                 IconButton(
                   icon: const Icon(
                     Icons.add_alert_rounded,
-                    color: Color(0xFF00E5FF),
+                    color: OrbitTokens.teal,
                   ),
                   onPressed: () async {
                     final TimeOfDay? newTime =
@@ -1378,14 +1374,14 @@ class RoutineAlarmsSheet extends StatelessWidget {
                                       height: 36,
                                       decoration: BoxDecoration(
                                         color: isActive
-                                            ? const Color(0xFF00E5FF)
+                                            ? OrbitTokens.teal
                                             : Colors.white.withValues(
                                                 alpha: 0.05,
                                               ),
                                         shape: BoxShape.circle,
                                         border: Border.all(
                                           color: isActive
-                                              ? const Color(0xFF00E5FF)
+                                              ? OrbitTokens.teal
                                               : Colors.white.withValues(
                                                   alpha: 0.1,
                                                 ),

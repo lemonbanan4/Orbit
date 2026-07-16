@@ -9,6 +9,8 @@ import '../../services/notification_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 import '../../providers/routine_provider.dart';
+import '../../theme/orbit_colors.dart';
+import '../../theme/orbit_tokens.dart';
 
 // --- NOTIFICATIONS SCREEN ---
 
@@ -28,6 +30,10 @@ class NotificationsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textColor = theme.colorScheme.onSurface;
+    // The app's brand accent (orange in dark mode, cyan in light) — this
+    // screen renders in both themes via BaseOrbitScreen.
+    final accent =
+        theme.extension<OrbitColors>()?.orbColor1 ?? const Color(0xFF00E5FF);
 
     return BaseOrbitScreen(
       title: 'Notifications',
@@ -36,8 +42,8 @@ class NotificationsScreen extends StatelessWidget {
         child: Column(
           children: [
             TabBar(
-              indicatorColor: const Color(0xFF00E5FF),
-              labelColor: const Color(0xFF00E5FF),
+              indicatorColor: accent,
+              labelColor: accent,
               unselectedLabelColor: textColor.withValues(alpha: 0.5),
               dividerColor: Colors.transparent,
               tabs: const [
@@ -48,7 +54,7 @@ class NotificationsScreen extends StatelessWidget {
             Expanded(
               child: TabBarView(
                 children: [
-                  _buildInboxTab(textColor),
+                  _buildInboxTab(textColor, accent),
                   _ScheduledAlarmsTab(textColor: textColor),
                 ],
               ),
@@ -59,7 +65,7 @@ class NotificationsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInboxTab(Color textColor) {
+  Widget _buildInboxTab(Color textColor, Color accent) {
     final user = FirebaseAuth.instance.currentUser;
     return user == null
         ? const Center(child: CircularProgressIndicator())
@@ -168,14 +174,12 @@ class NotificationsScreen extends StatelessWidget {
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFF00E5FF,
-                                    ).withValues(alpha: 0.15),
+                                    color: accent.withValues(alpha: 0.15),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
                                     getIcon(),
-                                    color: const Color(0xFF00E5FF),
+                                    color: accent,
                                   ),
                                 ),
                                 const SizedBox(width: 16),
@@ -263,12 +267,15 @@ class _ScheduledAlarmsTabState extends State<_ScheduledAlarmsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final accent =
+        Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
+        const Color(0xFF00E5FF);
     return FutureBuilder<List<PendingNotificationRequest>>(
       future: _pendingFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+          return Center(
+            child: CircularProgressIndicator(color: accent),
           );
         }
 
@@ -330,10 +337,10 @@ class _ScheduledAlarmsTabState extends State<_ScheduledAlarmsTab> {
                       SnackBar(
                         content: const Text('Scheduled alarm cancelled'),
                         behavior: SnackBarBehavior.floating,
-                        backgroundColor: const Color(0xFF051024),
+                        backgroundColor: OrbitTokens.surface,
                         action: SnackBarAction(
                           label: 'Undo',
-                          textColor: const Color(0xFF00E5FF),
+                          textColor: accent,
                           onPressed: () async {
                             // Resync all routine and daily alarms from the provider
                             context.read<RoutineProvider>().resyncAllAlarms();
@@ -369,14 +376,12 @@ class _ScheduledAlarmsTabState extends State<_ScheduledAlarmsTab> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: const Color(
-                            0xFF00E5FF,
-                          ).withValues(alpha: 0.15),
+                          color: accent.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.rocket_launch_rounded,
-                          color: Color(0xFF00E5FF),
+                          color: accent,
                         ),
                       ),
                       const SizedBox(width: 16),

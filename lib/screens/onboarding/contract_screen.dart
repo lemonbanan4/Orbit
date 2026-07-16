@@ -4,6 +4,7 @@ import '../paywall/paywall_screen.dart';
 import 'package:confetti/confetti.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../widgets/common/floating_particles.dart';
+import '../../theme/orbit_tokens.dart';
 
 class ContractScreen extends StatefulWidget {
   final String userName;
@@ -123,7 +124,7 @@ class _ContractScreenState extends State<ContractScreen>
             ),
 
             // 2. The Dark Blue Overlay (Keeps text readable!)
-            Container(color: const Color(0xFF1A1F36).withValues(alpha: 0.85)),
+            Container(color: OrbitTokens.surface.withValues(alpha: 0.85)),
 
             // 3. The Floating Space Dust Overlay
             const FloatingParticles().animate().fade(duration: 2.seconds),
@@ -199,9 +200,9 @@ class _ContractScreenState extends State<ContractScreen>
                                 height: 80,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: const Color(
-                                    0xFFFFD600,
-                                  ).withValues(alpha: 0.3),
+                                  color: OrbitTokens.gold.withValues(
+                                    alpha: 0.3,
+                                  ),
                                 ),
                               ),
                             ),
@@ -212,9 +213,9 @@ class _ContractScreenState extends State<ContractScreen>
                                 height: 80,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: const Color(
-                                    0xFFFFD600,
-                                  ).withValues(alpha: 0.6),
+                                  color: OrbitTokens.gold.withValues(
+                                    alpha: 0.6,
+                                  ),
                                 ),
                               ),
                             ),
@@ -224,7 +225,7 @@ class _ContractScreenState extends State<ContractScreen>
                                   height: 100,
                                   decoration: const BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: Color(0xFFFFD600),
+                                    color: OrbitTokens.gold,
                                   ),
                                   child: Center(
                                     child: Text(

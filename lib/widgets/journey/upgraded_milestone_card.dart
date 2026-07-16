@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../screens/journey/journey_screen.dart'; // Adjust exact path maps if needed
-import '../../theme/custom_colors.dart'; // Adjust exact path maps if needed
+import '../../theme/orbit_tokens.dart';
 import '../../screens/features/nebula_forge_screen.dart'; // Adjust exact path maps if needed
 
 class UpgradedMilestoneCard extends StatelessWidget {
@@ -42,14 +42,14 @@ class UpgradedMilestoneCard extends StatelessWidget {
           child: Opacity(
             opacity: anim1.value,
             child: AlertDialog(
-              backgroundColor: const Color(0xFF0C0822).withValues(alpha: 0.95),
+              backgroundColor: OrbitTokens.surface.withValues(alpha: 0.95),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(28),
                 side: const BorderSide(color: Colors.white10),
               ),
               title: const Row(
                 children: [
-                  Icon(Icons.lock_outline_rounded, color: Colors.purpleAccent),
+                  Icon(Icons.lock_outline_rounded, color: OrbitTokens.violet),
                   SizedBox(width: 12),
                   Text(
                     "CELESTIAL BARRIER",
@@ -89,7 +89,7 @@ class UpgradedMilestoneCard extends StatelessWidget {
                   onPressed: () => Navigator.pop(context),
                   child: const Text(
                     "RETURN TO ALIGNMENT",
-                    style: TextStyle(color: Color(0xFF00E5FF)),
+                    style: TextStyle(color: OrbitTokens.teal),
                   ),
                 ),
               ],
@@ -118,7 +118,7 @@ class UpgradedMilestoneCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color pathActiveGlow = Color(0xFF00E5FF);
+    const Color pathActiveGlow = OrbitTokens.teal;
 
     return IntrinsicHeight(
       child: Row(
@@ -138,7 +138,7 @@ class UpgradedMilestoneCard extends StatelessWidget {
                       shape: BoxShape.circle,
                       color: isUnlocked
                           ? pathActiveGlow
-                          : const Color(0xFF1E1640),
+                          : OrbitTokens.surface2,
                       border: Border.all(
                         color: isUnlocked ? Colors.white : Colors.white10,
                         width: 1.5,
@@ -253,7 +253,7 @@ class UpgradedMilestoneCard extends StatelessWidget {
                                 milestone.phase,
                                 style: TextStyle(
                                   color: isUnlocked
-                                      ? const Color(0xFF00E5FF)
+                                      ? OrbitTokens.teal
                                       : Colors.white30,
                                   fontSize: 11,
                                   fontWeight: FontWeight.w900,
@@ -267,13 +267,15 @@ class UpgradedMilestoneCard extends StatelessWidget {
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: emerald.withValues(alpha: 0.15),
+                                    color: OrbitTokens.teal.withValues(
+                                      alpha: 0.15,
+                                    ),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: const Text(
                                     "UNLOCKED",
                                     style: TextStyle(
-                                      color: emeraldAccent,
+                                      color: OrbitTokens.teal,
                                       fontSize: 10,
                                       fontWeight: FontWeight.w900,
                                     ),
@@ -310,7 +312,7 @@ class UpgradedMilestoneCard extends StatelessWidget {
                                 milestone.rewardIcon,
                                 size: 14,
                                 color: isUnlocked
-                                    ? amberAccent
+                                    ? OrbitTokens.gold
                                     : Colors.white24,
                               ),
                               const SizedBox(width: 8),

@@ -4,6 +4,7 @@ import 'package:orbit_app/providers/atmosphere_provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/routine_provider.dart';
 import '../../widgets/journey/upgraded_milestone_card.dart';
+import '../../theme/orbit_tokens.dart';
 
 // // Ensure correct path for reflection route
 
@@ -113,7 +114,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
     return Consumer<AtmosphereProvider>(
       builder: (context, atmosphere, child) {
         return Scaffold(
-          backgroundColor: const Color(0xFF04010F),
+          backgroundColor: OrbitTokens.ground,
           body: Stack(
             children: [
               // LAYER 1: PARALLAX NEBULA

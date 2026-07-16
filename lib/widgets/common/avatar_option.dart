@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/routine_provider.dart';
+import '../../theme/orbit_colors.dart';
 
 class AvatarOption extends StatelessWidget {
   final String name;
@@ -20,6 +21,9 @@ class AvatarOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSelected = currentAvatar == id;
+    final accent =
+        Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
+        const Color(0xFF00E5FF);
     return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
@@ -33,18 +37,17 @@ class AvatarOption extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: isSelected
-                  ? const Color(0xFF00E5FF).withValues(alpha: 0.2)
+                  ? accent.withValues(alpha: 0.2)
                   : Colors.white.withValues(alpha: 0.05),
               shape: BoxShape.circle,
               border: Border.all(
-                color:
-                    isSelected ? const Color(0xFF00E5FF) : Colors.transparent,
+                color: isSelected ? accent : Colors.transparent,
                 width: 2,
               ),
             ),
             child: Icon(
               icon,
-              color: isSelected ? const Color(0xFF00E5FF) : Colors.white54,
+              color: isSelected ? accent : Colors.white54,
               size: 32,
             ),
           ),
@@ -52,7 +55,7 @@ class AvatarOption extends StatelessWidget {
           Text(
             name,
             style: TextStyle(
-              color: isSelected ? const Color(0xFF00E5FF) : Colors.white70,
+              color: isSelected ? accent : Colors.white70,
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             ),

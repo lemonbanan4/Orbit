@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/orbit_colors.dart';
 
 class LevelProgressCard extends StatelessWidget {
   final int level;
@@ -16,18 +17,21 @@ class LevelProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent =
+        Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
+        const Color(0xFF00E5FF);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
+          color: accent.withValues(alpha: 0.3),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF00E5FF).withValues(alpha: 0.05),
+            color: accent.withValues(alpha: 0.05),
             blurRadius: 20,
             spreadRadius: 2,
           ),
@@ -40,9 +44,9 @@ class LevelProgressCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.stars_rounded,
-                    color: Color(0xFF00E5FF),
+                    color: accent,
                     size: 24,
                   ),
                   const SizedBox(width: 8),
@@ -58,8 +62,8 @@ class LevelProgressCard extends StatelessWidget {
               ),
               Text(
                 '$currentXp / $xpToNextLevel XP',
-                style: const TextStyle(
-                  color: Color(0xFF00E5FF),
+                style: TextStyle(
+                  color: accent,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -72,9 +76,7 @@ class LevelProgressCard extends StatelessWidget {
               value: progress,
               minHeight: 12,
               backgroundColor: Colors.white.withValues(alpha: 0.1),
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                Color(0xFF00E5FF),
-              ),
+              valueColor: AlwaysStoppedAnimation<Color>(accent),
             ),
           ),
           const SizedBox(height: 12),

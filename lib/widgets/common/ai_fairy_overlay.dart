@@ -7,6 +7,7 @@ import '../../providers/telemetry_provider.dart';
 import 'premium_glass_card.dart';
 import '../../../services/voice_service.dart';
 import '../reward_popup.dart';
+import '../../theme/orbit_colors.dart';
 
 class AIFairyOverlay extends StatelessWidget {
   final double bottomPadding;
@@ -19,6 +20,10 @@ class AIFairyOverlay extends StatelessWidget {
       builder: (context, fairy, child) {
         if (!fairy.isCheering) return const SizedBox.shrink();
 
+        final Color calmAccent =
+            Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
+            const Color(0xFF00E5FF);
+
         // Dynamic Avatar that reacts to Cosmica's internal state
         Widget avatar = Container(
           decoration: BoxDecoration(
@@ -29,9 +34,9 @@ class AIFairyOverlay extends StatelessWidget {
                     ? const Color(0xFFBC13FE).withValues(
                         alpha: 0.8,
                       ) // Intense purple glow when listening/thinking
-                    : const Color(
-                        0xFF00E5FF,
-                      ).withValues(alpha: 0.5), // Calm cyan glow otherwise
+                    : calmAccent.withValues(
+                        alpha: 0.5,
+                      ), // Calm brand-accent glow otherwise
                 blurRadius: fairy.isThinking ? 30 : 20,
                 spreadRadius: fairy.isThinking ? 5 : 2,
               ),
@@ -94,23 +99,25 @@ class AIFairyOverlay extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Cosmica',
                                 style: TextStyle(
-                                  color: Color(0xFF00E5FF),
+                                  color: calmAccent,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
                                 ),
                               ),
                               const SizedBox(height: 8),
                               if (fairy.isThinking)
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8.0,
+                                  ),
                                   child: SizedBox(
                                     height: 20,
                                     width: 20,
                                     child: CircularProgressIndicator(
-                                      color: Color(0xFF00E5FF),
+                                      color: calmAccent,
                                       strokeWidth: 2,
                                     ),
                                   ),

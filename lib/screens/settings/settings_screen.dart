@@ -16,6 +16,7 @@ import '../../widgets/common/primary_button.dart';
 import '../../widgets/common/settings_tile.dart';
 import 'package:in_app_review/in_app_review.dart';
 import '../features/nebula_forge_screen.dart';
+import '../../theme/orbit_colors.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -27,6 +28,13 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final _nameController = TextEditingController();
   bool _isSaving = false;
+
+  // The app's actual brand accent (orange in dark mode, cyan in light) —
+  // settings renders in both themes via BaseOrbitScreen, so every accent
+  // here must follow the theme rather than a fixed hex.
+  Color get _accent =>
+      Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
+      const Color(0xFF00E5FF);
 
   @override
   void initState() {
@@ -62,9 +70,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (mounted) {
           FocusScope.of(context).unfocus(); // Dismiss keyboard
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Profile updated successfully!'),
-              backgroundColor: Color(0xFF00E5FF),
+            SnackBar(
+              content: const Text('Profile updated successfully!'),
+              backgroundColor: _accent,
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -128,7 +136,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00E5FF),
+                backgroundColor: _accent,
                 foregroundColor: Colors.black,
               ),
               onPressed: isRedeeming
@@ -354,7 +362,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00E5FF),
+                backgroundColor: _accent,
                 foregroundColor: Colors.black,
               ),
               onPressed: isSending
@@ -445,7 +453,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Consumer<RoutineProvider>(
                   builder: (context, routineProvider, _) => SwitchListTile(
                     value: routineProvider.confettiEnabled,
-                    activeThumbColor: const Color(0xFF00E5FF),
+                    activeThumbColor: _accent,
                     title: Text(
                       'Enable Confetti',
                       style: TextStyle(
@@ -532,18 +540,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(
-                                0xFF00E5FF,
-                              ).withValues(alpha: 0.2),
+                              color: _accent.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: const Color(0xFF00E5FF),
-                              ),
+                              border: Border.all(color: _accent),
                             ),
-                            child: const Text(
+                            child: Text(
                               'PRO',
                               style: TextStyle(
-                                color: Color(0xFF00E5FF),
+                                color: _accent,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 1.0,
@@ -574,7 +578,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         'Temporarily pause or resume All Orbit reminders.',
                         style: TextStyle(color: Colors.white54),
                       ),
-                      activeThumbColor: const Color(0xFF00E5FF),
+                      activeThumbColor: _accent,
                       value: provider.allNotifsEnabled,
                       onChanged: (bool value) {
                         provider.setAllNotifsEnabled(value);
@@ -596,7 +600,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         'Get a daily digest of your completed habits.',
                         style: TextStyle(color: Colors.white54),
                       ),
-                      activeThumbColor: const Color(0xFF00E5FF),
+                      activeThumbColor: _accent,
                       value: provider.dailySummaryNotifs,
                       onChanged: (bool value) {
                         HapticFeedback.lightImpact();
@@ -678,7 +682,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _showRedeemDialog();
                   },
                   icon: Icons.redeem_rounded,
-                  iconColor: const Color(0xFF00E5FF),
+                  iconColor: _accent,
                   title: 'Redeem Code',
                 ),
                 Divider(color: textColor.withValues(alpha: 0.1), height: 1),
@@ -718,7 +722,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _showContactSupportDialog();
                   },
                   icon: Icons.support_agent_rounded,
-                  iconColor: const Color(0xFF00E5FF),
+                  iconColor: _accent,
                   title: 'Contact Support',
                   subtitle: 'Need help or have feedback?',
                 ),

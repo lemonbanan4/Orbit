@@ -20,6 +20,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/notification_service.dart';
 import '../utils/icon_utils.dart';
+import '../theme/orbit_colors.dart';
 
 class RoutineCard extends StatefulWidget {
   final String title;
@@ -108,6 +109,12 @@ class _RoutineCardState extends State<RoutineCard> {
     final int completedCount = widget.habits.where((h) => h.isCompleted).length;
     final int totalCount = widget.habits.length;
     final double progress = totalCount > 0 ? completedCount / totalCount : 0.0;
+    // Theme's actual brand accent (orange in dark mode, cyan in light) —
+    // used for habit-level chrome that isn't tied to this routine's own
+    // identity color (edit/highlight/drag states, not the routine itself).
+    final Color themeAccent =
+        Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
+        const Color(0xFF00E5FF);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 24.0),
@@ -155,8 +162,10 @@ class _RoutineCardState extends State<RoutineCard> {
                   sigmaX: widget.enableBlur ? 20.0 : 0.0,
                   sigmaY: widget.enableBlur ? 20.0 : 0.0,
                 ),
-                child: Container(
-                  decoration: BoxDecoration(
+                child: Stack(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.03),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
@@ -290,19 +299,20 @@ class _RoutineCardState extends State<RoutineCard> {
                               horizontal: 20,
                               vertical: 16,
                             ),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: widget.gradientColors,
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                            ),
                             child: Row(
                               children: [
-                                Icon(
-                                  _getHeaderIcon(),
-                                  color: Colors.white,
-                                  size: 24,
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: widget.gradientColors.first
+                                        .withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(
+                                    _getHeaderIcon(),
+                                    color: widget.gradientColors.first,
+                                    size: 20,
+                                  ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
@@ -644,15 +654,15 @@ class _RoutineCardState extends State<RoutineCard> {
                                             const SizedBox(height: 4),
                                             TextButton.icon(
                                               onPressed: widget.onAddHabit,
-                                              icon: const Icon(
+                                              icon: Icon(
                                                 Icons.add,
                                                 size: 14,
-                                                color: Color(0xFF00E5FF),
+                                                color: themeAccent,
                                               ),
-                                              label: const Text(
+                                              label: Text(
                                                 "Add a habit",
                                                 style: TextStyle(
-                                                  color: Color(0xFF00E5FF),
+                                                  color: themeAccent,
                                                   fontSize: 12,
                                                 ),
                                               ),
@@ -718,10 +728,8 @@ class _RoutineCardState extends State<RoutineCard> {
                                                           ),
                                                       boxShadow: [
                                                         BoxShadow(
-                                                          color:
-                                                              const Color(
-                                                                0xFF00E5FF,
-                                                              ).withValues(
+                                                          color: themeAccent
+                                                              .withValues(
                                                                 alpha: 0.25,
                                                               ),
                                                           blurRadius: 15,
@@ -737,8 +745,8 @@ class _RoutineCardState extends State<RoutineCard> {
                                             final habit = widget.habits[index];
                                             final bool isCompleted =
                                                 habit.isCompleted;
-                                            const Color highlightColor =
-                                                Color(0xFF00E5FF);
+                                            final Color highlightColor =
+                                                themeAccent;
                                             final bool isDeleting = _deletingIds
                                                 .contains(habit.id);
                                             final bool isRestored = context
@@ -796,9 +804,7 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                     0xFF1F1235,
                                                                   ),
                                                               foregroundColor:
-                                                                  const Color(
-                                                                    0xFF00E5FF,
-                                                                  ),
+                                                                  themeAccent,
                                                               icon: Icons
                                                                   .edit_outlined,
                                                               label: 'Edit',
@@ -1162,17 +1168,13 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                   decoration: BoxDecoration(
                                                                     color:
                                                                         isCompleted
-                                                                        ? const Color(
-                                                                            0xFF00E5FF,
-                                                                          )
+                                                                        ? themeAccent
                                                                         : Colors
                                                                               .transparent,
                                                                     border: Border.all(
                                                                       color:
                                                                           isCompleted
-                                                                          ? const Color(
-                                                                              0xFF00E5FF,
-                                                                            )
+                                                                          ? themeAccent
                                                                           : Colors.white.withValues(
                                                                               alpha: 0.8,
                                                                             ),
@@ -1229,15 +1231,13 @@ class _RoutineCardState extends State<RoutineCard> {
                                                   ) // Wait for the scroll to finish
                                                   .shimmer(
                                                     duration: 1.seconds,
-                                                    color: const Color(
-                                                      0xFF00E5FF,
-                                                    ).withValues(alpha: 0.4),
+                                                    color: themeAccent
+                                                        .withValues(alpha: 0.4),
                                                     angle: 1.2,
                                                   )
                                                   .tint(
-                                                    color: const Color(
-                                                      0xFF00E5FF,
-                                                    ).withValues(alpha: 0.25),
+                                                    color: themeAccent
+                                                        .withValues(alpha: 0.25),
                                                     duration: 400.ms,
                                                   )
                                                   .then(delay: 0.ms)
@@ -1319,18 +1319,18 @@ class _RoutineCardState extends State<RoutineCard> {
                                         vertical: 16,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: const Color(
-                                          0xFF00E5FF,
-                                        ).withValues(alpha: 0.05),
+                                        color: themeAccent.withValues(
+                                          alpha: 0.05,
+                                        ),
                                         borderRadius:
                                             const BorderRadius.vertical(
                                               bottom: Radius.circular(24),
                                             ),
                                         border: Border(
                                           top: BorderSide(
-                                            color: const Color(
-                                              0xFF00E5FF,
-                                            ).withValues(alpha: 0.15),
+                                            color: themeAccent.withValues(
+                                              alpha: 0.15,
+                                            ),
                                             width: 1,
                                           ),
                                         ),
@@ -1342,22 +1342,22 @@ class _RoutineCardState extends State<RoutineCard> {
                                           Container(
                                             padding: const EdgeInsets.all(4),
                                             decoration: BoxDecoration(
-                                              color: const Color(
-                                                0xFF00E5FF,
-                                              ).withValues(alpha: 0.1),
+                                              color: themeAccent.withValues(
+                                                alpha: 0.1,
+                                              ),
                                               shape: BoxShape.circle,
                                             ),
-                                            child: const Icon(
+                                            child: Icon(
                                               Icons.add_rounded,
-                                              color: Color(0xFF00E5FF),
+                                              color: themeAccent,
                                               size: 16,
                                             ),
                                           ),
                                           const SizedBox(width: 12),
-                                          const Text(
+                                          Text(
                                             "Add a habit",
                                             style: TextStyle(
-                                              color: Color(0xFF00E5FF),
+                                              color: themeAccent,
                                               fontWeight: FontWeight.w600,
                                               fontSize: 14,
                                               letterSpacing: 0.5,
@@ -1372,6 +1372,17 @@ class _RoutineCardState extends State<RoutineCard> {
                       ),
                     ],
                   ),
+                ),
+                    // Left accent stripe: each routine's identity color as
+                    // a thin edge instead of the old full-bleed wash.
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 3,
+                      child: ColoredBox(color: widget.gradientColors.first),
+                    ),
+                  ],
                 ),
               ),
             ),

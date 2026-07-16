@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/orbit_colors.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -33,8 +34,11 @@ class FriendRequestsScreen extends StatelessWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-                child: CircularProgressIndicator(color: Color(0xFF00E5FF)));
+            return Center(
+                child: CircularProgressIndicator(
+                    color:
+                        Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
+                            const Color(0xFF00E5FF)));
           }
 
           if (snapshot.hasError) {

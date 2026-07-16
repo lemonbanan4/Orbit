@@ -2,6 +2,7 @@
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../theme/orbit_tokens.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -68,7 +69,7 @@ class _ProCoachingScreenState extends State<ProCoachingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF020205), // Pure pitch deep space black
+      backgroundColor: OrbitTokens.ground,
       body: Stack(
         children: [
           // 🚀 THE BLUE BACKGROUND SHADE: Mimicking the exact radial glow from the image
@@ -125,7 +126,7 @@ class _ProCoachingScreenState extends State<ProCoachingScreen> {
             Text(
               "COGNITIVE TELEMETRY",
               style: TextStyle(
-                color: Color(0xFF00E5FF),
+                color: OrbitTokens.teal,
                 fontSize: 11,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 3,
@@ -190,15 +191,15 @@ class _ProCoachingScreenState extends State<ProCoachingScreen> {
                     key: ValueKey(_isScanning),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00E5FF).withValues(alpha: 0.05),
+                      color: OrbitTokens.teal.withValues(alpha: 0.05),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: const Color(0xFF00E5FF).withValues(alpha: 0.2),
+                        color: OrbitTokens.teal.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Icon(
                       _isScanning ? Icons.sync_rounded : Icons.radar_rounded,
-                      color: const Color(0xFF00E5FF),
+                      color: OrbitTokens.teal,
                       size: 32,
                     ),
                   )
@@ -259,7 +260,7 @@ class _ProCoachingScreenState extends State<ProCoachingScreen> {
                     backgroundColor: Colors.white.withValues(alpha: 0.05),
                     foregroundColor: Colors.white,
                     side: BorderSide(
-                      color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
+                      color: OrbitTokens.teal.withValues(alpha: 0.4),
                       width: 1,
                     ),
                     shape: RoundedRectangleBorder(

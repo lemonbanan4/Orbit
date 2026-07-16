@@ -11,6 +11,7 @@ import '../../widgets/wisdom/wisdom_scroll_overlay.dart';
 import '../../widgets/reward_popup.dart';
 import '../paywall/premium_checker.dart';
 import '../coaching/coaching_session_screen.dart';
+import '../../theme/orbit_tokens.dart';
 
 class SanctuaryScreen extends StatefulWidget {
   const SanctuaryScreen({super.key});
@@ -70,7 +71,7 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => const Center(
-        child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+        child: CircularProgressIndicator(color: OrbitTokens.teal),
       ),
     );
 
@@ -179,7 +180,7 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF050112),
+      backgroundColor: OrbitTokens.ground,
       body: Stack(
         children: [
           Positioned.fill(
@@ -243,15 +244,13 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
                                     borderRadius: BorderRadius.circular(24),
                                     gradient: const LinearGradient(
                                       colors: [
-                                        Color(0xFF7000FF),
-                                        Color(0xFF00E5FF),
+                                        OrbitTokens.violet,
+                                        OrbitTokens.teal,
                                       ],
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: const Color(
-                                          0xFF00E5FF,
-                                        ).withValues(alpha: 0.5),
+                                        color: OrbitTokens.teal.withValues(alpha: 0.5),
                                         blurRadius: 30,
                                         spreadRadius: -5,
                                       ),
@@ -326,16 +325,12 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
                             ),
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(
-                              color: const Color(
-                                0xFF00E5FF,
-                              ).withValues(alpha: 0.3),
+                              color: OrbitTokens.teal.withValues(alpha: 0.3),
                               width: 1.5,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(
-                                  0xFF00E5FF,
-                                ).withValues(alpha: 0.2),
+                                color: OrbitTokens.teal.withValues(alpha: 0.2),
                                 blurRadius: 20,
                               ),
                             ],
@@ -350,7 +345,7 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
                                 ),
                                 child: const Icon(
                                   Icons.psychology_rounded,
-                                  color: Color(0xFF00E5FF),
+                                  color: OrbitTokens.teal,
                                   size: 32,
                                 ),
                               ),
@@ -567,7 +562,7 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
           ),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isPlaying ? const Color(0xFF00E5FF) : Colors.transparent,
+            color: isPlaying ? OrbitTokens.teal : Colors.transparent,
             width: 2,
           ),
           boxShadow: isPlaying
@@ -590,7 +585,7 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
                 if (isPlaying)
                   const Icon(
                         Icons.graphic_eq_rounded,
-                        color: Color(0xFF00E5FF),
+                        color: OrbitTokens.teal,
                         size: 20,
                       )
                       .animate(onPlay: (c) => c.repeat(reverse: true))
@@ -658,11 +653,11 @@ class _JournalBottomSheetState extends State<_JournalBottomSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFF050112), // Matches scaffold background
+        color: OrbitTokens.ground, // Matches scaffold background
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         border: Border(
           top: BorderSide(
-            color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
+            color: OrbitTokens.teal.withValues(alpha: 0.3),
             width: 1.5,
           ),
         ),
@@ -700,7 +695,7 @@ class _JournalBottomSheetState extends State<_JournalBottomSheet> {
                     const Text(
                       "Editing Previous Entry",
                       style: TextStyle(
-                        color: Color(0xFF00E5FF),
+                        color: OrbitTokens.teal,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -742,7 +737,7 @@ class _JournalBottomSheetState extends State<_JournalBottomSheet> {
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00E5FF),
+                  backgroundColor: OrbitTokens.teal,
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -797,7 +792,7 @@ class _JournalBottomSheetState extends State<_JournalBottomSheet> {
                                 const SnackBar(
                                   content: Text("Entry sealed in the stars. ✨"),
                                   behavior: SnackBarBehavior.floating,
-                                  backgroundColor: Color(0xFF7000FF),
+                                  backgroundColor: OrbitTokens.violet,
                                 ),
                               );
                             }
@@ -867,7 +862,7 @@ class _JournalBottomSheetState extends State<_JournalBottomSheet> {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(
                         child: CircularProgressIndicator(
-                          color: Color(0xFF00E5FF),
+                          color: OrbitTokens.teal,
                         ),
                       );
                     }
@@ -932,7 +927,7 @@ class _JournalBottomSheetState extends State<_JournalBottomSheet> {
                                             Text(
                                               dateString,
                                               style: const TextStyle(
-                                                color: Color(0xFF00E5FF),
+                                                color: OrbitTokens.teal,
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.bold,
                                                 letterSpacing: 1.2,
@@ -980,9 +975,7 @@ class _JournalBottomSheetState extends State<_JournalBottomSheet> {
                                                       builder: (BuildContext context) {
                                                         return AlertDialog(
                                                           backgroundColor:
-                                                              const Color(
-                                                                0xFF1A1F36,
-                                                              ), // Deep premium navy
+                                                              OrbitTokens.surface, // Deep premium navy
                                                           shape: RoundedRectangleBorder(
                                                             borderRadius:
                                                                 BorderRadius.circular(
@@ -990,9 +983,7 @@ class _JournalBottomSheetState extends State<_JournalBottomSheet> {
                                                                 ),
                                                             side: BorderSide(
                                                               color:
-                                                                  const Color(
-                                                                    0xFF00E5FF,
-                                                                  ).withValues(
+                                                                  OrbitTokens.teal.withValues(
                                                                     alpha: 0.3,
                                                                   ),
                                                             ),

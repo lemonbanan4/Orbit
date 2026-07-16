@@ -2,6 +2,7 @@
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../theme/orbit_tokens.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../providers/routine_provider.dart';
@@ -58,7 +59,7 @@ class NebulaForgeScreen extends StatelessWidget {
                           Text(
                             sourcePhase.toUpperCase(),
                             style: const TextStyle(
-                              color: Color(0xFF00E5FF),
+                              color: OrbitTokens.teal,
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 2,
@@ -152,7 +153,7 @@ class NebulaForgeScreen extends StatelessWidget {
                       "${item.synergyPercentage}%",
                       style: TextStyle(
                         color: isHighSynergy
-                            ? const Color(0xFF00E5FF)
+                            ? OrbitTokens.teal
                             : Colors.purpleAccent,
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
@@ -185,7 +186,7 @@ class NebulaForgeScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(3),
                           gradient: LinearGradient(
                             colors: isHighSynergy
-                                ? [const Color(0xFF00E5FF), Colors.blueAccent]
+                                ? [OrbitTokens.teal, Colors.blueAccent]
                                 : [Colors.purpleAccent, Colors.deepPurple],
                           ),
                         ),

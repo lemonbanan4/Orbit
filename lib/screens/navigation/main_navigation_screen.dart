@@ -10,6 +10,8 @@ import '../journey/journey_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../widgets/account_link_prompt_sheet.dart';
+import '../../theme/orbit_tokens.dart';
+import '../../theme/orbit_colors.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   final String? highlightHabit;
@@ -123,72 +125,127 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final isDark = context.select<RoutineProvider, bool>(
       (p) => p.themeMode == 'Dark' || p.themeMode == 'System',
     );
-    final bgColor = isDark ? const Color(0xFF050112) : const Color(0xFFF0F4FF);
-    final navBgColor = isDark ? const Color(0xFF0A102A) : Colors.white;
-    final unselectedColor = isDark ? Colors.white54 : Colors.black54;
+    final theme = Theme.of(context);
+    final bgColor = theme.scaffoldBackgroundColor;
+    final navBgColor = isDark ? OrbitTokens.surface : Colors.white;
+    final hairline = isDark
+        ? OrbitTokens.hairline
+        : const Color(0x14000000);
+    final unselectedColor = isDark ? OrbitTokens.inkFaint : Colors.black38;
+    // The app's actual brand accent (orange in dark mode, cyan in light) —
+    // not a fixed teal, so the nav bar's active state matches whatever
+    // accent the rest of the screen underneath it is using.
+    final accent =
+        theme.extension<OrbitColors>()?.orbColor1 ?? const Color(0xFF00E5FF);
 
     return Scaffold(
       backgroundColor: bgColor,
       body: IndexedStack(index: _currentIndex, children: _screens),
-      bottomNavigationBar: NavigationBarTheme(
-        data: NavigationBarThemeData(
-          labelTextStyle: WidgetStateProperty.resolveWith(
-            (states) => states.contains(WidgetState.selected)
-                ? const TextStyle(
-                    color: Color(0xFF00E5FF),
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  )
-                : TextStyle(color: unselectedColor, fontSize: 12),
+      bottomNavigationBar: _OrbitNavBar(
+        currentIndex: _currentIndex,
+        onSelect: (idx) => setState(() => _currentIndex = idx),
+        backgroundColor: navBgColor,
+        hairline: hairline,
+        unselectedColor: unselectedColor,
+        accent: accent,
+        destinations: const [
+          _OrbitNavDestination(Icons.home_rounded, 'Home'),
+          _OrbitNavDestination(Icons.track_changes_rounded, 'Journey'),
+          _OrbitNavDestination(Icons.mood_rounded, 'Cosmos'),
+          _OrbitNavDestination(Icons.leaderboard_rounded, 'Ranks'),
+          _OrbitNavDestination(Icons.person_rounded, 'Profile'),
+        ],
+      ),
+    );
+  }
+}
+
+class _OrbitNavDestination {
+  final IconData icon;
+  final String label;
+  const _OrbitNavDestination(this.icon, this.label);
+}
+
+/// A minimal, one-accent bottom nav: no filled indicator pill, just an icon
+/// opacity shift plus a small glow dot marking the active tab.
+class _OrbitNavBar extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onSelect;
+  final Color backgroundColor;
+  final Color hairline;
+  final Color unselectedColor;
+  final Color accent;
+  final List<_OrbitNavDestination> destinations;
+
+  const _OrbitNavBar({
+    required this.currentIndex,
+    required this.onSelect,
+    required this.backgroundColor,
+    required this.hairline,
+    required this.unselectedColor,
+    required this.accent,
+    required this.destinations,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        border: Border(top: BorderSide(color: hairline)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 58,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(destinations.length, (index) {
+              final destination = destinations[index];
+              final isActive = index == currentIndex;
+              final color = isActive ? accent : unselectedColor;
+              return Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => onSelect(index),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 4,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 6),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isActive ? accent : Colors.transparent,
+                          boxShadow: isActive
+                              ? [
+                                  BoxShadow(
+                                    color: accent.withValues(alpha: 0.6),
+                                    blurRadius: 6,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                      ),
+                      Icon(destination.icon, color: color, size: 23),
+                      const SizedBox(height: 3),
+                      Text(
+                        destination.label,
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 10.5,
+                          fontWeight:
+                              isActive ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
           ),
-        ),
-        child: NavigationBar(
-          backgroundColor: navBgColor,
-          indicatorColor: const Color(0xFF00E5FF).withValues(alpha: 0.2),
-          selectedIndex: _currentIndex,
-          onDestinationSelected: (idx) => setState(() => _currentIndex = idx),
-          destinations: [
-            NavigationDestination(
-              icon: Icon(Icons.home_rounded, color: unselectedColor),
-              selectedIcon: const Icon(
-                Icons.home_rounded,
-                color: Color(0xFF00E5FF),
-              ),
-              label: 'Home',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.track_changes_rounded, color: unselectedColor),
-              selectedIcon: const Icon(
-                Icons.track_changes_rounded,
-                color: Color(0xFF00E5FF),
-              ),
-              label: 'Journey',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.mood_rounded, color: unselectedColor),
-              selectedIcon: const Icon(
-                Icons.mood_rounded,
-                color: Color(0xFF00E5FF),
-              ),
-              label: 'Cosmos',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.leaderboard_rounded, color: unselectedColor),
-              selectedIcon: const Icon(
-                Icons.leaderboard_rounded,
-                color: Color(0xFF00E5FF),
-              ),
-              label: 'Ranks',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_rounded, color: unselectedColor),
-              selectedIcon: const Icon(
-                Icons.person_rounded,
-                color: Color(0xFF00E5FF),
-              ),
-              label: 'Profile',
-            ),
-          ],
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../theme/orbit_tokens.dart';
 
 class AchievementBadge extends StatelessWidget {
   final Map<String, dynamic> details;
@@ -20,7 +21,7 @@ class AchievementBadge extends StatelessWidget {
           builder: (context) => BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: AlertDialog(
-              backgroundColor: const Color(0xFF13002B),
+              backgroundColor: OrbitTokens.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
               ),
