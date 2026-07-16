@@ -31,6 +31,7 @@ import 'coaching/coaching_session_screen.dart';
 import '../theme/orbit_tokens.dart';
 import '../widgets/paywall/premium_paywall_dialog.dart';
 import '../utils/time_picker_utils.dart';
+import '../widgets/dashboard/today_header.dart';
 
 class HabitDashboardScreen extends StatefulWidget {
   final bool isFirstLaunch;
@@ -497,6 +498,13 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
                 ),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
+                    // The pitch's dashboard hero: greeting, streak pill,
+                    // and routine progress ring.
+                    const TodayHeader()
+                        .animate()
+                        .fade(duration: 600.ms)
+                        .slideY(begin: 0.05, end: 0),
+                    const SizedBox(height: 24),
                     PremiumGlassCard(
                       child: Stack(
                         clipBehavior: Clip.none,

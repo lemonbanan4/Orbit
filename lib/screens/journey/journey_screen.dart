@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:orbit_app/providers/atmosphere_provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/routine_provider.dart';
+import '../../providers/telemetry_provider.dart';
 import '../../widgets/journey/upgraded_milestone_card.dart';
 import '../../theme/orbit_tokens.dart';
 
@@ -161,6 +162,90 @@ class _JourneyScreenState extends State<JourneyScreen> {
                             end: Alignment.bottomCenter,
                           ),
                         ),
+                      ),
+                    ),
+                  ),
+                  // Level pill + XP progress bar from the redesign pitch.
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 4),
+                      child: Consumer<TelemetryProvider>(
+                        builder: (context, telemetry, _) {
+                          final progress =
+                              telemetry.levelProgressFraction.clamp(0.0, 1.0);
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'MILESTONES',
+                                    style: TextStyle(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.5),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: OrbitTokens.violet.withValues(
+                                        alpha: 0.14,
+                                      ),
+                                      borderRadius: BorderRadius.circular(100),
+                                    ),
+                                    child: Text(
+                                      'LV.${telemetry.currentLevel} VOYAGER',
+                                      style: const TextStyle(
+                                        color: OrbitTokens.violet,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.8,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: Stack(
+                                  children: [
+                                    Container(
+                                      height: 5,
+                                      width: double.infinity,
+                                      color: OrbitTokens.surface2,
+                                    ),
+                                    FractionallySizedBox(
+                                      widthFactor: progress,
+                                      child: Container(
+                                        height: 5,
+                                        decoration: const BoxDecoration(
+                                          gradient: OrbitTokens.signal,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                '${telemetry.globalXp} / ${telemetry.xpForNextLevel} XP to Level ${telemetry.currentLevel + 1}',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.45),
+                                  fontSize: 10.5,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ),
                   ),
