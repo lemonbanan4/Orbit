@@ -70,6 +70,42 @@ describe("Orbit Firestore Security Rules", () => {
     await assertFails(guestDoc.update({ streakCount: 100 }));
   });
 
+  it("Allows a user to log a skipped session with a habit title", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const sessionsRef = db
+      .collection("users")
+      .doc("user123")
+      .collection("skipped_sessions");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false });
+    });
+
+    await assertSucceeds(
+      sessionsRef.add({
+        habitTitle: "Morning Meditation",
+        reason: "Skipped without a reason",
+        timestamp: new Date(),
+      })
+    );
+  });
+
+  it("Denies a skipped session without a habit title", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const sessionsRef = db
+      .collection("users")
+      .doc("user123")
+      .collection("skipped_sessions");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false });
+    });
+
+    await assertFails(
+      sessionsRef.add({ reason: "Skipped without a reason", timestamp: new Date() })
+    );
+  });
+
   it("Allows a user to write per-day history onto their own habit", async () => {
     const db = testEnv.authenticatedContext("user123").firestore();
     const habitDoc = db

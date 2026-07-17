@@ -16,6 +16,7 @@ import '../settings/settings_screen.dart';
 import '../stats/statistics_screen.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../achievements_screen.dart';
+import '../../data/achievements_catalog.dart';
 import '../habits/past_journeys_screen.dart';
 import '../habits/skipped_sessions_screen.dart';
 import '../../widgets/common/achievement_badge.dart';
@@ -44,32 +45,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  static const Map<String, Map<String, dynamic>> _achievementDetails = {
-    '7_Day_Streak': {
-      'title': '7 Day Streak',
-      'description': 'Maintained a streak for 7 consecutive days.',
-      'icon': Icons.local_fire_department_rounded,
-      'color': Colors.orange,
-    },
-    '10_Day_Streak': {
-      'title': '10 Day Streak',
-      'description': 'Maintained a streak for 10 consecutive days.',
-      'icon': Icons.bolt_rounded,
-      'color': Colors.deepOrange,
-    },
-    '30_Day_Streak': {
-      'title': '30 Day Streak',
-      'description': 'Maintained a streak for 30 consecutive days.',
-      'icon': Icons.whatshot_rounded,
-      'color': Colors.redAccent,
-    },
-    '100_Day_Streak': {
-      'title': '100 Day Streak',
-      'description': 'Maintained a streak for 100 consecutive days.',
-      'icon': Icons.diamond_rounded,
-      'color': Colors.cyan,
-    },
-  };
 
   @override
   void initState() {
@@ -418,11 +393,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
               final isGuest = data['isGuest'] == true || user.isAnonymous;
               final name = data['name'] ?? user.displayName ?? 'Guest Explorer';
               final email = data['email'] ?? user.email ?? 'No email provided';
-              final streakCount = data['streakCount'] as int? ?? 0;
+              // 'streakCount' is only ever set once, to 0, at signup
+              // (auth_service.dart) and never updated again — the field
+              // RoutineProvider actually maintains and persists on every
+              // check-in is 'current_streak' (already used correctly by
+              // statistics_screen.dart and leaderboard_tile.dart).
+              final streakCount =
+                  data['current_streak'] as int? ?? data['streakCount'] as int? ?? 0;
               final isProUser = data['isPro'] == true || _isPro;
+              // Computed live, not read from the Firestore 'achievements'
+              // array — that field was only ever initialized to [] at
+              // signup and nothing in the app ever wrote to it, so this
+              // section never showed for anyone.
               final achievements =
-                  (data['achievements'] as List<dynamic>?)?.cast<String>() ??
-                      [];
+                  computeEarnedAchievements(context.watch<RoutineProvider>())
+                      .toList();
 
               final currentXp = data['xp'] as int? ?? 0;
               final level = RewardPopup.getLevel(currentXp);
@@ -620,7 +605,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       spacing: 20,
                       runSpacing: 20,
                       children: achievements.map((key) {
-                        final details = _achievementDetails[key];
+                        final details = achievementsCatalog[key];
                         if (details == null) return const SizedBox.shrink();
                         return AchievementBadge(details: details);
                       }).toList(),

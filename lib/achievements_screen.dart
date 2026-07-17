@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui' as ui;
@@ -10,6 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/services.dart';
 import 'widgets/common/base_orbit_screen.dart';
+import 'providers/routine_provider.dart';
+import 'data/achievements_catalog.dart';
 
 class AchievementsScreen extends StatefulWidget {
   const AchievementsScreen({super.key});
@@ -19,26 +21,8 @@ class AchievementsScreen extends StatefulWidget {
 }
 
 class _AchievementsScreenState extends State<AchievementsScreen> {
-  final Map<String, Map<String, dynamic>> _allAchievements = const {
-    '7_Day_Streak': {
-      'title': '7 Day Streak',
-      'description': 'Maintained a streak for 7 consecutive days.',
-      'icon': Icons.local_fire_department_rounded,
-      'color': Colors.orange,
-    },
-    '30_Day_Streak': {
-      'title': '30 Day Streak',
-      'description': 'Maintained a streak for 30 consecutive days.',
-      'icon': Icons.whatshot_rounded,
-      'color': Colors.redAccent,
-    },
-    '100_Day_Streak': {
-      'title': '100 Day Streak',
-      'description': 'Maintained a streak for 100 consecutive days.',
-      'icon': Icons.diamond_rounded,
-      'color': Colors.cyan,
-    },
-  };
+  final Map<String, Map<String, dynamic>> _allAchievements =
+      achievementsCatalog;
 
   late ConfettiController _confettiController;
   Set<String> _seenAchievements = {};
@@ -73,6 +57,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     const Color orbColor1 = Color(0xFF00E5FF);
+    final routineProvider = context.watch<RoutineProvider>();
 
     return BaseOrbitScreen(
       title: 'Achievements',
@@ -80,24 +65,10 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
           ? const Center(child: CircularProgressIndicator(color: orbColor1))
           : Stack(
               children: [
-                StreamBuilder<DocumentSnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(user.uid)
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting &&
-                        !snapshot.hasData) {
-                      return const Center(
-                        child: CircularProgressIndicator(color: orbColor1),
-                      );
-                    }
-
-                    final data = snapshot.data?.data() as Map<String, dynamic>?;
+                Builder(
+                  builder: (context) {
                     final earnedAchievements =
-                        (data?['achievements'] as List<dynamic>?)
-                                ?.cast<String>() ??
-                            [];
+                        computeEarnedAchievements(routineProvider);
                     final newAchievements = earnedAchievements
                         .where((a) => !_seenAchievements.contains(a))
                         .toList();

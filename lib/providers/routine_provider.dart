@@ -1184,6 +1184,20 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
             .doc(habit.id)
             .update({'skippedCount': habit.skippedCount})
             .catchError((_) {});
+        // skipped_sessions_screen.dart reads this subcollection but
+        // nothing ever wrote to it — this is the actual "I'm skipping
+        // this today" user action, so it's the natural place to log one.
+        _db
+            .collection('users')
+            .doc(_userId)
+            .collection('skipped_sessions')
+            .add({
+              'habitTitle': habit.title,
+              'reason': 'Skipped without a reason',
+              'timestamp': FieldValue.serverTimestamp(),
+            })
+            .then((_) {})
+            .catchError((_) {});
         skippedHabits.add(habit);
       }
     }

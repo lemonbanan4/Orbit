@@ -92,9 +92,14 @@ service cloud.firestore {
     }
 
     function isValidSkippedSession(data) {
-      let allowedKeys = ['timestamp', 'reason'];
+      // 'habitTitle' is read by skipped_sessions_screen.dart but was
+      // missing from this allowlist — any write including it (which is
+      // the only way the screen can show anything meaningful) was always
+      // rejected outright.
+      let allowedKeys = ['timestamp', 'reason', 'habitTitle'];
       return data.keys().hasOnly(allowedKeys) &&
-             isValidString(data.reason, 0, 500);
+             isValidString(data.reason, 0, 500) &&
+             isValidString(data.habitTitle, 1, 100);
     }
 
     function isValidFriendRequest(data) {
