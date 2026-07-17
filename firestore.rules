@@ -63,6 +63,14 @@ service cloud.firestore {
       return data.keys().hasOnly(allowedKeys) && isDisplayNameValid && isNameValid;
     }
 
+    // Guests (isGuest: true, typically anonymous-auth accounts) must not be
+    // able to rewrite their own streakCount — that's the anti-cheat field
+    // read on public-facing surfaces like the leaderboard and profile screen.
+    function isGuestStreakTamper() {
+      return resource.data.isGuest == true &&
+        request.resource.data.diff(resource.data).affectedKeys().hasAny(['streakCount']);
+    }
+
     function isValidHabit(data) {
       // Keys must match Habit.toMap() in lib/models/habit.dart exactly —
       // note the field is 'routine', not 'routineType' (Habit.fromMap()
@@ -127,7 +135,9 @@ service cloud.firestore {
     match /users/{userId} {
       // Strict isolation: Users can only read and write their own primary document
       allow read, delete: if isOwner(userId);
-      allow create, update: if isOwner(userId) && isValidUser(request.resource.data);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) &&
+        !isGuestStreakTamper();
 
       match /habits/{habitId} {
         allow read, delete: if isOwner(userId);
