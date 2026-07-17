@@ -349,9 +349,15 @@ class _OrbitAppState extends State<OrbitApp> {
   void _customerInfoUpdateListener(CustomerInfo customerInfo) {
     final isPro = customerInfo.entitlements.all["Orbit Pro"]?.isActive == true;
     debugPrint('RevenueCat Global Sync: isPro = $isPro');
-    if (mounted) {
-      context.read<AppAuthProvider>().updateProStatus(isPro);
-    }
+    // The SDK fires this synchronously while addCustomerInfoUpdateListener
+    // is called from initState — mid-build. Notifying providers there throws
+    // "setState() or markNeedsBuild() called during build" on every cold
+    // start, so defer the notification to after the current frame.
+    Future.microtask(() {
+      if (mounted) {
+        context.read<AppAuthProvider>().updateProStatus(isPro);
+      }
+    });
   }
 
   void _setupRevenueCatListener() async {

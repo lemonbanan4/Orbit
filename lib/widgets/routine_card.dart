@@ -354,46 +354,52 @@ class _RoutineCardState extends State<RoutineCard> {
                                           ),
                                           if (totalCount > 0) ...[
                                             const SizedBox(width: 8),
-                                            AnimatedSwitcher(
-                                              duration: const Duration(
-                                                milliseconds: 300,
-                                              ),
-                                              transitionBuilder:
-                                                  (child, animation) =>
-                                                      SlideTransition(
-                                                        position: Tween<Offset>(
-                                                          begin: const Offset(
-                                                            0,
-                                                            -0.5,
+                                            // Flexible + compact "x/y done"
+                                            // so the row can never overflow —
+                                            // the long "N / M completed" text
+                                            // overflowed by ~15px once the
+                                            // completion circle joined the
+                                            // header.
+                                            Flexible(
+                                              child: AnimatedSwitcher(
+                                                duration: const Duration(
+                                                  milliseconds: 300,
+                                                ),
+                                                transitionBuilder:
+                                                    (child, animation) =>
+                                                        SlideTransition(
+                                                          position:
+                                                              Tween<Offset>(
+                                                                begin:
+                                                                    const Offset(
+                                                                      0,
+                                                                      -0.5,
+                                                                    ),
+                                                                end: Offset
+                                                                    .zero,
+                                                              ).animate(
+                                                                animation,
+                                                              ),
+                                                          child: FadeTransition(
+                                                            opacity: animation,
+                                                            child: child,
                                                           ),
-                                                          end: Offset.zero,
-                                                        ).animate(animation),
-                                                        child: FadeTransition(
-                                                          opacity: animation,
-                                                          child: child,
                                                         ),
-                                                      ),
-                                              child: Text(
-                                                '$completedCount',
-                                                key: ValueKey<int>(
-                                                  completedCount,
+                                                child: Text(
+                                                  '$completedCount/$totalCount done',
+                                                  key: ValueKey<int>(
+                                                    completedCount,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    color: Colors.white
+                                                        .withValues(alpha: 0.7),
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
                                                 ),
-                                                style: TextStyle(
-                                                  color: Colors.white
-                                                      .withValues(alpha: 0.7),
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ),
-                                            Text(
-                                              ' / $totalCount completed',
-                                              style: TextStyle(
-                                                color: Colors.white.withValues(
-                                                  alpha: 0.7,
-                                                ),
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w600,
                                               ),
                                             ),
                                           ],
