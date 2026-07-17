@@ -50,7 +50,7 @@ service cloud.firestore {
         'isGuest', 'createdAt', 'streakCount', 'completedMilestones',
         'achievements', 'name', 'photoUrl', 'fcmToken', 'friends',
         'fairy_taps', 'unlocked_fairy_badge', 'global_xp', 'current_level',
-        'wisdomStreak', 'lastWisdomDate'
+        'wisdomStreak', 'lastWisdomDate', 'streakFreezes', 'isStreakFrozen'
       ];
 
       // Prevent 1MB string payload attacks on display name

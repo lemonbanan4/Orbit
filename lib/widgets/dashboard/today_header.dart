@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/routine_provider.dart';
 import '../../theme/orbit_tokens.dart';
+import 'streak_freeze_sheet.dart';
 
 /// The dashboard hero from the redesign pitch: time-of-day greeting +
 /// streak pill, followed by a progress ring summarizing how many of the
@@ -98,6 +99,10 @@ class TodayHeader extends StatelessWidget {
                 ],
               ),
             ).animate().fadeIn(duration: 350.ms).slideX(begin: -0.05, end: 0),
+            const StreakFreezeBadge()
+                .animate()
+                .fadeIn(delay: 100.ms, duration: 350.ms)
+                .slideX(begin: 0.05, end: 0, delay: 100.ms),
             Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,

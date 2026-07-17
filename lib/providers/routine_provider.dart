@@ -7,6 +7,7 @@ import 'package:just_audio/just_audio.dart' as ja;
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:home_widget/home_widget.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -394,12 +395,24 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   int _xp = 0;
   Map<String, int> _xpHistory = {};
 
+  // A streak that would otherwise break gets absorbed by one of these
+  // instead, purchased with the per-habit XP above (buyStreakFreeze cloud
+  // function — previously wired server-side with no client ever calling
+  // it, viewing the count, or consuming one).
+  int _streakFreezes = 0;
+  bool _isStreakFrozen = false;
+  bool _isBuyingFreeze = false;
+
   int get currentStreak => _currentStreak;
   int get longestStreak => _longestStreak;
   int get totalHabitsCompleted => _totalHabitsCompleted;
   int get totalHabitsAssigned => _totalHabitsAssigned;
   int get xp => _xp;
   Map<String, int> get xpHistory => _xpHistory;
+  int get streakFreezes => _streakFreezes;
+  bool get isStreakFrozen => _isStreakFrozen;
+  bool get isBuyingFreeze => _isBuyingFreeze;
+  static const int streakFreezeCost = 200;
   int get currentLevel => (_xp ~/ 100) + 1; // Level up every 100 XP
   double get levelProgress => (_xp % 100) / 100.0; // Progress to the next level
   bool get justLeveledUp => _justLeveledUp;
@@ -677,6 +690,8 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     _longestStreak = _prefs?.getInt('longest_streak') ?? 7;
     _totalHabitsAssigned = _prefs?.getInt('total_habits_assigned') ?? 30;
     _xp = _prefs?.getInt('xp') ?? 0;
+    _streakFreezes = _prefs?.getInt('streak_freezes') ?? 0;
+    _isStreakFrozen = _prefs?.getBool('is_streak_frozen') ?? false;
     _selectedAvatar = _prefs?.getString('avatar') ?? 'rocket';
     _bookmarkedQuotes = _prefs?.getStringList('bookmarked_quotes') ?? [];
     _lettersReadToday = _prefs?.getInt('letters_read_today') ?? 0;
@@ -771,6 +786,12 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
         if (cloudData.containsKey('streak_increased_today')) {
           _hasIncreasedStreakToday = cloudData['streak_increased_today'];
+        }
+        if (cloudData.containsKey('streakFreezes')) {
+          _streakFreezes = cloudData['streakFreezes'];
+        }
+        if (cloudData.containsKey('isStreakFrozen')) {
+          _isStreakFrozen = cloudData['isStreakFrozen'];
         }
         if (cloudData.containsKey('longest_streak')) {
           _longestStreak = cloudData['longest_streak'];
@@ -938,8 +959,22 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         try {
           DateTime last = DateTime.parse(_lastResetDate!);
           DateTime curr = DateTime.parse(today);
+          final daysMissed = curr.difference(last).inDays;
           // If more than 1 day has passed, OR they didn't complete a routine yesterday, break streak!
-          if (curr.difference(last).inDays > 1 || !_hasIncreasedStreakToday) {
+          final wouldBreak = daysMissed > 1 || !_hasIncreasedStreakToday;
+
+          // A freeze absorbs exactly one missed day (what it's priced
+          // for) — being gone longer still breaks the streak.
+          if (wouldBreak && _streakFreezes > 0 && daysMissed <= 2) {
+            _streakFreezes--;
+            _isStreakFrozen = true;
+            _prefs?.setInt('streak_freezes', _streakFreezes);
+            _prefs?.setBool('is_streak_frozen', true);
+            // Push promptly so onFreezeConsumed (a Firestore trigger
+            // watching for isStreakFrozen's false->true edge) fires and
+            // notifies the user their streak was saved.
+            _saveToCloud();
+          } else if (wouldBreak) {
             _currentStreak = 0;
             _prefs?.setInt('current_streak', 0);
             FirebaseCrashlytics.instance.setCustomKey('current_streak', 0);
@@ -1010,6 +1045,12 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
       _hasIncreasedStreakToday = true;
       _prefs?.setInt('current_streak', _currentStreak);
       _prefs?.setBool('streak_increased_today', true);
+      if (_isStreakFrozen) {
+        // Back to normal — lets a future missed day flip this false->true
+        // again, which is what triggers the "streak saved" notification.
+        _isStreakFrozen = false;
+        _prefs?.setBool('is_streak_frozen', false);
+      }
       FirebaseCrashlytics.instance.setCustomKey(
         'current_streak',
         _currentStreak,
@@ -1019,6 +1060,44 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
       _saveToCloud();
     }
     return isNewLongest;
+  }
+
+  /// Spends [streakFreezeCost] XP (the buyStreakFreeze callable's own
+  /// price) for one streak freeze. Returns null on success, or a
+  /// user-facing error message on failure.
+  Future<String?> buyStreakFreeze() async {
+    if (_isBuyingFreeze) return null;
+    _isBuyingFreeze = true;
+    notifyListeners();
+
+    try {
+      final result = await FirebaseFunctions.instanceFor(
+        region: 'europe-west1',
+      ).httpsCallable('buyStreakFreeze').call();
+
+      final data = Map<String, dynamic>.from(result.data as Map);
+      _streakFreezes++;
+      if (data['newXp'] is int) {
+        _xp = data['newXp'] as int;
+      } else {
+        _xp -= streakFreezeCost;
+      }
+      _prefs?.setInt('streak_freezes', _streakFreezes);
+      _prefs?.setInt('xp', _xp);
+      _saveToCloud();
+      return null;
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'failed-precondition') {
+        return 'Not enough XP — habits earn 10 XP each.';
+      }
+      return e.message ?? 'Could not reach the Orbit Store.';
+    } catch (e) {
+      debugPrint('buyStreakFreeze error: $e');
+      return 'Could not reach the Orbit Store.';
+    } finally {
+      _isBuyingFreeze = false;
+      notifyListeners();
+    }
   }
 
   Future<void> toggleHabit(String habitId) async {
@@ -1387,6 +1466,8 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         'habits': _completedHabits,
         'current_streak': _currentStreak,
         'streak_increased_today': _hasIncreasedStreakToday,
+        'streakFreezes': _streakFreezes,
+        'isStreakFrozen': _isStreakFrozen,
         'longest_streak': _longestStreak,
         'total_habits_assigned': _totalHabitsAssigned,
         'xp': _xp,

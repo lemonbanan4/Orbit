@@ -41,6 +41,19 @@ describe("Orbit Firestore Security Rules", () => {
     await assertSucceeds(userDoc.update({ name: "Commander Lemon" }));
   });
 
+  it("Allows a user to update their streak freeze fields", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const userDoc = db.collection("users").doc("user123");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false, streakFreezes: 0 });
+    });
+
+    await assertSucceeds(
+      userDoc.update({ streakFreezes: 1, isStreakFrozen: true })
+    );
+  });
+
   it("Denies a Guest from modifying their streakCount", async () => {
     // Create an authenticated context simulating an anonymous provider
     const guestDb = testEnv.authenticatedContext("guest123", {
