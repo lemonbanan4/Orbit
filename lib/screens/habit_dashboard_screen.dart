@@ -55,7 +55,6 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
   String? _latestSkipReason;
   late ConfettiController _confettiController;
   bool _hasCelebratedToday = false;
-  late AnimationController _panController;
   bool _isGeneratingIntention = false;
   bool _hasConsultedMirrorToday = false;
   bool _pendingInsightCallback = false;
@@ -144,10 +143,6 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 3),
     );
-    _panController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 40),
-    )..repeat(reverse: true);
     _quotes.shuffle();
     _dailyQuote = _quotes.first;
 
@@ -173,7 +168,6 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
     WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
     _confettiController.dispose();
-    _panController.dispose();
     super.dispose();
   }
 
@@ -435,54 +429,22 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
       // ... your dashboard grid elements, lists, and scroll views continue here ...
       body: Stack(
         children: [
-          Positioned(
-            top: -200,
-            left: -100,
-            right: -100,
-            bottom: -200,
-            child: AnimatedBuilder(
-              animation: Listenable.merge([_scrollController, _panController]),
-              child: Opacity(
-                // Quiet ambient texture, not a competing artwork — the
-                // pitch's look comes from a near-black ground where the
-                // cards and accents carry the hierarchy.
-                opacity: isDark ? 0.14 : 0.06,
-                child: Image.asset(
-                  'assets/images/nebula_bg.png',
-                  fit: BoxFit.cover,
+          // Clean token ground per the pitch — a faint radial accent glow
+          // instead of the old photographic nebula/planet artwork.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: const Alignment(0.9, -0.9),
+                    radius: 1.2,
+                    colors: [
+                      orbColor1.withValues(alpha: isDark ? 0.10 : 0.05),
+                      Colors.transparent,
+                    ],
+                  ),
                 ),
               ),
-              builder: (context, child) {
-                double offset = _scrollController.hasClients
-                    ? _scrollController.offset
-                    : 0.0;
-
-                // 1. Raw parallax effect
-                double parallaxOffset = offset * -0.1;
-
-                // 2. Clamp translation to exactly match our extra bleed room (200px) so edges never show
-                parallaxOffset = parallaxOffset.clamp(-200.0, 200.0);
-
-                // 3. Horizontal slow pan
-                double panOffset = (_panController.value - 0.5) * 50;
-
-                // 4. Premium edge stretch effect on overscroll
-                double scale = 1.0;
-                if (_scrollController.hasClients &&
-                    _scrollController.position.hasContentDimensions) {
-                  double maxScroll = _scrollController.position.maxScrollExtent;
-                  if (offset < 0) {
-                    scale = 1.0 + (offset.abs() * 0.0015);
-                  } else if (offset > maxScroll && maxScroll > 0) {
-                    scale = 1.0 + ((offset - maxScroll) * 0.0015);
-                  }
-                }
-
-                return Transform.translate(
-                  offset: Offset(panOffset, parallaxOffset),
-                  child: Transform.scale(scale: scale, child: child),
-                );
-              },
             ),
           ),
           CustomScrollView(

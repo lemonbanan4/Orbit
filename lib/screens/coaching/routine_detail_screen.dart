@@ -118,16 +118,6 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
             ),
           ),
 
-          // LAYER 2: Parallax Nebula Texture overlay
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.12,
-              child: Image.asset(
-                'assets/images/nebula_bg.png',
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
           // LAYER 3: Sub-surface Blur
           Positioned.fill(
             child: BackdropFilter(

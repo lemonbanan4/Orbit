@@ -402,6 +402,40 @@ class _RoutineCardState extends State<RoutineCard> {
                                     ],
                                   ),
                                 ),
+                                // Mock-style completion state: filled check
+                                // once every habit in the routine is done,
+                                // quiet outline until then.
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  margin: const EdgeInsets.only(right: 4),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color:
+                                        totalCount > 0 &&
+                                            completedCount == totalCount
+                                        ? widget.gradientColors.first
+                                              .withValues(alpha: 0.25)
+                                        : Colors.transparent,
+                                    border: Border.all(
+                                      color:
+                                          totalCount > 0 &&
+                                              completedCount == totalCount
+                                          ? widget.gradientColors.first
+                                          : Colors.white24,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child:
+                                      totalCount > 0 &&
+                                          completedCount == totalCount
+                                      ? Icon(
+                                          Icons.check_rounded,
+                                          size: 14,
+                                          color: widget.gradientColors.first,
+                                        )
+                                      : null,
+                                ),
                                 GestureDetector(
                                   onTap: _toggleExpanded,
                                   child: Padding(

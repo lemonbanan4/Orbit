@@ -190,11 +190,18 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: Opacity(
-              opacity: 0.14,
-              child: Image.asset(
-                'assets/images/nebula_bg.png',
-                fit: BoxFit.cover,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: const Alignment(0, -1),
+                    radius: 1.3,
+                    colors: [
+                      OrbitTokens.violet.withValues(alpha: 0.12),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
               ),
             ),
           ),

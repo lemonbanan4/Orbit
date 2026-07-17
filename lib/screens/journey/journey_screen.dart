@@ -37,7 +37,6 @@ class JourneyScreen extends StatefulWidget {
 
 class _JourneyScreenState extends State<JourneyScreen> {
   final ScrollController _scrollController = ScrollController();
-  double _scrollOffset = 0;
 
   // Real SaaS Milestone Path Data
   final List<JourneyMilestone> _milestones = const [
@@ -89,18 +88,6 @@ class _JourneyScreenState extends State<JourneyScreen> {
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(() {
-      if (mounted) {
-        setState(() {
-          _scrollOffset = _scrollController.offset;
-        });
-      }
-    });
-  }
-
-  @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
@@ -118,17 +105,20 @@ class _JourneyScreenState extends State<JourneyScreen> {
           backgroundColor: OrbitTokens.ground,
           body: Stack(
             children: [
-              // LAYER 1: PARALLAX NEBULA
-              Positioned(
-                top: -(_scrollOffset * 0.25),
-                left: 0,
-                right: 0,
-                child: Opacity(
-                  opacity: 0.18,
-                  child: Image.asset(
-                    'assets/images/contract_bg.png',
-                    fit: BoxFit.cover,
-                    height: MediaQuery.of(context).size.height * 1.0,
+              // Clean token ground with a faint violet glow, per the pitch.
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        center: const Alignment(0, -1),
+                        radius: 1.3,
+                        colors: [
+                          OrbitTokens.violet.withValues(alpha: 0.14),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),

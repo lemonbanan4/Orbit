@@ -15,6 +15,7 @@ import '../../widgets/ai_fairy_bubble.dart';
 import '../../theme/glass_button.dart';
 import '../../widgets/common/animated_frosty_button.dart';
 import '../../theme/orbit_tokens.dart';
+import '../../widgets/common/stellar_planet.dart';
 
 class ConstellationBuilderScreen extends StatefulWidget {
   const ConstellationBuilderScreen({super.key});
@@ -109,22 +110,6 @@ class _ConstellationBuilderScreenState
     }
   }
 
-  String _getPlanetAsset(String? iconType) {
-    switch (iconType) {
-      case 'Fitness':
-        return 'assets/images/planet_fitness.png';
-      case 'Mind':
-        return 'assets/images/planet_mind.png';
-      case 'Book':
-      case 'Structure':
-        return 'assets/images/planet_productivity.png';
-      case 'Explore':
-        return 'assets/images/planet_growth.png';
-      default:
-        return 'assets/images/planet_default.png';
-    }
-  }
-
   Future<void> _acceptDestiny() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || _constellation.isEmpty) return;
@@ -196,13 +181,20 @@ class _ConstellationBuilderScreenState
       backgroundColor: OrbitTokens.ground,
       body: Stack(
         children: [
-          // 1. COSMIC BACKGROUND LAYER
+          // 1. Clean token ground with a faint teal glow, per the pitch.
           Positioned.fill(
-            child: Opacity(
-              opacity: 0.14,
-              child: Image.asset(
-                'assets/images/nebula_bg.png',
-                fit: BoxFit.cover,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: const Alignment(0, -1),
+                    radius: 1.3,
+                    colors: [
+                      OrbitTokens.teal.withValues(alpha: 0.10),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -606,23 +598,11 @@ class _ConstellationBuilderScreenState
       },
       child: Column(
         children: [
-          Container(
-                height: 70,
-                width: 70,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: OrbitTokens.teal.withValues(alpha: 0.3),
-                      blurRadius: 25,
-                      spreadRadius: 2,
-                    ),
-                  ],
+          StellarPlanet(
+                variant: StellarPlanet.variantForIcon(
+                  habit['icon'] as String?,
                 ),
-                child: Image.asset(
-                  _getPlanetAsset(habit['icon']),
-                  fit: BoxFit.contain,
-                ),
+                size: 70,
               )
               .animate(onPlay: (c) => c.repeat(reverse: true))
               .scaleXY(
@@ -682,7 +662,12 @@ class _ConstellationBuilderScreenState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Image.asset(_getPlanetAsset(habit['icon']), width: 80, height: 80)
+              StellarPlanet(
+                    variant: StellarPlanet.variantForIcon(
+                      habit['icon'] as String?,
+                    ),
+                    size: 80,
+                  )
                   .animate(onPlay: (c) => c.repeat(reverse: true))
                   .scaleXY(begin: 0.95, end: 1.05, duration: 2.seconds),
               const SizedBox(height: 16),
