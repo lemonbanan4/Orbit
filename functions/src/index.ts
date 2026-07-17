@@ -837,11 +837,13 @@ export const redeemReferralCode = onCall(async (request) => {
       "RevenueCat secret key is not configured."
     );
   }
-  const ENTITLEMENT_ID = "pro"; // Should match the entitlement identifier in RC
+  // Must match the entitlement identifier in RevenueCat — the app checks
+  // "Orbit Pro" everywhere (paywall, premium gates, webhook).
+  const ENTITLEMENT_ID = "Orbit Pro";
 
   const grantPro = async (uid: string) => {
     const url = `https://api.revenuecat.com/v1/subscribers/${uid}` +
-      `/entitlements/${ENTITLEMENT_ID}/promotional`;
+      `/entitlements/${encodeURIComponent(ENTITLEMENT_ID)}/promotional`;
     const response = await fetch(url, {
       method: "POST",
       headers: {
