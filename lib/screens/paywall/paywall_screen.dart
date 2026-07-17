@@ -12,7 +12,7 @@ import 'dart:math' as math;
 import 'dart:io';
 import '../../widgets/package_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:go_router/go_router.dart';
+import '../navigation/main_navigation_screen.dart';
 import '../../widgets/common/paywall_video_background.dart';
 import '../../widgets/common/gradient_pill_button.dart';
 import '../../theme/orbit_tokens.dart';
@@ -438,8 +438,18 @@ class _PaywallScreenState extends State<PaywallScreen> {
         // If opened from the Dashboard as a popup, simply close it
         Navigator.pop(context);
       } else {
-        // if Opened at the very end of Onboarding, route them to the homescreen
-        context.go('/');
+        // End of the guest-onboarding chain: every step used
+        // pushReplacement, so this paywall is the ONLY route on the stack
+        // and go_router still thinks the location is '/'. context.go('/')
+        // is a same-location no-op there — the close button did nothing.
+        // Replace ourselves with the app shell instead (same pattern as
+        // WhatsNewScreen).
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const MainNavigationScreen(),
+          ),
+        );
       }
     }
   }
