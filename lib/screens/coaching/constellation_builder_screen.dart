@@ -767,11 +767,6 @@ class StarLinePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = OrbitTokens.teal.withValues(alpha: 0.3)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
     final path = Path();
     for (int i = 0; i < nodeCount - 1; i++) {
       double x1 = i % 2 == 0 ? 80 : 230;
@@ -782,7 +777,38 @@ class StarLinePainter extends CustomPainter {
       path.moveTo(x1, y1);
       path.quadraticBezierTo((x1 + x2) / 2 + 50, (y1 + y2) / 2, x2, y2);
     }
-    canvas.drawPath(path, paint);
+
+    final shader = const LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [OrbitTokens.teal, OrbitTokens.violet],
+    ).createShader(Offset.zero & size);
+
+    // Starlight glow beneath, crisp gradient thread on top.
+    canvas.drawPath(
+      path,
+      Paint()
+        ..shader = shader
+        ..strokeWidth = 6
+        ..style = PaintingStyle.stroke
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..shader = shader
+        ..strokeWidth = 1.6
+        ..style = PaintingStyle.stroke,
+    );
+
+    // Tiny waypoint stars along each segment.
+    final starPaint = Paint()..color = Colors.white.withValues(alpha: 0.8);
+    for (final metric in path.computeMetrics()) {
+      for (final t in [0.25, 0.5, 0.75]) {
+        final pos = metric.getTangentForOffset(metric.length * t)?.position;
+        if (pos != null) canvas.drawCircle(pos, 1.4, starPaint);
+      }
+    }
   }
 
   @override

@@ -291,6 +291,24 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
 
     return BaseOrbitScreen(
       title: 'Orbit',
+      // Gradient wordmark in the theme's own accent pair, per the pitch.
+      titleWidget: ShaderMask(
+        shaderCallback: (bounds) => LinearGradient(
+          colors: [
+            orbColor1,
+            orbitColors?.orbColor2 ?? const Color(0xFF7000FF),
+          ],
+        ).createShader(bounds),
+        child: const Text(
+          'Orbit',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 24,
+            letterSpacing: -0.5,
+          ),
+        ),
+      ),
       actions: [
         IconButton(
           icon: Icon(Icons.group_add_rounded, color: orbColor1),

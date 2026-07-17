@@ -134,10 +134,22 @@ class TodayHeader extends StatelessWidget {
             SizedBox(
               width: 78,
               height: 78,
-              child: CustomPaint(
-                painter: _RingPainter(
-                  progress: doneCount / _routineTypes.length,
-                  trackColor: OrbitTokens.surface2,
+              // Sweeps in from zero whenever the completed count changes —
+              // the ring feels alive instead of stamped on.
+              child: TweenAnimationBuilder<double>(
+                key: ValueKey(doneCount),
+                tween: Tween(
+                  begin: 0,
+                  end: doneCount / _routineTypes.length,
+                ),
+                duration: const Duration(milliseconds: 900),
+                curve: Curves.easeOutCubic,
+                builder: (context, animatedProgress, child) => CustomPaint(
+                  painter: _RingPainter(
+                    progress: animatedProgress,
+                    trackColor: OrbitTokens.surface2,
+                  ),
+                  child: child,
                 ),
                 child: Center(
                   child: Text(
@@ -200,22 +212,38 @@ class _RingPainter extends CustomPainter {
     canvas.drawCircle(center, radius, track);
 
     if (progress > 0) {
-      final arc = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.round
-        ..shader = SweepGradient(
-          startAngle: -math.pi / 2,
-          endAngle: 3 * math.pi / 2,
-          colors: const [OrbitTokens.teal, OrbitTokens.violet],
-          transform: const GradientRotation(-math.pi / 2),
-        ).createShader(rect);
+      final sweep = 2 * math.pi * progress.clamp(0.0, 1.0);
+      final arcRect = Rect.fromCircle(center: center, radius: radius);
+      final shader = SweepGradient(
+        startAngle: -math.pi / 2,
+        endAngle: 3 * math.pi / 2,
+        colors: const [OrbitTokens.teal, OrbitTokens.violet],
+        transform: const GradientRotation(-math.pi / 2),
+      ).createShader(rect);
+
+      // Soft glow beneath the arc, then the crisp arc on top.
       canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
+        arcRect,
         -math.pi / 2,
-        2 * math.pi * progress.clamp(0.0, 1.0),
+        sweep,
         false,
-        arc,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth + 5
+          ..strokeCap = StrokeCap.round
+          ..shader = shader
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
+      );
+      canvas.drawArc(
+        arcRect,
+        -math.pi / 2,
+        sweep,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth
+          ..strokeCap = StrokeCap.round
+          ..shader = shader,
       );
     }
   }

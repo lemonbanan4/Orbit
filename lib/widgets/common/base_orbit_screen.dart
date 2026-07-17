@@ -9,6 +9,10 @@ class BaseOrbitScreen extends StatelessWidget {
   final Widget? floatingActionButton;
   final PreferredSizeWidget? bottom;
 
+  /// Overrides the plain [title] text — used by the dashboard for the
+  /// gradient "Orbit" wordmark.
+  final Widget? titleWidget;
+
   const BaseOrbitScreen({
     super.key,
     required this.title,
@@ -16,6 +20,7 @@ class BaseOrbitScreen extends StatelessWidget {
     this.actions,
     this.floatingActionButton,
     this.bottom,
+    this.titleWidget,
   });
 
   @override
@@ -25,10 +30,10 @@ class BaseOrbitScreen extends StatelessWidget {
 
     // Dynamic Orb Colors from ThemeExtension
     final orbitColors = theme.extension<OrbitColors>();
-    final orbColor1 = orbitColors?.orbColor1.withValues(alpha: 0.2) ??
-        const Color(0x3300E5FF);
-    final orbColor2 = orbitColors?.orbColor2.withValues(alpha: 0.2) ??
-        const Color(0x337000FF);
+    final orbColor1 = orbitColors?.orbColor1.withValues(alpha: 0.10) ??
+        const Color(0x1A00E5FF);
+    final orbColor2 = orbitColors?.orbColor2.withValues(alpha: 0.10) ??
+        const Color(0x1A7000FF);
 
     return Scaffold(
       // Uses the background color from main.dart's ThemeData automatically!
@@ -37,10 +42,11 @@ class BaseOrbitScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: textColor),
-        title: Text(
-          title,
-          style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-        ),
+        title: titleWidget ??
+            Text(
+              title,
+              style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+            ),
         actions: actions,
         bottom: bottom,
       ),
