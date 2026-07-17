@@ -1,19 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'gemini_gateway.dart';
 
 class CosmicMirrorService {
-  late final GenerativeModel _model;
-
-  CosmicMirrorService() {
-    // 1. Securely fetch the key from your .env file
+  // Built per-call so GeminiGateway can swap model names on 503s.
+  GenerativeModel _buildModel(String modelName) {
     final apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
-
-    // 2. Initialize Gemini 1.5 Flash with a System Instruction
-    _model = GenerativeModel(
-      model: 'gemini-flash-latest',
+    return GenerativeModel(
+      model: modelName,
       apiKey: apiKey,
-      // This replaces the OpenAI "system" role message
       systemInstruction: Content.system(
         "You are the Cosmic Mirror, a mystical in-app narrator for a habit tracker called Orbit. "
         "You speak like an ancient oracle reading the stars.",
@@ -43,7 +39,8 @@ class CosmicMirrorService {
 
     try {
       // 4. Ask Gemini for the legend
-      final response = await _model.generateContent([Content.text(prompt)]);
+      final response = await GeminiGateway.withFallback(
+          (m) => _buildModel(m).generateContent([Content.text(prompt)]));
 
       if (response.text != null && response.text!.isNotEmpty) {
         return response.text!.trim();
@@ -81,7 +78,8 @@ class CosmicMirrorService {
   ''';
 
     try {
-      final response = await _model.generateContent([Content.text(prompt)]);
+      final response = await GeminiGateway.withFallback(
+          (m) => _buildModel(m).generateContent([Content.text(prompt)]));
       if (response.text != null && response.text!.isNotEmpty) {
         return response.text!.trim();
       }
@@ -120,7 +118,8 @@ class CosmicMirrorService {
     ''';
 
     try {
-      final response = await _model.generateContent([Content.text(prompt)]);
+      final response = await GeminiGateway.withFallback(
+          (m) => _buildModel(m).generateContent([Content.text(prompt)]));
       if (response.text != null && response.text!.isNotEmpty) {
         return response.text!.trim();
       }
@@ -146,7 +145,8 @@ class CosmicMirrorService {
     ''';
 
     try {
-      final response = await _model.generateContent([Content.text(prompt)]);
+      final response = await GeminiGateway.withFallback(
+          (m) => _buildModel(m).generateContent([Content.text(prompt)]));
       if (response.text != null && response.text!.isNotEmpty) {
         return response.text!.trim();
       }

@@ -1,4 +1,5 @@
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'gemini_gateway.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -15,8 +16,8 @@ class AiCoachService {
       final apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
 
       // 2. Initialize Gemini (using the latest stable flash model)
-      final model = GenerativeModel(
-        model: 'gemini-flash-latest',
+      GenerativeModel buildModel(String m) => GenerativeModel(
+        model: m,
         apiKey: apiKey,
         generationConfig: GenerationConfig(
           responseMimeType: 'application/json',
@@ -31,7 +32,9 @@ class AiCoachService {
       const prompt =
           "Give the user a short, highly motivational, and cosmic-themed welcome message to ignite their productivity today.";
 
-      final response = await model.generateContent([Content.text(prompt)]);
+      final response = await GeminiGateway.withFallback(
+        (m) => buildModel(m).generateContent([Content.text(prompt)]),
+      );
       return response.text?.trim() ??
           "The stars are quiet today. Forge your own path!";
     } catch (e) {
@@ -74,7 +77,8 @@ class AiCoachService {
         return _getFallbackInsight(completedCount, totalHabits);
       }
 
-      final model = GenerativeModel(model: 'gemini-flash-latest', apiKey: apiKey);
+      GenerativeModel buildModel(String m) =>
+          GenerativeModel(model: m, apiKey: apiKey);
 
       String skipContext = '';
       if (recentSkipReasons != null && recentSkipReasons.isNotEmpty) {
@@ -90,7 +94,9 @@ $skipContext
 Write a short, encouraging, 1-2 sentence message to motivate them. Keep it space-themed and actionable!
       ''';
 
-      final response = await model.generateContent([Content.text(prompt)]);
+      final response = await GeminiGateway.withFallback(
+        (m) => buildModel(m).generateContent([Content.text(prompt)]),
+      );
       final newInsight =
           response.text?.replaceAll(RegExp(r'\n+'), ' ').trim() ??
           _getFallbackInsight(completedCount, totalHabits);
@@ -152,7 +158,8 @@ Write a short, encouraging, 1-2 sentence message to motivate them. Keep it space
         return 'Master your day.';
       }
 
-      final model = GenerativeModel(model: 'gemini-flash-latest', apiKey: apiKey);
+      GenerativeModel buildModel(String m) =>
+          GenerativeModel(model: m, apiKey: apiKey);
 
       String skipContext = '';
       if (latestSkipReason != null && latestSkipReason.isNotEmpty) {
@@ -168,7 +175,9 @@ Examples: "Embrace the stellar unknown.", "Command your orbit today.", "Shine br
 Do not include quotes around the text.
       ''';
 
-      final response = await model.generateContent([Content.text(prompt)]);
+      final response = await GeminiGateway.withFallback(
+        (m) => buildModel(m).generateContent([Content.text(prompt)]),
+      );
       final newIntention =
           response.text?.replaceAll('"', '').trim() ?? 'Master your day.';
 
@@ -214,7 +223,8 @@ Do not include quotes around the text.
   ) async {
     try {
       final apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
-      final model = GenerativeModel(model: 'gemini-flash-latest', apiKey: apiKey);
+      GenerativeModel buildModel(String m) =>
+          GenerativeModel(model: m, apiKey: apiKey);
       final bytes = await File(imageFile.path).readAsBytes();
 
       final prompt = TextPart(
@@ -222,9 +232,11 @@ Do not include quotes around the text.
       );
       final imagePart = DataPart('image/jpeg', bytes);
 
-      final response = await model.generateContent([
-        Content.multi([prompt, imagePart]),
-      ]);
+      final response = await GeminiGateway.withFallback(
+        (m) => buildModel(m).generateContent([
+          Content.multi([prompt, imagePart]),
+        ]),
+      );
 
       final responseText = response.text ?? "{}";
       final cleanJson = responseText
@@ -258,8 +270,8 @@ Do not include quotes around the text.
         throw Exception("API key is blank inside environment targets.");
       }
 
-      final model = GenerativeModel(
-        model: 'gemini-flash-latest',
+      GenerativeModel buildModel(String m) => GenerativeModel(
+        model: m,
         apiKey: apiKey,
         generationConfig: GenerationConfig(
           responseMimeType: 'application/json',
@@ -290,7 +302,9 @@ Do not include quotes around the text.
       debugPrint(
         "📡 GEMINI API CALL: Pinging model gateway using query payload...",
       );
-      final response = await model.generateContent([Content.text(prompt)]);
+      final response = await GeminiGateway.withFallback(
+        (m) => buildModel(m).generateContent([Content.text(prompt)]),
+      );
 
       final String? responseText = response.text;
       if (responseText == null || responseText.isEmpty) {
@@ -329,7 +343,8 @@ Do not include quotes around the text.
   ) async {
     try {
       final apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
-      final model = GenerativeModel(model: 'gemini-flash-latest', apiKey: apiKey);
+      GenerativeModel buildModel(String m) =>
+          GenerativeModel(model: m, apiKey: apiKey);
 
       final habitsSummary = activeHabits
           .map(
@@ -348,7 +363,9 @@ Do not include quotes around the text.
       Keep it strictly under 3 sentences. Be authoritative, motivating, and sharp.
       """;
 
-      final response = await model.generateContent([Content.text(prompt)]);
+      final response = await GeminiGateway.withFallback(
+        (m) => buildModel(m).generateContent([Content.text(prompt)]),
+      );
       return response.text?.trim() ??
           "Telemetry link weak. Continue tracking your trajectory.";
     } catch (e) {

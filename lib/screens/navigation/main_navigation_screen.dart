@@ -149,11 +149,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         unselectedColor: unselectedColor,
         accent: accent,
         destinations: const [
-          _OrbitNavDestination(Icons.home_rounded, 'Home'),
-          _OrbitNavDestination(Icons.track_changes_rounded, 'Journey'),
-          _OrbitNavDestination(Icons.mood_rounded, 'Cosmos'),
-          _OrbitNavDestination(Icons.leaderboard_rounded, 'Ranks'),
-          _OrbitNavDestination(Icons.person_rounded, 'Profile'),
+          _OrbitNavDestination('\u25D0', 'Home'), // ◐
+          _OrbitNavDestination('\u25C8', 'Journey'), // ◈
+          _OrbitNavDestination('\u2726', 'Cosmos'), // ✦
+          _OrbitNavDestination('\u25A4', 'Ranks'), // ▤
+          _OrbitNavDestination('\u25EF', 'Profile'), // ◯
         ],
       ),
     );
@@ -161,9 +161,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 }
 
 class _OrbitNavDestination {
-  final IconData icon;
+  /// Geometric glyph from the redesign pitch (◐ ◈ ✦ ▤ ◯) rendered as
+  /// text — deliberately not Material icons.
+  final String glyph;
   final String label;
-  const _OrbitNavDestination(this.icon, this.label);
+  const _OrbitNavDestination(this.glyph, this.label);
 }
 
 /// A minimal, one-accent bottom nav: no filled indicator pill, just an icon
@@ -229,7 +231,19 @@ class _OrbitNavBar extends StatelessWidget {
                               : null,
                         ),
                       ),
-                      Icon(destination.icon, color: color, size: 23),
+                      SizedBox(
+                        height: 24,
+                        child: Center(
+                          child: Text(
+                            destination.glyph,
+                            style: TextStyle(
+                              color: color,
+                              fontSize: isActive ? 19 : 18,
+                              height: 1.0,
+                            ),
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 3),
                       Text(
                         destination.label,

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'gemini_gateway.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,12 +15,11 @@ class AIFairyResponse {
 }
 
 class AIFairyService {
-  late final GenerativeModel _model;
-
-  AIFairyService() {
+  // Built per-call so GeminiGateway can swap model names on 503s.
+  GenerativeModel _buildModel(String modelName) {
     final apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
-    _model = GenerativeModel(
-      model: 'gemini-flash-latest',
+    return GenerativeModel(
+      model: modelName,
       apiKey: apiKey,
       generationConfig: GenerationConfig(responseMimeType: 'application/json'),
       systemInstruction: Content.system(
@@ -49,7 +49,9 @@ class AIFairyService {
     """;
 
     try {
-      final response = await _model.generateContent([Content.text(prompt)]);
+      final response = await GeminiGateway.withFallback(
+        (m) => _buildModel(m).generateContent([Content.text(prompt)]),
+      );
 
       // We need to clean the response text because Gemini sometimes wraps JSON in markdown blocks like ```json
       final cleanJson = response.text!
@@ -99,7 +101,8 @@ class AIFairyService {
     try {
       // Using the flash model for speed
       final apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
-      final model = GenerativeModel(model: 'gemini-flash-latest', apiKey: apiKey);
+      GenerativeModel buildModel(String m) =>
+          GenerativeModel(model: m, apiKey: apiKey);
 
       final prompt =
           """
@@ -115,7 +118,9 @@ class AIFairyService {
     ]
     """;
 
-      final response = await model.generateContent([Content.text(prompt)]);
+      final response = await GeminiGateway.withFallback(
+        (m) => buildModel(m).generateContent([Content.text(prompt)]),
+      );
       final String cleanJson = response.text!
           .replaceAll('```json', '')
           .replaceAll('```', '')

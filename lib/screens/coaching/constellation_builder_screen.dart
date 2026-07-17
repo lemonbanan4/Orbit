@@ -68,10 +68,12 @@ class _ConstellationBuilderScreenState
         "📡 DISPATCHING: Requesting constellation layout from AiCoachService...",
       );
 
-      // We add a strict 15-second timeout gate. If the server hangs, this forces an exception!
+      // Ceiling for the whole GeminiGateway fallback chain (3 models x
+      // 20s attempt budget) — under capacity crunches the primary model
+      // alone can take 15s+.
       final result = await AiCoachService.generateConstellation(
         _goalController.text,
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(const Duration(seconds: 65));
 
       // 🔍 DEBUG LOG 3: Data successfully returned
       debugPrint("✅ SUCCESS: Received ${result.length} nodes from AI service.");
