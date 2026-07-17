@@ -57,27 +57,27 @@ class WhatsNewScreen extends StatelessWidget {
               ).animate().fade(delay: 200.ms),
               const SizedBox(height: 48),
               const FeatureRow(
-                  icon: Icons.monitor_heart_rounded,
-                  color: Colors.redAccent,
-                  title: 'Apple Health Sync',
+                  icon: Icons.ac_unit_rounded,
+                  color: Colors.lightBlueAccent,
+                  title: 'Streak Freeze',
                   subtitle:
-                      'Automate your workout habits seamlessly in the background.',
+                      'Miss a day without losing your streak — spend XP to freeze it.',
                   delay: 400),
               const SizedBox(height: 24),
               const FeatureRow(
-                  icon: Icons.notifications_active_rounded,
-                  color: Colors.amber,
-                  title: 'Notifications Inbox',
+                  icon: Icons.insights_rounded,
+                  color: Colors.tealAccent,
+                  title: 'Habit Insights & History',
                   subtitle:
-                      'A dedicated inbox and archive to ensure you never miss a reward.',
+                      'See your most consistent habits and a full history heatmap for each one.',
                   delay: 600),
               const SizedBox(height: 24),
               const FeatureRow(
-                  icon: Icons.app_shortcut_rounded,
-                  color: Colors.purpleAccent,
-                  title: 'Orbit Pro Icons',
+                  icon: Icons.favorite_rounded,
+                  color: Colors.pinkAccent,
+                  title: 'Refer a Friend',
                   subtitle:
-                      'Customize your home screen with premium app icons.',
+                      'Invite a friend with your code and you both get 30 days of Orbit Pro.',
                   delay: 800),
               const Spacer(),
               SizedBox(
