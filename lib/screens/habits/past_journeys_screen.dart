@@ -59,10 +59,13 @@ class PastJourneysScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(24),
                   itemCount: completedHabits.length,
                   itemBuilder: (context, index) {
-                    final data =
-                        completedHabits[index].data() as Map<String, dynamic>;
-                    final title = data['path'] as String? ?? 'Unknown Journey';
-                    final total = data['totalDays'] as int? ?? 7;
+                    final habitDoc = completedHabits[index];
+                    final data = habitDoc.data() as Map<String, dynamic>;
+                    // Habit.toMap() writes 'title', not 'path' — 'path' is
+                    // never a real field, so this always fell back to
+                    // "Unknown Journey" for every entry.
+                    final title = data['title'] as String? ?? 'Unknown Journey';
+                    final total = data['totalDays'] as int? ?? 0;
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 16.0),
@@ -79,31 +82,43 @@ class PastJourneysScreen extends StatelessWidget {
                           tooltip: 'Restart Journey',
                           onPressed: () async {
                             HapticFeedback.lightImpact();
-                            AudioPlayer()
-                                .play(AssetSource('audio/success_chime.mp3'));
-                            final habitId =
-                                title.toLowerCase().replaceAll(' ', '_');
                             final userRef = FirebaseFirestore.instance
                                 .collection('users')
                                 .doc(user.uid);
 
-                            await userRef.update({
-                              'interests': FieldValue.arrayUnion([title])
-                            });
-                            await userRef
-                                .collection('habits')
-                                .doc(habitId)
-                                .update({
-                              'completedDays': 0,
-                              'completedDates': [],
-                            });
+                            try {
+                              AudioPlayer().play(
+                                  AssetSource('audio/success_chime.mp3'));
+                              await userRef.update({
+                                'interests': FieldValue.arrayUnion([title])
+                              });
+                              // Use the real habit doc id from the snapshot —
+                              // deriving one from the (broken) title used to
+                              // target a document that never existed.
+                              await userRef
+                                  .collection('habits')
+                                  .doc(habitDoc.id)
+                                  .update({
+                                'completedDays': 0,
+                                'totalDays': 0,
+                                'skippedCount': 0,
+                              });
 
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Journey Restarted! 🚀'),
-                                    backgroundColor: Colors.green),
-                              );
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text('Journey Restarted! 🚀'),
+                                      backgroundColor: Colors.green),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content:
+                                          Text('Could not restart: $e')),
+                                );
+                              }
                             }
                           },
                         ),
