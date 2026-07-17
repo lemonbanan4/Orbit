@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/cupertino.dart' show CupertinoSliverRefreshControl;
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -32,6 +33,7 @@ import '../theme/orbit_tokens.dart';
 import '../widgets/paywall/premium_paywall_dialog.dart';
 import '../utils/time_picker_utils.dart';
 import '../widgets/dashboard/today_header.dart';
+import '../widgets/dashboard/orbital_refresh_indicator.dart';
 
 class HabitDashboardScreen extends StatefulWidget {
   final bool isFirstLaunch;
@@ -471,6 +473,23 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
               parent: AlwaysScrollableScrollPhysics(),
             ),
             slivers: [
+              CupertinoSliverRefreshControl(
+                onRefresh: () =>
+                    context.read<RoutineProvider>().refreshData(),
+                builder:
+                    (
+                      context,
+                      refreshState,
+                      pulledExtent,
+                      refreshTriggerPullDistance,
+                      refreshIndicatorExtent,
+                    ) => OrbitalRefreshIndicator(
+                      refreshState: refreshState,
+                      pulledExtent: pulledExtent,
+                      triggerDistance: refreshTriggerPullDistance,
+                      accent: orbColor1,
+                    ),
+              ),
               SliverPadding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,

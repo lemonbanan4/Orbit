@@ -60,7 +60,12 @@ class RoutineCard extends StatefulWidget {
 class _RoutineCardState extends State<RoutineCard> {
   final Set<String> _deletingIds = {};
   String? _lastScrolledHighlight;
-  bool _isExpanded = true;
+  // Starts compact — the pitch's dashboard shows routines as slim summary
+  // rows (time, accent stripe, "x/y done"), with the full habit checklist
+  // living one tap away. _loadExpandedState() below overrides this with
+  // whatever the user last chose per routine, so this only affects the
+  // very first time a routine card is ever shown.
+  bool _isExpanded = false;
 
   @override
   void initState() {

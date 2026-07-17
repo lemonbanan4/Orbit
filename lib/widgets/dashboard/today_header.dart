@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/routine_provider.dart';
@@ -96,74 +97,100 @@ class TodayHeader extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
+            ).animate().fadeIn(duration: 350.ms).slideX(begin: -0.05, end: 0),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              decoration: BoxDecoration(
-                color: OrbitTokens.surface,
-                borderRadius: BorderRadius.circular(100),
-                border: Border.all(color: OrbitTokens.hairline),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '$streak',
-                    style: const TextStyle(
-                      color: OrbitTokens.gold,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
                   ),
-                  const SizedBox(width: 5),
-                  Text(
-                    'day streak',
-                    style: TextStyle(
-                      color: dimColor,
-                      fontSize: 10.5,
-                    ),
+                  decoration: BoxDecoration(
+                    color: OrbitTokens.surface,
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(color: OrbitTokens.hairline),
                   ),
-                ],
-              ),
-            ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$streak',
+                        style: const TextStyle(
+                          color: OrbitTokens.gold,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        'day streak',
+                        style: TextStyle(color: dimColor, fontSize: 10.5),
+                      ),
+                    ],
+                  ),
+                )
+                .animate()
+                .fadeIn(delay: 150.ms, duration: 350.ms)
+                .slideX(begin: 0.05, end: 0, delay: 150.ms)
+                // A live streak is worth a quiet pulse — a dead one (0)
+                // stays still so it doesn't celebrate nothing.
+                .animate(
+                  onPlay: (c) => streak > 0 ? c.repeat(reverse: true) : null,
+                )
+                .boxShadow(
+                  begin: const BoxShadow(
+                    color: Colors.transparent,
+                    blurRadius: 0,
+                    spreadRadius: 0,
+                  ),
+                  end: BoxShadow(
+                    color: OrbitTokens.gold.withValues(alpha: 0.35),
+                    blurRadius: 14,
+                    spreadRadius: 1,
+                  ),
+                  duration: 1600.ms,
+                  curve: Curves.easeInOut,
+                ),
           ],
         ),
         const SizedBox(height: 20),
         Row(
           children: [
             SizedBox(
-              width: 78,
-              height: 78,
-              // Sweeps in from zero whenever the completed count changes —
-              // the ring feels alive instead of stamped on.
-              child: TweenAnimationBuilder<double>(
-                key: ValueKey(doneCount),
-                tween: Tween(
-                  begin: 0,
-                  end: doneCount / _routineTypes.length,
-                ),
-                duration: const Duration(milliseconds: 900),
-                curve: Curves.easeOutCubic,
-                builder: (context, animatedProgress, child) => CustomPaint(
-                  painter: _RingPainter(
-                    progress: animatedProgress,
-                    trackColor: OrbitTokens.surface2,
-                  ),
-                  child: child,
-                ),
-                child: Center(
-                  child: Text(
-                    '$doneCount/${_routineTypes.length}',
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: const [FontFeature.tabularFigures()],
+                  width: 78,
+                  height: 78,
+                  // Sweeps in from zero whenever the completed count
+                  // changes — the ring feels alive instead of stamped on.
+                  child: TweenAnimationBuilder<double>(
+                    key: ValueKey(doneCount),
+                    tween: Tween(
+                      begin: 0,
+                      end: doneCount / _routineTypes.length,
+                    ),
+                    duration: const Duration(milliseconds: 900),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, animatedProgress, child) =>
+                        CustomPaint(
+                          painter: _RingPainter(
+                            progress: animatedProgress,
+                            trackColor: OrbitTokens.surface2,
+                          ),
+                          child: child,
+                        ),
+                    child: Center(
+                      child: Text(
+                        '$doneCount/${_routineTypes.length}',
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-            ),
+                )
+                .animate()
+                .fadeIn(delay: 300.ms, duration: 400.ms)
+                .scaleXY(begin: 0.85, end: 1.0, delay: 300.ms, curve: Curves.easeOutBack),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -184,7 +211,7 @@ class TodayHeader extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
+            ).animate().fadeIn(delay: 450.ms, duration: 350.ms).slideX(begin: 0.05, end: 0, delay: 450.ms),
           ],
         ),
       ],
