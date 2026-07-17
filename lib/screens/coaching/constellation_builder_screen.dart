@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../widgets/common/premium_glass_card.dart';
 import '../../services/ai_coach_service.dart';
@@ -16,6 +15,8 @@ import '../../theme/glass_button.dart';
 import '../../widgets/common/animated_frosty_button.dart';
 import '../../theme/orbit_tokens.dart';
 import '../../widgets/common/stellar_planet.dart';
+import '../../providers/routine_provider.dart';
+import '../../models/habit.dart';
 
 class ConstellationBuilderScreen extends StatefulWidget {
   const ConstellationBuilderScreen({super.key});
@@ -110,6 +111,23 @@ class _ConstellationBuilderScreenState
     }
   }
 
+  // Maps the AI's icon category to the same iconography/palette the
+  // stellar planets use, expressed as the Habit model's raw ints.
+  static final _iconForCategory = {
+    'Fitness': Icons.fitness_center_rounded.codePoint,
+    'Mind': Icons.self_improvement_rounded.codePoint,
+    'Book': Icons.menu_book_rounded.codePoint,
+    'Structure': Icons.menu_book_rounded.codePoint,
+    'Explore': Icons.explore_rounded.codePoint,
+  };
+  static const _colorForCategory = {
+    'Fitness': 0xFFFF8A4C, // OrbitTokens.morning
+    'Mind': 0xFFA66CFF, // OrbitTokens.violet
+    'Book': 0xFF33E6D8, // OrbitTokens.teal
+    'Structure': 0xFF33E6D8,
+    'Explore': 0xFFF2C879, // OrbitTokens.gold
+  };
+
   Future<void> _acceptDestiny() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || _constellation.isEmpty) return;
@@ -118,30 +136,32 @@ class _ConstellationBuilderScreenState
     HapticFeedback.heavyImpact();
 
     try {
-      final batch = FirebaseFirestore.instance.batch();
+      // Write through RoutineProvider so the docs match Habit.toMap() —
+      // the shape firestore.rules' isValidHabit() allowlists — and show up
+      // in local state immediately. The old raw batch wrote fields the
+      // rules reject (description/week/isConstellationHabit/createdAt) and
+      // omitted the required 'routine', so it was always PERMISSION_DENIED
+      // — and even without rules, routine-less docs never surfaced in any
+      // routine list.
+      final routineProvider = context.read<RoutineProvider>();
 
       for (var habit in _constellation) {
-        final habitId =
-            'constellation_${habit['week']}_${DateTime.now().millisecondsSinceEpoch}';
-        final docRef = FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('habits')
-            .doc(habitId);
-
-        batch.set(docRef, {
-          'title': habit['habitTitle'],
-          'description': habit['description'],
-          'icon': habit['icon'],
-          'completedDays': 0,
-          'totalDays': 7,
-          'createdAt': FieldValue.serverTimestamp(),
-          'isConstellationHabit': true,
-          'week': habit['week'],
-        });
+        final week = habit['week'] as int? ?? 1;
+        final category = habit['icon'] as String?;
+        await routineProvider.addHabit(
+          Habit(
+            id: 'constellation_w${week}_${DateTime.now().millisecondsSinceEpoch}',
+            title: habit['habitTitle'] as String? ?? 'New Habit',
+            routineType: 'Morning',
+            iconCodePoint:
+                _iconForCategory[category] ?? Icons.star_rounded.codePoint,
+            color: _colorForCategory[category] ?? 0xFF3D5CFF,
+            completedDays: 0,
+            totalDays: 7,
+            order: week,
+          ),
+        );
       }
-
-      await batch.commit();
 
       if (mounted) {
         setState(() {
