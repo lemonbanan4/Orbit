@@ -26,7 +26,16 @@ class GlowOrb extends StatelessWidget {
       child: Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+        // A true glow — radial falloff to transparent — rather than a
+        // hard-edged colored disc (which read as a giant "planet" once the
+        // photographic backgrounds were removed).
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [color, color.withValues(alpha: 0.0)],
+            stops: const [0.0, 1.0],
+          ),
+        ),
       )
           .animate(onPlay: (c) => c.repeat(reverse: true))
           .moveY(
