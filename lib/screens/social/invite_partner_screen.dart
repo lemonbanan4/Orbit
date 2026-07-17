@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/orbit_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../widgets/common/base_orbit_screen.dart';
 import '../../widgets/common/premium_glass_card.dart';
@@ -34,28 +34,13 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) throw Exception("Not logged in");
 
-      // Query all users to find the one matching this 6-character prefix
-      final usersSnap =
-          await FirebaseFirestore.instance.collection('users').get();
-      String? partnerUid;
-
-      for (var doc in usersSnap.docs) {
-        if (doc.id.substring(0, 6).toUpperCase() == code) {
-          partnerUid = doc.id;
-          break;
-        }
-      }
-
-      if (partnerUid == null || partnerUid == currentUser.uid) {
-        throw Exception("Invalid code or partner not found.");
-      }
-
-      // Create the link document!
-      await FirebaseFirestore.instance.collection('links').add({
-        'userA': currentUser.uid,
-        'userB': partnerUid,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      // The lookup (matching a code against another user's uid prefix) and
+      // the link-doc write both have to happen server-side — firestore.rules
+      // only lets a user read their own document and has no client-write
+      // rule for the top-level 'links' collection at all.
+      await FirebaseFunctions.instanceFor(region: 'europe-west1')
+          .httpsCallable('linkPartner')
+          .call({'code': code});
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -64,6 +49,19 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
               backgroundColor: Colors.greenAccent),
         );
         Navigator.pop(context);
+      }
+    } on FirebaseFunctionsException catch (e) {
+      if (mounted) {
+        final message = switch (e.code) {
+          'not-found' => "That code isn't valid — double-check it and try again.",
+          'already-exists' => "You're already linked with this partner.",
+          'invalid-argument' => 'Enter a valid partner code.',
+          'unauthenticated' => 'You need to be logged in to link a partner.',
+          _ => e.message ?? 'Could not reach the Orbit servers.',
+        };
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+        );
       }
     } catch (e) {
       if (mounted) {

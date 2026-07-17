@@ -933,6 +933,63 @@ export const buyStreakFreeze = onCall(async (request) => {
   });
 });
 
+export const linkPartner = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Must be logged in to link a partner."
+    );
+  }
+
+  const userAUid = request.auth.uid;
+  const partnerCode = request.data.code;
+
+  if (!partnerCode || typeof partnerCode !== "string" ||
+      partnerCode.length < 6) {
+    throw new HttpsError("invalid-argument", "Invalid partner code provided.");
+  }
+
+  // Same "match the code against a UID prefix" approach as
+  // redeemReferralCode — done server-side because firestore.rules only
+  // allows a user to read their own document, so a client-side scan of
+  // the whole users collection is always denied.
+  const usersRef = admin.firestore().collection("users");
+  const snapshot = await usersRef.get();
+  let userBUid: string | null = null;
+  snapshot.docs.forEach((doc) => {
+    if (doc.id.substring(0, 6).toUpperCase() === partnerCode.toUpperCase()) {
+      userBUid = doc.id;
+    }
+  });
+
+  if (!userBUid || userBUid === userAUid) {
+    throw new HttpsError("not-found", "Partner code not found or invalid.");
+  }
+
+  // notifyPartnerOnHabitComplete only ever reads the first matching link
+  // doc for a user, so the app's model is one partner at a time — refuse
+  // a second link rather than silently creating an ambiguous state.
+  const existingAsA = await admin.firestore().collection("links")
+    .where("userA", "==", userAUid).where("userB", "==", userBUid).get();
+  const existingAsB = await admin.firestore().collection("links")
+    .where("userA", "==", userBUid).where("userB", "==", userAUid).get();
+  if (!existingAsA.empty || !existingAsB.empty) {
+    throw new HttpsError(
+      "already-exists",
+      "You're already linked with this partner."
+    );
+  }
+
+  await admin.firestore().collection("links").add({
+    userA: userAUid,
+    userB: userBUid,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    sharedXP: 0,
+  });
+
+  return {success: true, message: "Successfully linked orbits!"};
+});
+
 // Cleans up guest accounts that are older than 30 days
 export const deleteOrphanedGuestAccounts = onSchedule(
   "every day 03:00",
