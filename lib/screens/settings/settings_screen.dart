@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
@@ -149,40 +150,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         if (user == null) throw Exception("Not logged in");
 
                         final code = codeController.text.trim().toUpperCase();
-                        final snapshot = await FirebaseFirestore.instance
-                            .collection('users')
-                            .get();
-
-                        String? referrerUid;
-                        for (var doc in snapshot.docs) {
-                          if (doc.id.toUpperCase().startsWith(code)) {
-                            referrerUid = doc.id;
-                            break;
-                          }
-                        }
-
-                        if (referrerUid != null && referrerUid != user.uid) {
-                          // Reward both users with 500 XP!
-                          await FirebaseFirestore.instance
-                              .collection('users')
-                              .doc(user.uid)
-                              .update({'xp': FieldValue.increment(500)});
-                          await FirebaseFirestore.instance
-                              .collection('users')
-                              .doc(referrerUid)
-                              .update({'xp': FieldValue.increment(500)});
-                        } else {
-                          throw Exception("Invalid referral code.");
-                        }
+                        await FirebaseFunctions.instanceFor(
+                          region: 'europe-west1',
+                        ).httpsCallable('redeemReferralCode').call({
+                          'code': code,
+                        });
 
                         if (mounted && context.mounted) {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text(
-                                'Success! You both earned 500 XP! 🎉',
+                                'Success! You and your friend both got 30 days of Orbit Pro! 🎉',
                               ),
                               backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      } on FirebaseFunctionsException catch (e) {
+                        setDialogState(() => isRedeeming = false);
+                        if (context.mounted) {
+                          final message = switch (e.code) {
+                            'not-found' => 'That code isn\'t valid — double-check it and try again.',
+                            'invalid-argument' => 'Enter a valid invite code.',
+                            'unauthenticated' => 'You need to be logged in to redeem a code.',
+                            _ => e.message ?? 'Could not reach the Orbit servers.',
+                          };
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(message),
+                              backgroundColor: Colors.redAccent,
                             ),
                           );
                         }
