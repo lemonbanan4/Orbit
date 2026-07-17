@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../services/cosmic_mirror_service.dart';
 import '../../../providers/routine_provider.dart';
 
@@ -51,24 +53,57 @@ class _CelestialReflectionScreenState extends State<CelestialReflectionScreen> {
   }
 
   void _forgeReflection() async {
-    if (_responseController.text.trim().isEmpty) return;
+    final entryText = _responseController.text.trim();
+    if (entryText.isEmpty) return;
 
     setState(() => _isForging = true);
     HapticFeedback.heavyImpact();
 
-    // Simulated cosmic compilation (save this data to local storage or Firebase later!)
-    await Future.delayed(1500.ms);
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      if (mounted) {
+        setState(() => _isForging = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You need to be logged in to save a reflection.')),
+        );
+      }
+      return;
+    }
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Reflection fused into the cosmos. Alignment updated! 🌌",
+    try {
+      // One entry per day, same as the Sanctuary journal — keeps every
+      // written-reflection surface in the app writing to the same
+      // journal_entries subcollection instead of silos per screen.
+      final targetDocId = DateTime.now().toIso8601String().split('T')[0];
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('journal_entries')
+          .doc(targetDocId)
+          .set({
+            'content': entryText,
+            'timestamp': FieldValue.serverTimestamp(),
+            'sourceCategory': 'Celestial Reflection',
+          }, SetOptions(merge: true));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Reflection fused into the cosmos. Alignment updated! 🌌",
+            ),
+            backgroundColor: Colors.deepPurple,
           ),
-          backgroundColor: Colors.deepPurple,
-        ),
-      );
-      Navigator.of(context).pop();
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isForging = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not save your reflection: $e')),
+        );
+      }
     }
   }
 
