@@ -64,6 +64,14 @@ class BadgesScreen extends StatelessWidget {
         ),
         'color': const Color(0xFF33E6D8), // Teal
       },
+      {
+        'title': 'Perfect Week',
+        'description': 'Completed 100% of your habits every day for 7 days straight.',
+        'icon': Icons.emoji_events_rounded,
+        'isUnlocked': routineProvider.weeklyProgress.length == 7 &&
+            routineProvider.weeklyProgress.every((p) => p >= 1.0),
+        'color': const Color(0xFFFFD700), // Gold
+      },
     ];
 
     return Scaffold(
