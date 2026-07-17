@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -480,14 +481,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ).animate().fade(duration: 400.ms).slideY(begin: 0.1),
-          const SizedBox(height: 40),
-          TextButton(
-            onPressed: () {
-              // This will force a fatal crash
-              FirebaseCrashlytics.instance.crash();
-            },
-            child: const Text("Throw Test Crash"),
-          ),
+          if (kDebugMode) ...[
+            const SizedBox(height: 40),
+            TextButton(
+              onPressed: () {
+                // This will force a fatal crash
+                FirebaseCrashlytics.instance.crash();
+              },
+              child: const Text("Throw Test Crash"),
+            ),
+          ],
           const SizedBox(height: 40),
           Text(
             'Account',
