@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/routine_provider.dart';
+import '../../models/habit.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../widgets/common/premium_glass_card.dart';
 import '../../widgets/common/base_orbit_screen.dart';
@@ -65,6 +66,8 @@ class StatisticsScreen extends StatelessWidget {
                       completedMilestones: completedMilestones,
                       totalXp: routineProvider.xp,
                     ),
+                    const SizedBox(height: 40),
+                    const _HabitInsightsCard(),
                     const SizedBox(height: 40),
                     const _ConsistencyCalendar(),
                     const SizedBox(height: 40),
@@ -167,6 +170,160 @@ class _ConsistencyCalendar extends StatelessWidget {
           ),
         ).animate().fade(delay: 150.ms, duration: 400.ms).slideY(begin: 0.1),
       ],
+    );
+  }
+}
+
+class _HabitInsightsCard extends StatelessWidget {
+  const _HabitInsightsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textColor = theme.colorScheme.onSurface;
+    final Color orbColor1 =
+        theme.extension<OrbitColors>()?.orbColor1 ?? const Color(0xFF00E5FF);
+    final routineProvider = context.watch<RoutineProvider>();
+
+    // Only habits that have survived at least one daily reset carry a real
+    // completion rate — brand-new habits (totalDays == 0) would show as a
+    // false 0% or divide-by-zero.
+    final tracked = routineProvider.habits.values
+        .where((h) => h.totalDays > 0)
+        .toList()
+      ..sort(
+        (a, b) => (b.completedDays / b.totalDays)
+            .compareTo(a.completedDays / a.totalDays),
+      );
+
+    if (tracked.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final strongest = tracked.take(3).toList();
+    // Only call out a struggling habit once it's had a fair number of
+    // chances — otherwise one skipped day on day one reads as a failure.
+    final weakestCandidate = tracked.length > 3 ? tracked.last : null;
+    final weakest = (weakestCandidate != null && weakestCandidate.totalDays >= 3)
+        ? weakestCandidate
+        : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Habit Insights',
+          style: TextStyle(
+            color: textColor,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        PremiumGlassCard(
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              for (var i = 0; i < strongest.length; i++) ...[
+                if (i > 0)
+                  Divider(color: textColor.withValues(alpha: 0.08), height: 1),
+                _HabitInsightRow(
+                  habit: strongest[i],
+                  badge: i == 0 ? '🏆' : (i == 1 ? '🥈' : '🥉'),
+                  accent: orbColor1,
+                ),
+              ],
+              if (weakest != null) ...[
+                Divider(color: textColor.withValues(alpha: 0.08), height: 1),
+                _HabitInsightRow(
+                  habit: weakest,
+                  badge: '⚠️',
+                  accent: Colors.orangeAccent,
+                  label: 'Needs attention',
+                ),
+              ],
+            ],
+          ),
+        ).animate().fade(delay: 150.ms, duration: 400.ms).slideY(begin: 0.1),
+      ],
+    );
+  }
+}
+
+class _HabitInsightRow extends StatelessWidget {
+  final Habit habit;
+  final String badge;
+  final Color accent;
+  final String? label;
+
+  const _HabitInsightRow({
+    required this.habit,
+    required this.badge,
+    required this.accent,
+    this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = Theme.of(context).colorScheme.onSurface;
+    final rate = (habit.completedDays / habit.totalDays).clamp(0.0, 1.0);
+    final pct = (rate * 100).round();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+      child: Row(
+        children: [
+          Text(badge, style: const TextStyle(fontSize: 20)),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  habit.title,
+                  style: TextStyle(
+                    color: textColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (label != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    label!,
+                    style: TextStyle(
+                      color: accent,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: rate,
+                    minHeight: 4,
+                    backgroundColor: textColor.withValues(alpha: 0.1),
+                    valueColor: AlwaysStoppedAnimation(accent),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          Text(
+            '$pct%',
+            style: TextStyle(
+              color: accent,
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

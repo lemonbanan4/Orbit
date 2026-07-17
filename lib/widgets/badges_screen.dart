@@ -55,6 +55,15 @@ class BadgesScreen extends StatelessWidget {
         'isUnlocked': routineProvider.currentLevel >= 10,
         'color': const Color(0xFF6B1DFF), // Purple
       },
+      {
+        'title': 'Perfectionist',
+        'description': 'Kept a single habit at a 100% completion rate for 14+ days.',
+        'icon': Icons.workspace_premium_rounded,
+        'isUnlocked': routineProvider.habits.values.any(
+          (h) => h.totalDays >= 14 && h.completedDays == h.totalDays,
+        ),
+        'color': const Color(0xFF33E6D8), // Teal
+      },
     ];
 
     return Scaffold(

@@ -6,8 +6,8 @@ class Habit {
   final String routineType;
   final int iconCodePoint;
   final int color;
-  final int completedDays;
-  final int totalDays;
+  int completedDays;
+  int totalDays;
   int order;
   int skippedCount;
   bool isCompleted;

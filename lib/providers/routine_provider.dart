@@ -1003,16 +1003,23 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
       _completedHabits.clear();
       // Reset the completion status on all loaded habit objects
       _habits.forEach((id, habit) {
-        if (!habit.isCompleted) {
+        habit.totalDays++;
+        if (habit.isCompleted) {
+          habit.completedDays++;
+        } else {
           habit.skippedCount++;
-          _db
-              .collection('users')
-              .doc(_userId)
-              .collection('habits')
-              .doc(habit.id)
-              .update({'skippedCount': habit.skippedCount})
-              .catchError((_) {});
         }
+        _db
+            .collection('users')
+            .doc(_userId)
+            .collection('habits')
+            .doc(habit.id)
+            .update({
+              'totalDays': habit.totalDays,
+              'completedDays': habit.completedDays,
+              'skippedCount': habit.skippedCount,
+            })
+            .catchError((_) {});
         habit.isCompleted = false;
       });
 
