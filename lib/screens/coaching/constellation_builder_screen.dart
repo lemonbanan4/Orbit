@@ -147,14 +147,20 @@ class _ConstellationBuilderScreenState
       // routine list.
       final routineProvider = context.read<RoutineProvider>();
 
+      const validRoutines = {'Morning', 'Work', 'Night'};
       for (var habit in _constellation) {
         final week = habit['week'] as int? ?? 1;
         final category = habit['icon'] as String?;
+        // The AI assigns each habit its best-fit time of day; anything
+        // unexpected falls back to Morning (the rules require a routine).
+        final aiRoutine = habit['routine'] as String?;
+        final routine =
+            validRoutines.contains(aiRoutine) ? aiRoutine! : 'Morning';
         await routineProvider.addHabit(
           Habit(
             id: 'constellation_w${week}_${DateTime.now().millisecondsSinceEpoch}',
             title: habit['habitTitle'] as String? ?? 'New Habit',
-            routineType: 'Morning',
+            routineType: routine,
             iconCodePoint:
                 _iconForCategory[category] ?? Icons.star_rounded.codePoint,
             color: _colorForCategory[category] ?? 0xFF3D5CFF,

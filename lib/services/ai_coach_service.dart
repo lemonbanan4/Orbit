@@ -288,13 +288,16 @@ Do not include quotes around the text.
       Crucial UI Rule: You MUST assign a different, unique 'icon' string value for each of the 4 weeks. 
       Mix and match cleanly between 'Mind', 'Fitness', 'Explore', and 'Book'. Do not repeat icons.
 
+      Also assign each habit a 'routine' — the time of day it fits best:
+      'Morning', 'Work', or 'Night'.
+
       You must return a JSON object with a single root key named "habits" containing the array list:
       {
         "habits": [
-          {"week": 1, "habitTitle": "Short Title", "icon": "Mind", "description": "1 sentence why"},
-          {"week": 2, "habitTitle": "Short Title", "icon": "Fitness", "description": "1 sentence why"},
-          {"week": 3, "habitTitle": "Short Title", "icon": "Explore", "description": "1 sentence why"},
-          {"week": 4, "habitTitle": "Short Title", "icon": "Book", "description": "1 sentence why"}
+          {"week": 1, "habitTitle": "Short Title", "icon": "Mind", "routine": "Morning", "description": "1 sentence why"},
+          {"week": 2, "habitTitle": "Short Title", "icon": "Fitness", "routine": "Work", "description": "1 sentence why"},
+          {"week": 3, "habitTitle": "Short Title", "icon": "Explore", "routine": "Night", "description": "1 sentence why"},
+          {"week": 4, "habitTitle": "Short Title", "icon": "Book", "routine": "Morning", "description": "1 sentence why"}
         ]
       }
       """;

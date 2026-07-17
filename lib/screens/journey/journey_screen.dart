@@ -249,11 +249,20 @@ class _JourneyScreenState extends State<JourneyScreen> {
                         final milestone = _milestones[index];
                         final isUnlocked =
                             currentStreak >= milestone.requiredStreak;
+                        // The first not-yet-unlocked milestone is "current":
+                        // it gets the teal halo + days-progress treatment
+                        // from the pitch instead of reading as merely locked.
+                        final isCurrent = !isUnlocked &&
+                            (index == 0 ||
+                                currentStreak >=
+                                    _milestones[index - 1].requiredStreak);
 
                         return UpgradedMilestoneCard(
                               index: index,
                               milestone: milestone,
                               isUnlocked: isUnlocked,
+                              isCurrent: isCurrent,
+                              currentStreak: currentStreak,
                               isLast: index == _milestones.length - 1,
                             )
                             .animate()

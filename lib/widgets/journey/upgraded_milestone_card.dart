@@ -10,6 +10,11 @@ class UpgradedMilestoneCard extends StatelessWidget {
   final int index;
   final JourneyMilestone milestone;
   final bool isUnlocked;
+
+  /// The first not-yet-unlocked milestone: teal halo + days progress,
+  /// per the pitch's three-state timeline (done / current / locked).
+  final bool isCurrent;
+  final int currentStreak;
   final bool isLast;
 
   const UpgradedMilestoneCard({
@@ -17,6 +22,8 @@ class UpgradedMilestoneCard extends StatelessWidget {
     required this.index,
     required this.milestone,
     required this.isUnlocked,
+    this.isCurrent = false,
+    this.currentStreak = 0,
     required this.isLast,
   });
 
@@ -136,22 +143,39 @@ class UpgradedMilestoneCard extends StatelessWidget {
                     height: 28,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
+                      // Pitch states: earned = gold, current = teal ring
+                      // on dark, locked = quiet surface.
                       color: isUnlocked
-                          ? pathActiveGlow
+                          ? OrbitTokens.gold
                           : OrbitTokens.surface2,
                       border: Border.all(
-                        color: isUnlocked ? Colors.white : Colors.white10,
-                        width: 1.5,
+                        color: isUnlocked
+                            ? Colors.white
+                            : isCurrent
+                                ? pathActiveGlow
+                                : Colors.white10,
+                        width: isCurrent ? 2 : 1.5,
                       ),
                       boxShadow: isUnlocked
                           ? [
                               BoxShadow(
-                                color: pathActiveGlow.withValues(alpha: 0.6),
+                                color:
+                                    OrbitTokens.gold.withValues(alpha: 0.55),
                                 blurRadius: 14,
                                 spreadRadius: 3,
                               ),
                             ]
-                          : [],
+                          : isCurrent
+                              ? [
+                                  BoxShadow(
+                                    color: pathActiveGlow.withValues(
+                                      alpha: 0.35,
+                                    ),
+                                    blurRadius: 12,
+                                    spreadRadius: 4,
+                                  ),
+                                ]
+                              : [],
                     ),
                     child: isUnlocked
                         ? const Icon(
@@ -159,11 +183,22 @@ class UpgradedMilestoneCard extends StatelessWidget {
                             size: 14,
                             color: Colors.black,
                           )
-                        : const Icon(
-                            Icons.lock_rounded,
-                            size: 12,
-                            color: Colors.white30,
-                          ),
+                        : isCurrent
+                            ? Center(
+                                child: Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: pathActiveGlow,
+                                  ),
+                                ),
+                              )
+                            : const Icon(
+                                Icons.lock_rounded,
+                                size: 12,
+                                color: Colors.white30,
+                              ),
                   ),
                 ),
                 // THE CONNECTING VECTOR LINE + COMET EFFECT
@@ -178,8 +213,8 @@ class UpgradedMilestoneCard extends StatelessWidget {
                             gradient: LinearGradient(
                               colors: isUnlocked
                                   ? [
-                                      pathActiveGlow,
-                                      pathActiveGlow.withValues(alpha: 0.2),
+                                      OrbitTokens.gold,
+                                      OrbitTokens.gold.withValues(alpha: 0.2),
                                     ]
                                   : [Colors.white10, Colors.transparent],
                               begin: Alignment.topCenter,
@@ -239,7 +274,9 @@ class UpgradedMilestoneCard extends StatelessWidget {
                         border: Border.all(
                           color: isUnlocked
                               ? Colors.white.withValues(alpha: 0.18)
-                              : Colors.white.withValues(alpha: 0.04),
+                              : isCurrent
+                                  ? OrbitTokens.teal.withValues(alpha: 0.4)
+                                  : Colors.white.withValues(alpha: 0.04),
                           width: 1.2,
                         ),
                       ),
@@ -253,8 +290,10 @@ class UpgradedMilestoneCard extends StatelessWidget {
                                 milestone.phase,
                                 style: TextStyle(
                                   color: isUnlocked
-                                      ? OrbitTokens.teal
-                                      : Colors.white30,
+                                      ? OrbitTokens.gold
+                                      : isCurrent
+                                          ? OrbitTokens.teal
+                                          : Colors.white30,
                                   fontSize: 11,
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: 1.5,
@@ -267,7 +306,7 @@ class UpgradedMilestoneCard extends StatelessWidget {
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: OrbitTokens.teal.withValues(
+                                    color: OrbitTokens.gold.withValues(
                                       alpha: 0.15,
                                     ),
                                     borderRadius: BorderRadius.circular(10),
@@ -275,6 +314,27 @@ class UpgradedMilestoneCard extends StatelessWidget {
                                   child: const Text(
                                     "UNLOCKED",
                                     style: TextStyle(
+                                      color: OrbitTokens.gold,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                )
+                              else if (isCurrent)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: OrbitTokens.teal.withValues(
+                                      alpha: 0.15,
+                                    ),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    "$currentStreak OF ${milestone.requiredStreak} DAYS",
+                                    style: const TextStyle(
                                       color: OrbitTokens.teal,
                                       fontSize: 10,
                                       fontWeight: FontWeight.w900,
