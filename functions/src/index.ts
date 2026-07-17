@@ -636,9 +636,21 @@ export const onFreezeConsumed = onDocumentUpdated(
 );
 
 export const revenueCatWebhook = onRequest(async (req, res) => {
+  // This endpoint sets isPro=true on whatever app_user_id the request body
+  // names, trusting only this header — it was a hardcoded, git-committed
+  // string, meaning anyone who ever saw this repo could forge
+  // "INITIAL_PURCHASE" events and grant themselves free Pro. Now read from
+  // the environment and hard-fail if unset, matching REVENUECAT_SECRET_KEY.
+  const webhookSecret = process.env.RC_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    logger.error("RC_WEBHOOK_SECRET is not configured.");
+    res.status(500).send("Server misconfigured");
+    return;
+  }
+
   // 🚀 EXTRACT THE HEADER VALUE FROM REVENUECAT
   const authHeader = req.headers.authorization;
-  const expectedToken = "Bearer OrbitSecretToken2026SecurePass";
+  const expectedToken = `Bearer ${webhookSecret}`;
 
   // 🛡️ SECURITY GUARD CHECK
   if (!authHeader || authHeader !== expectedToken) {
