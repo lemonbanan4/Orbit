@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../theme/orbit_colors.dart';
 import '../../theme/orbit_tokens.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../widgets/common/base_orbit_screen.dart';
 import '../../widgets/common/premium_glass_card.dart';
@@ -18,9 +20,33 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
   String _searchQuery = '';
   final Set<String> _sentRequests =
       {}; // Tracks requests sent during this session
+  Timer? _debounce;
+  Future<List<Map<String, dynamic>>>? _searchFuture;
+
+  Future<List<Map<String, dynamic>>> _searchUsers(String query) async {
+    final result = await FirebaseFunctions.instanceFor(region: 'europe-west1')
+        .httpsCallable('searchUsers')
+        .call({'query': query});
+    final data = Map<String, dynamic>.from(result.data as Map);
+    return (data['results'] as List)
+        .map((r) => Map<String, dynamic>.from(r as Map))
+        .toList();
+  }
+
+  void _onSearchChanged(String value) {
+    setState(() => _searchQuery = value);
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
+      setState(() {
+        _searchFuture = value.trim().isEmpty ? null : _searchUsers(value.trim());
+      });
+    });
+  }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -44,11 +70,7 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
               child: TextField(
                 controller: _searchController,
                 style: TextStyle(color: textColor),
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value;
-                  });
-                },
+                onChanged: _onSearchChanged,
                 decoration: InputDecoration(
                   hintText: 'Search by username...',
                   hintStyle: TextStyle(color: textColor.withValues(alpha: 0.5)),
@@ -61,8 +83,10 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
                               color: textColor.withValues(alpha: 0.5)),
                           onPressed: () {
                             _searchController.clear();
+                            _debounce?.cancel();
                             setState(() {
                               _searchQuery = '';
+                              _searchFuture = null;
                             });
                           },
                         )
@@ -80,16 +104,8 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
                             TextStyle(color: textColor.withValues(alpha: 0.5)),
                       ),
                     )
-                  : StreamBuilder<QuerySnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('users')
-                          .where('displayName',
-                              isGreaterThanOrEqualTo: _searchController.text)
-                          .where('displayName',
-                              isLessThanOrEqualTo:
-                                  '${_searchController.text}\uf8ff')
-                          .limit(20)
-                          .snapshots(),
+                  : FutureBuilder<List<Map<String, dynamic>>>(
+                      future: _searchFuture,
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
@@ -104,10 +120,7 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
                                   style: TextStyle(color: textColor)));
                         }
 
-                        final results = snapshot.data?.docs ?? [];
-                        final filteredResults = results
-                            .where((doc) => doc.id != currentUser?.uid)
-                            .toList();
+                        final filteredResults = snapshot.data ?? [];
 
                         if (filteredResults.isEmpty) {
                           return Center(
@@ -119,8 +132,7 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
                           physics: const BouncingScrollPhysics(),
                           itemCount: filteredResults.length,
                           itemBuilder: (context, index) {
-                            final userData = filteredResults[index].data()
-                                as Map<String, dynamic>;
+                            final userData = filteredResults[index];
                             final name = userData['displayName'] ?? 'Unknown';
                             final xp = userData['xp'] ?? 0;
 
@@ -160,21 +172,21 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
                                         ],
                                       ),
                                     ),
-                                    FutureBuilder<DocumentSnapshot>(
-                                      future: FirebaseFirestore.instance
-                                          .collection('users')
-                                          .doc(filteredResults[index].id)
-                                          .collection('friend_requests')
-                                          .doc(currentUser?.uid)
-                                          .get(),
-                                      builder: (context, reqSnapshot) {
+                                    Builder(
+                                      builder: (context) {
+                                        // Reading whether a request was
+                                        // already sent would mean reading
+                                        // the target's own friend_requests
+                                        // subcollection, which
+                                        // firestore.rules only lets the
+                                        // target (not the sender) read —
+                                        // so this can only track state for
+                                        // the current session.
                                         final targetUserId =
-                                            filteredResults[index].id;
-                                        final isSentBackend =
-                                            reqSnapshot.data?.exists == true;
-                                        final isSent = _sentRequests
-                                                .contains(targetUserId) ||
-                                            isSentBackend;
+                                            filteredResults[index]['uid']
+                                                as String;
+                                        final isSent =
+                                            _sentRequests.contains(targetUserId);
 
                                         return ElevatedButton(
                                           onPressed: isSent

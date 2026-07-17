@@ -990,6 +990,44 @@ export const linkPartner = onCall(async (request) => {
   return {success: true, message: "Successfully linked orbits!"};
 });
 
+// Lets a user search for others to friend by display name, without
+// exposing a raw client-side query over the whole users collection —
+// firestore.rules only allows a user to read their own document (see the
+// leaderboard fix below for why: freely-editable display names exposed to
+// strangers with no report/block mechanism is an App Store Guideline 1.2
+// risk), so this runs the query server-side via the Admin SDK and returns
+// only the minimal public-safe fields a friend-search result needs.
+export const searchUsers = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Must be logged in to search.");
+  }
+
+  const query = request.data.query;
+  if (!query || typeof query !== "string" || query.trim().length === 0) {
+    return {results: []};
+  }
+
+  const snapshot = await admin.firestore()
+    .collection("users")
+    .where("displayName", ">=", query)
+    .where("displayName", "<=", `${query}`)
+    .limit(20)
+    .get();
+
+  const results = snapshot.docs
+    .filter((doc) => doc.id !== request.auth?.uid)
+    .map((doc) => {
+      const data = doc.data();
+      return {
+        uid: doc.id,
+        displayName: data.displayName || "Unknown",
+        xp: data.xp || 0,
+      };
+    });
+
+  return {results};
+});
+
 // Cleans up guest accounts that are older than 30 days
 export const deleteOrphanedGuestAccounts = onSchedule(
   "every day 03:00",
