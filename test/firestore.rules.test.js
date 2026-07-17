@@ -70,6 +70,59 @@ describe("Orbit Firestore Security Rules", () => {
     await assertFails(guestDoc.update({ streakCount: 100 }));
   });
 
+  it("Allows a user to write per-day history onto their own habit", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const habitDoc = db
+      .collection("users")
+      .doc("user123")
+      .collection("habits")
+      .doc("habit1");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false });
+      await context
+        .firestore()
+        .collection("users")
+        .doc("user123")
+        .collection("habits")
+        .doc("habit1")
+        .set({ title: "Meditate", routine: "Morning", completedDays: 0, totalDays: 0 });
+    });
+
+    // Dot-notation update on a nested map field — this is how
+    // RoutineProvider._checkDailyReset() records a single day without
+    // clobbering the rest of the history map.
+    await assertSucceeds(
+      habitDoc.update({
+        totalDays: 1,
+        completedDays: 1,
+        "history.2026-07-17": true,
+      })
+    );
+  });
+
+  it("Denies a habit write with a field outside the allowlist", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const habitDoc = db
+      .collection("users")
+      .doc("user123")
+      .collection("habits")
+      .doc("habit1");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false });
+      await context
+        .firestore()
+        .collection("users")
+        .doc("user123")
+        .collection("habits")
+        .doc("habit1")
+        .set({ title: "Meditate", routine: "Morning", completedDays: 0, totalDays: 0 });
+    });
+
+    await assertFails(habitDoc.update({ description: "not allowed" }));
+  });
+
   it("Denies a user from reading another user's document", async () => {
     // Alice tries to snoop on Bob's data
     const aliceDb = testEnv.authenticatedContext("alice123").firestore();

@@ -69,6 +69,8 @@ class StatisticsScreen extends StatelessWidget {
                     const SizedBox(height: 40),
                     const _HabitInsightsCard(),
                     const SizedBox(height: 40),
+                    const _HabitHeatmapCard(),
+                    const SizedBox(height: 40),
                     const _ConsistencyCalendar(),
                     const SizedBox(height: 40),
                     const _WeeklyConsistencyChart(),
@@ -324,6 +326,195 @@ class _HabitInsightRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _HabitHeatmapCard extends StatefulWidget {
+  const _HabitHeatmapCard();
+
+  @override
+  State<_HabitHeatmapCard> createState() => _HabitHeatmapCardState();
+}
+
+class _HabitHeatmapCardState extends State<_HabitHeatmapCard> {
+  String? _selectedHabitId;
+
+  static const int _weeksShown = 12;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textColor = theme.colorScheme.onSurface;
+    final Color orbColor1 =
+        theme.extension<OrbitColors>()?.orbColor1 ?? const Color(0xFF00E5FF);
+    final routineProvider = context.watch<RoutineProvider>();
+
+    final habits = routineProvider.habits.values.toList()
+      ..sort((a, b) => a.title.compareTo(b.title));
+
+    if (habits.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final selected = habits.firstWhere(
+      (h) => h.id == _selectedHabitId,
+      orElse: () => habits.first,
+    );
+
+    final today = DateTime.now();
+    final todayMidnight = DateTime(today.year, today.month, today.day);
+    // Anchor the grid to the end of the current week (Sunday-start) so it
+    // always renders full 7-day columns; days past today are masked out.
+    final daysSinceSunday = todayMidnight.weekday % 7;
+    final gridEnd = todayMidnight.add(Duration(days: 6 - daysSinceSunday));
+    final gridStart = gridEnd.subtract(
+      const Duration(days: _weeksShown * 7 - 1),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Habit History',
+          style: TextStyle(
+            color: textColor,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        PremiumGlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: 34,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: habits.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (context, i) {
+                    final h = habits[i];
+                    final isSelected = h.id == selected.id;
+                    return ChoiceChip(
+                      label: Text(h.title),
+                      selected: isSelected,
+                      onSelected: (_) =>
+                          setState(() => _selectedHabitId = h.id),
+                      selectedColor: orbColor1.withValues(alpha: 0.25),
+                      labelStyle: TextStyle(
+                        color: isSelected
+                            ? orbColor1
+                            : textColor.withValues(alpha: 0.7),
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        fontSize: 12,
+                      ),
+                      backgroundColor: textColor.withValues(alpha: 0.05),
+                      side: BorderSide(
+                        color: isSelected
+                            ? orbColor1
+                            : textColor.withValues(alpha: 0.15),
+                      ),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 20),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                reverse: true,
+                child: Row(
+                  children: List.generate(_weeksShown, (week) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: List.generate(7, (dayOfWeek) {
+                          final date = gridStart.add(
+                            Duration(days: week * 7 + dayOfWeek),
+                          );
+                          final isFuture = date.isAfter(todayMidnight);
+                          final dateKey = date.toIso8601String().substring(
+                            0,
+                            10,
+                          );
+                          final status = selected.history[dateKey];
+
+                          Color cellColor;
+                          if (isFuture) {
+                            cellColor = Colors.transparent;
+                          } else if (status == true) {
+                            cellColor = orbColor1;
+                          } else if (status == false) {
+                            cellColor = textColor.withValues(alpha: 0.14);
+                          } else {
+                            cellColor = textColor.withValues(alpha: 0.05);
+                          }
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Container(
+                              width: 14,
+                              height: 14,
+                              decoration: BoxDecoration(
+                                color: cellColor,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    'Less',
+                    style: TextStyle(
+                      color: textColor.withValues(alpha: 0.5),
+                      fontSize: 11,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: textColor.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: orbColor1,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'More',
+                    style: TextStyle(
+                      color: textColor.withValues(alpha: 0.5),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ).animate().fade(delay: 160.ms, duration: 400.ms).slideY(begin: 0.1),
+      ],
     );
   }
 }

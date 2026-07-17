@@ -98,7 +98,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
           'routine': _selectedRoutine,
           'iconCodePoint': _selectedIcon,
           'completedDays': 0,
-          'totalDays': 21,
+          'totalDays': 0,
           'color': 0xFF00E5FF,
           'isCompleted': false,
         };
@@ -126,11 +126,12 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
               iconCodePoint: _selectedIcon,
               color: 0xFF00E5FF,
               completedDays: existing?.completedDays ?? 0,
-              totalDays: existing?.totalDays ?? 21,
+              totalDays: existing?.totalDays ?? 0,
               order:
                   existing?.order ??
                   provider.getHabitsForRoutine(_selectedRoutine).length,
               isCompleted: existing?.isCompleted ?? false,
+              history: existing?.history,
             ),
           );
           Navigator.pop(context);

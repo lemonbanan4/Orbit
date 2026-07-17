@@ -165,7 +165,7 @@ class _ConstellationBuilderScreenState
                 _iconForCategory[category] ?? Icons.star_rounded.codePoint,
             color: _colorForCategory[category] ?? 0xFF3D5CFF,
             completedDays: 0,
-            totalDays: 7,
+            totalDays: 0,
             order: week,
           ),
         );

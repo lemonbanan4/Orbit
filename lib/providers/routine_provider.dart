@@ -931,6 +931,10 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
       10,
     ); // Format: YYYY-MM-DD
     if (_lastResetDate != today) {
+      // Capture the date that's ending before it gets overwritten below —
+      // per-habit history entries below belong to this day, not "today".
+      final String? completedDayKey = _lastResetDate;
+
       // --- NEW: Calculate and save yesterday's progress ---
       if (_lastResetDate != null) {
         // Don't run on first ever launch. Use the new _habits list.
@@ -1003,23 +1007,38 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
       _completedHabits.clear();
       // Reset the completion status on all loaded habit objects
       _habits.forEach((id, habit) {
-        habit.totalDays++;
-        if (habit.isCompleted) {
-          habit.completedDays++;
-        } else {
-          habit.skippedCount++;
+        // Only tally a real day if there was a previous day to close out —
+        // the very first reset after install/cloud-restore has no prior
+        // date, so there's nothing to record yet.
+        if (completedDayKey != null) {
+          // Self-heal the legacy habit-creation seed (totalDays used to
+          // start at a vestigial 21/7 "goal" constant nothing ever
+          // consumed) — if the tallies don't already add up, this habit
+          // has never been through a real daily-reset cycle, so treat it
+          // as day zero rather than inheriting the stale seed.
+          if (habit.totalDays != habit.completedDays + habit.skippedCount) {
+            habit.totalDays = habit.completedDays + habit.skippedCount;
+          }
+          habit.totalDays++;
+          if (habit.isCompleted) {
+            habit.completedDays++;
+          } else {
+            habit.skippedCount++;
+          }
+          habit.history[completedDayKey] = habit.isCompleted;
+          _db
+              .collection('users')
+              .doc(_userId)
+              .collection('habits')
+              .doc(habit.id)
+              .update({
+                'totalDays': habit.totalDays,
+                'completedDays': habit.completedDays,
+                'skippedCount': habit.skippedCount,
+                'history.$completedDayKey': habit.isCompleted,
+              })
+              .catchError((_) {});
         }
-        _db
-            .collection('users')
-            .doc(_userId)
-            .collection('habits')
-            .doc(habit.id)
-            .update({
-              'totalDays': habit.totalDays,
-              'completedDays': habit.completedDays,
-              'skippedCount': habit.skippedCount,
-            })
-            .catchError((_) {});
         habit.isCompleted = false;
       });
 

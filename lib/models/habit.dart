@@ -13,6 +13,7 @@ class Habit {
   bool isCompleted;
   final String time;
   final bool isGoal;
+  Map<String, bool> history;
 
   Habit({
     required this.id,
@@ -27,7 +28,8 @@ class Habit {
     this.isCompleted = false,
     this.time = '00:00',
     this.isGoal = false,
-  });
+    Map<String, bool>? history,
+  }) : history = history ?? {};
 
   factory Habit.fromSnapshot(DocumentSnapshot doc, {bool isCompleted = false}) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
@@ -80,11 +82,22 @@ class Habit {
       iconCodePoint: parsedIcon,
       color: parsedColor,
       completedDays: data['completedDays'] is int ? data['completedDays'] : 0,
-      totalDays: data['totalDays'] is int ? data['totalDays'] : 21,
+      // Older habits were seeded with a vestigial "21-day goal" constant
+      // (7 for AI-constellation habits) that nothing ever consumed as a
+      // goal — RoutineProvider now treats this as a running "days
+      // tracked" tally, so 0 is the only sane default/fallback.
+      totalDays: data['totalDays'] is int ? data['totalDays'] : 0,
       order: data['order'] is int ? data['order'] : 0,
       skippedCount: data['skippedCount'] is int ? data['skippedCount'] : 0,
       time: data['time']?.toString() ?? '00:00',
       isCompleted: isCompleted,
+      history: data['history'] is Map
+          ? Map<String, bool>.from(
+              (data['history'] as Map).map(
+                (k, v) => MapEntry(k.toString(), v == true),
+              ),
+            )
+          : {},
     );
   }
 
@@ -101,6 +114,7 @@ class Habit {
       'skippedCount': skippedCount,
       'time': time,
       'isCompleted': isCompleted,
+      'history': history,
     };
   }
 }
