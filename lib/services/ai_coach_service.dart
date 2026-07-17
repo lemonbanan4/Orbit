@@ -16,7 +16,7 @@ class AiCoachService {
 
       // 2. Initialize Gemini (using the latest stable flash model)
       final model = GenerativeModel(
-        model: 'gemini-2.5-flash',
+        model: 'gemini-flash-latest',
         apiKey: apiKey,
         generationConfig: GenerationConfig(
           responseMimeType: 'application/json',
@@ -74,7 +74,7 @@ class AiCoachService {
         return _getFallbackInsight(completedCount, totalHabits);
       }
 
-      final model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: apiKey);
+      final model = GenerativeModel(model: 'gemini-flash-latest', apiKey: apiKey);
 
       String skipContext = '';
       if (recentSkipReasons != null && recentSkipReasons.isNotEmpty) {
@@ -152,7 +152,7 @@ Write a short, encouraging, 1-2 sentence message to motivate them. Keep it space
         return 'Master your day.';
       }
 
-      final model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: apiKey);
+      final model = GenerativeModel(model: 'gemini-flash-latest', apiKey: apiKey);
 
       String skipContext = '';
       if (latestSkipReason != null && latestSkipReason.isNotEmpty) {
@@ -214,7 +214,7 @@ Do not include quotes around the text.
   ) async {
     try {
       final apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
-      final model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: apiKey);
+      final model = GenerativeModel(model: 'gemini-flash-latest', apiKey: apiKey);
       final bytes = await File(imageFile.path).readAsBytes();
 
       final prompt = TextPart(
@@ -259,7 +259,7 @@ Do not include quotes around the text.
       }
 
       final model = GenerativeModel(
-        model: 'gemini-2.5-flash',
+        model: 'gemini-flash-latest',
         apiKey: apiKey,
         generationConfig: GenerationConfig(
           responseMimeType: 'application/json',
@@ -329,7 +329,7 @@ Do not include quotes around the text.
   ) async {
     try {
       final apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
-      final model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: apiKey);
+      final model = GenerativeModel(model: 'gemini-flash-latest', apiKey: apiKey);
 
       final habitsSummary = activeHabits
           .map(

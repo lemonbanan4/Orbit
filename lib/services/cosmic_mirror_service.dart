@@ -11,7 +11,7 @@ class CosmicMirrorService {
 
     // 2. Initialize Gemini 1.5 Flash with a System Instruction
     _model = GenerativeModel(
-      model: 'gemini-2.5-flash',
+      model: 'gemini-flash-latest',
       apiKey: apiKey,
       // This replaces the OpenAI "system" role message
       systemInstruction: Content.system(

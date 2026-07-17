@@ -19,7 +19,7 @@ class AIFairyService {
   AIFairyService() {
     final apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
     _model = GenerativeModel(
-      model: 'gemini-2.5-flash',
+      model: 'gemini-flash-latest',
       apiKey: apiKey,
       generationConfig: GenerationConfig(responseMimeType: 'application/json'),
       systemInstruction: Content.system(
@@ -99,7 +99,7 @@ class AIFairyService {
     try {
       // Using the flash model for speed
       final apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
-      final model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: apiKey);
+      final model = GenerativeModel(model: 'gemini-flash-latest', apiKey: apiKey);
 
       final prompt =
           """
