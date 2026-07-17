@@ -830,9 +830,13 @@ export const redeemReferralCode = onCall(async (request) => {
     throw new HttpsError("not-found", "Referral code not found or invalid.");
   }
 
-  // TODO: Use your actual RevenueCat Secret Key from the RevenueCat dashboard
-  const REVENUECAT_SECRET = process.env.REVENUECAT_SECRET_KEY ||
-    "sk_rFbReytCRoXEhdpmCBLfYegMgeGUD";
+  const REVENUECAT_SECRET = process.env.REVENUECAT_SECRET_KEY;
+  if (!REVENUECAT_SECRET) {
+    throw new HttpsError(
+      "failed-precondition",
+      "RevenueCat secret key is not configured."
+    );
+  }
   const ENTITLEMENT_ID = "pro"; // Should match the entitlement identifier in RC
 
   const grantPro = async (uid: string) => {
