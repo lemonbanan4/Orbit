@@ -1034,6 +1034,49 @@ export const searchUsers = onCall(async (request) => {
   return {results};
 });
 
+// The client has no way to see the effect of linkPartner()'s work — no
+// screen ever reads the 'links' collection (blocked outright by
+// firestore.rules' default-deny, same reason linkPartner itself needed
+// to move server-side) or shows the sharedXP the notifyPartnerOnHabitComplete
+// trigger has been quietly accumulating. This surfaces it.
+export const getPartnerInfo = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Must be logged in.");
+  }
+
+  const uid = request.auth.uid;
+  const db = admin.firestore();
+
+  const linksAsA = await db.collection("links")
+    .where("userA", "==", uid).limit(1).get();
+  const linksAsB = await db.collection("links")
+    .where("userB", "==", uid).limit(1).get();
+
+  let linkDoc = null;
+  let partnerUid: string | null = null;
+  if (!linksAsA.empty) {
+    linkDoc = linksAsA.docs[0];
+    partnerUid = linkDoc.data().userB;
+  } else if (!linksAsB.empty) {
+    linkDoc = linksAsB.docs[0];
+    partnerUid = linkDoc.data().userA;
+  }
+
+  if (!linkDoc || !partnerUid) {
+    return {linked: false};
+  }
+
+  const partnerDoc = await db.collection("users").doc(partnerUid).get();
+  const partnerData = partnerDoc.data() || {};
+
+  return {
+    linked: true,
+    partnerName: partnerData.name || "Your Partner",
+    partnerStreak: partnerData.current_streak || 0,
+    sharedXP: linkDoc.data().sharedXP || 0,
+  };
+});
+
 // Cleans up guest accounts that are older than 30 days
 export const deleteOrphanedGuestAccounts = onSchedule(
   "every day 03:00",
