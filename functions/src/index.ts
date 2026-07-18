@@ -933,6 +933,60 @@ export const buyStreakFreeze = onCall(async (request) => {
   });
 });
 
+// Costs must match lib/theme/nebula_themes.dart's NebulaThemes.all — kept
+// server-side too so a client can't grant itself a theme by editing local
+// state (unlocked_themes is a client-writable field in firestore.rules).
+const NEBULA_THEME_COSTS: Record<string, number> = {
+  "Aurora": 500,
+  "Solstice": 500,
+};
+
+export const unlockNebulaTheme = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Must be logged in to purchase items."
+    );
+  }
+
+  const theme = request.data?.theme;
+  const cost = NEBULA_THEME_COSTS[theme];
+  if (typeof theme !== "string" || !cost) {
+    throw new HttpsError("invalid-argument", "Unknown nebula theme.");
+  }
+
+  const uid = request.auth.uid;
+  const userRef = admin.firestore().collection("users").doc(uid);
+
+  return admin.firestore().runTransaction(async (transaction) => {
+    const userDoc = await transaction.get(userRef);
+    if (!userDoc.exists) {
+      throw new HttpsError("not-found", "User profile not found.");
+    }
+
+    const currentXp = userDoc.data()?.xp || 0;
+    const unlocked: string[] = userDoc.data()?.unlocked_themes || ["Default"];
+
+    if (unlocked.includes(theme)) {
+      return {success: true, newXp: currentXp};
+    }
+
+    if (currentXp < cost) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Not enough XP to purchase this item."
+      );
+    }
+
+    transaction.update(userRef, {
+      xp: admin.firestore.FieldValue.increment(-cost),
+      unlocked_themes: admin.firestore.FieldValue.arrayUnion(theme),
+    });
+
+    return {success: true, newXp: currentXp - cost};
+  });
+});
+
 export const linkPartner = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError(
