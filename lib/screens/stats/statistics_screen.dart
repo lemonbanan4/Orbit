@@ -83,6 +83,8 @@ class StatisticsScreen extends StatelessWidget {
                     const SizedBox(height: 40),
                     const MoodChartWidget(),
                     const SizedBox(height: 40),
+                    const _PastCoachingNotes(),
+                    const SizedBox(height: 40),
                     const _PastIntentions(),
                   ],
                 );
@@ -1167,6 +1169,144 @@ class _PastIntentions extends StatelessWidget {
               );
             },
           ),
+      ],
+    );
+  }
+}
+
+class _PastCoachingNotes extends StatelessWidget {
+  const _PastCoachingNotes();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textColor = theme.colorScheme.onSurface;
+    final Color orbColor1 =
+        theme.extension<OrbitColors>()?.orbColor1 ?? const Color(0xFF00E5FF);
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (userId == null) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Past Reflections',
+          style: TextStyle(
+            color: textColor,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .collection('coaching_notes')
+              .orderBy('createdAt', descending: true)
+              .limit(20)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(
+                child: CircularProgressIndicator(color: orbColor1),
+              );
+            }
+            final docs = snapshot.data?.docs ?? [];
+            if (docs.isEmpty) {
+              return Text(
+                'No coaching reflections yet — complete a coaching session to see them here.',
+                style: TextStyle(color: textColor.withValues(alpha: 0.54)),
+              );
+            }
+
+            return Column(
+              children: docs.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                final text = data['text'] as String? ?? '';
+                final mood = data['mood'] as String?;
+                final createdAt = data['createdAt'] as Timestamp?;
+                final dateStr = createdAt != null
+                    ? '${createdAt.toDate().year}-${createdAt.toDate().month.toString().padLeft(2, '0')}-${createdAt.toDate().day.toString().padLeft(2, '0')}'
+                    : '';
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: PremiumGlassCard(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: orbColor1.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.self_improvement_rounded,
+                            color: orbColor1,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    dateStr,
+                                    style: TextStyle(
+                                      color: textColor.withValues(alpha: 0.54),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  if (mood != null) ...[
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '· $mood',
+                                      style: TextStyle(
+                                        color: orbColor1,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '"$text"',
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: 14,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete_outline_rounded,
+                            color: Colors.redAccent,
+                          ),
+                          onPressed: () {
+                            HapticFeedback.mediumImpact();
+                            doc.reference.delete();
+                          },
+                        ),
+                      ],
+                    ),
+                  ).animate().fade(duration: 400.ms).slideY(begin: 0.1),
+                );
+              }).toList(),
+            );
+          },
+        ),
       ],
     );
   }
