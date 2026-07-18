@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../common/premium_glass_card.dart';
+import 'paywall_feature_row.dart';
 
 class PremiumPaywallDialog extends StatefulWidget {
   final String title;
@@ -90,10 +91,28 @@ class _PremiumPaywallDialogState extends State<PremiumPaywallDialog>
                     ),
                   ),
 
-                  // ==========================================
-                  // TODO: FUTURE FEATURES LIST GOES HERE
-                  // You can drop a ListView.builder or custom Rows here later
-                  // ==========================================
+                  // Same grounded feature list as the full PaywallScreen —
+                  // this dialog is a lightweight upsell teaser shown before
+                  // routing to that screen, so it should promise the same
+                  // things, not generic "everything unlocked" copy.
+                  const SizedBox(height: 20),
+                  const PaywallFeatureRow(
+                    icon: Icons.auto_awesome_rounded,
+                    title: "Daily AI coaching",
+                    subtitle: "Personalized insight from your streaks & skips",
+                  ),
+                  const SizedBox(height: 10),
+                  const PaywallFeatureRow(
+                    icon: Icons.self_improvement_rounded,
+                    title: "Sanctuary & guided audio",
+                    subtitle: "Full ambient library, always unlocked",
+                  ),
+                  const SizedBox(height: 10),
+                  const PaywallFeatureRow(
+                    icon: Icons.forum_rounded,
+                    title: "Pro coaching sessions",
+                    subtitle: "Structured sessions in the Coaching hub",
+                  ),
                   const SizedBox(height: 28),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,

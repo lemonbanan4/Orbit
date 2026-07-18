@@ -15,6 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../navigation/main_navigation_screen.dart';
 import '../../widgets/common/paywall_video_background.dart';
 import '../../widgets/common/gradient_pill_button.dart';
+import '../../widgets/paywall/paywall_feature_row.dart';
 import '../../theme/orbit_tokens.dart';
 
 class PaywallScreen extends StatefulWidget {
@@ -612,20 +613,20 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
                       // Grounded, concrete feature list — what Pro actually
                       // unlocks, not generic "unlimited everything" copy.
-                      const _PaywallFeatureRow(
+                      const PaywallFeatureRow(
                         icon: Icons.auto_awesome_rounded,
                         title: "Daily AI coaching",
                         subtitle:
                             "Personalized insight from your streaks & skips",
                       ),
                       const SizedBox(height: 10),
-                      const _PaywallFeatureRow(
+                      const PaywallFeatureRow(
                         icon: Icons.self_improvement_rounded,
                         title: "Sanctuary & guided audio",
                         subtitle: "Full ambient library, always unlocked",
                       ),
                       const SizedBox(height: 10),
-                      const _PaywallFeatureRow(
+                      const PaywallFeatureRow(
                         icon: Icons.forum_rounded,
                         title: "Pro coaching sessions",
                         subtitle: "Structured sessions in the Coaching hub",
@@ -1033,62 +1034,5 @@ class _PaywallScreenState extends State<PaywallScreen> {
     );
 
     return path;
-  }
-}
-
-/// A single "what Pro unlocks" line: icon chip, title, one-line detail.
-class _PaywallFeatureRow extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  const _PaywallFeatureRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 26,
-          height: 26,
-          margin: const EdgeInsets.only(top: 1),
-          decoration: BoxDecoration(
-            color: OrbitTokens.surface,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: OrbitTokens.hairline),
-          ),
-          child: Icon(icon, color: OrbitTokens.teal, size: 14),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: OrbitTokens.ink,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 1),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  color: OrbitTokens.inkDim,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
   }
 }
