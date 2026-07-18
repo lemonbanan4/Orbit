@@ -623,21 +623,19 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     // Clear existing alarms first to avoid ghost/duplicate notifications
     NotificationService.cancelAlarms(routineType);
 
-    if (!_allNotifsEnabled) {
-      if (save) _saveToCloud();
-      return; // Stop here before scheduling anything new
-    }
+    final shouldSchedule =
+        _allNotifsEnabled &&
+        !(routineType == 'Morning' && !_morningNotifs) &&
+        !(routineType == 'Night' && !_nightNotifs);
 
-    if (routineType == 'Morning' && !_morningNotifs) {
-      return;
+    if (shouldSchedule) {
+      NotificationService.scheduleRoutineAlarms(
+        routineType,
+        _routineAlarms[routineType] ?? [],
+      );
     }
-    if (routineType == 'Night' && !_nightNotifs) {
-      return;
-    }
-    NotificationService.scheduleRoutineAlarms(
-      routineType,
-      _routineAlarms[routineType] ?? [],
-    );
+    // Always persist, regardless of which branch above fired — a toggle
+    // turned off should sync to the cloud the same as one turned on.
     if (save) {
       _saveToCloud();
     }
@@ -722,6 +720,8 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     _soundsEnabled = _prefs?.getBool('sounds') ?? true;
     _allNotifsEnabled = _prefs?.getBool('all_notifs') ?? true;
     _dailySummaryNotifs = _prefs?.getBool('daily_summary_notifs') ?? true;
+    _morningNotifs = _prefs?.getBool('m_notifs') ?? true;
+    _nightNotifs = _prefs?.getBool('n_notifs') ?? true;
     _currentStreak = _prefs?.getInt('current_streak') ?? 2;
     _themeMode = _prefs?.getString('theme') ?? 'System';
     _selectedAudioTrack = _prefs?.getString('audio_track') ?? 'Space Hum';
@@ -809,6 +809,12 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
         if (cloudData.containsKey('daily_summary_notifs')) {
           _dailySummaryNotifs = cloudData['daily_summary_notifs'];
+        }
+        if (cloudData.containsKey('morning_notifs')) {
+          _morningNotifs = cloudData['morning_notifs'];
+        }
+        if (cloudData.containsKey('night_notifs')) {
+          _nightNotifs = cloudData['night_notifs'];
         }
         if (cloudData.containsKey('avatar')) {
           _selectedAvatar = cloudData['avatar'];
@@ -1569,6 +1575,8 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         'active_nebula_theme': _activeNebulaTheme,
         'all_notifs': _allNotifsEnabled,
         'daily_summary_notifs': _dailySummaryNotifs,
+        'morning_notifs': _morningNotifs,
+        'night_notifs': _nightNotifs,
         'fairy_taps': _fairyTaps,
         'unlocked_fairy_badge': _unlockedFairyBadge,
       }, SetOptions(merge: true));

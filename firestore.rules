@@ -45,7 +45,7 @@ service cloud.firestore {
         'intention_history', 'unlocked_journey_chapters', 'unlocked_milestones', 
         'audio_track', 'ambient_volume', 'last_updated', 'bookmarked_quotes', 
         'unlocked_reader_badge', 'unlocked_themes', 'active_nebula_theme',
-        'all_notifs', 'daily_summary_notifs', 'interests',
+        'all_notifs', 'daily_summary_notifs', 'morning_notifs', 'night_notifs', 'interests',
         'email', 'onboarding_completed_at', 'survey_answers',
         'isGuest', 'createdAt', 'streakCount', 'completedMilestones',
         'achievements', 'name', 'photoUrl', 'fcmToken', 'friends',

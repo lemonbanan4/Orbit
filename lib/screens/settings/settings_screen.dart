@@ -538,6 +538,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 Divider(color: textColor.withValues(alpha: 0.1), height: 1),
+                Consumer<RoutineProvider>(
+                  builder: (context, routineProvider, _) => SwitchListTile(
+                    value: routineProvider.soundsEnabled,
+                    activeThumbColor: _accent,
+                    title: Text(
+                      'Sound Effects',
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Play a chime when you complete a habit.',
+                      style: TextStyle(color: textColor.withValues(alpha: 0.5)),
+                    ),
+                    onChanged: (val) {
+                      HapticFeedback.lightImpact();
+                      routineProvider.setSounds(val);
+                    },
+                    secondary: Icon(
+                      Icons.volume_up_rounded,
+                      color: textColor,
+                    ),
+                  ),
+                ),
+                Divider(color: textColor.withValues(alpha: 0.1), height: 1),
                 SettingsTile(
                   onTap: _confirmDeleteAccount,
                   icon: Icons.person_remove_rounded,
@@ -685,6 +711,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onChanged: (bool value) {
                         HapticFeedback.lightImpact();
                         provider.setDailySummaryNotifs(value);
+                      },
+                    );
+                  },
+                ),
+                Consumer<RoutineProvider>(
+                  builder: (context, provider, child) {
+                    return SwitchListTile(
+                      title: const Text(
+                        'Morning Routine Reminders',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        'Alarm reminders for your Morning routine.',
+                        style: TextStyle(color: Colors.white54),
+                      ),
+                      activeThumbColor: _accent,
+                      value: provider.morningNotifs,
+                      onChanged: (bool value) {
+                        HapticFeedback.lightImpact();
+                        provider.setMorningNotifs(value);
+                      },
+                    );
+                  },
+                ),
+                Consumer<RoutineProvider>(
+                  builder: (context, provider, child) {
+                    return SwitchListTile(
+                      title: const Text(
+                        'Night Routine Reminders',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        'Alarm reminders for your Night routine.',
+                        style: TextStyle(color: Colors.white54),
+                      ),
+                      activeThumbColor: _accent,
+                      value: provider.nightNotifs,
+                      onChanged: (bool value) {
+                        HapticFeedback.lightImpact();
+                        provider.setNightNotifs(value);
                       },
                     );
                   },
