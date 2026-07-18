@@ -10,6 +10,7 @@ import '../journey/journey_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../widgets/account_link_prompt_sheet.dart';
+import '../../services/notification_service.dart';
 import '../../theme/orbit_tokens.dart';
 import '../../theme/orbit_colors.dart';
 
@@ -52,8 +53,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       const ProfileScreen(),
     ];
 
-    // Trigger the link check asynchronously when the screen loads
-    _checkGuestLinkPrompt();
+    // Sequenced (not fired in parallel) so a returning guest 3+ days in
+    // never sees both the notification pre-prompt and the account-link
+    // sheet stack on top of each other on first launch after this update.
+    _runStartupPrompts();
 
     // Handle initial tab routing from deep links or notifications
     if (widget.initialTab != null) {
@@ -86,7 +89,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     }
   }
 
-  void _checkGuestLinkPrompt() async {
+  Future<void> _runStartupPrompts() async {
+    await _checkNotificationPrompt();
+    await _checkGuestLinkPrompt();
+  }
+
+  Future<void> _checkGuestLinkPrompt() async {
     final user = FirebaseAuth.instance.currentUser;
 
     // Only proceed if the user is a guest
@@ -114,6 +122,25 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           }
         }
       }
+    }
+  }
+
+  // NotificationService.showNotificationPrePrompt()/checkAndRequestPermissions()
+  // were fully built (a soft in-app ask, then the real OS prompt) but had
+  // zero callers anywhere — main.dart schedules the daily 9AM reminder and
+  // routine alarms unconditionally on every launch, but nothing ever
+  // actually requested the OS permission for them outside of a user
+  // manually opening the routine-alarms sheet. On Android 13+ that means
+  // POST_NOTIFICATIONS silently stays ungranted and every scheduled
+  // notification never appears, with no error surfaced anywhere.
+  Future<void> _checkNotificationPrompt() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenPrompt = prefs.getBool('has_seen_notification_prompt') ?? false;
+    if (hasSeenPrompt) return;
+
+    await prefs.setBool('has_seen_notification_prompt', true);
+    if (mounted) {
+      await NotificationService.showNotificationPrePrompt(context);
     }
   }
 
