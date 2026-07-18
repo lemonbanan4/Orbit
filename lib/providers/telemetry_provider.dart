@@ -109,15 +109,6 @@ class TelemetryProvider extends ChangeNotifier {
     return leveledUp; // Returns true to trigger popups natively
   }
 
-  void unlockMilestone(int index) {
-    if (!_unlockedMilestones.contains(index)) {
-      _unlockedMilestones.add(index);
-      notifyListeners();
-      _saveLocal();
-      _saveToCloud();
-    }
-  }
-
   // --- AUTO-UNLOCK MILESTONES ---
   List<int> checkMilestoneUnlocks(int currentStreak) {
     final streakThresholds = [

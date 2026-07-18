@@ -523,18 +523,6 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  // --- MILESTONES ---
-  List<int> _unlockedMilestones = [];
-  List<int> get unlockedMilestones => _unlockedMilestones;
-
-  void unlockMilestone(int index) {
-    if (!_unlockedMilestones.contains(index)) {
-      _unlockedMilestones.add(index);
-      notifyListeners();
-      _saveToCloud();
-    }
-  }
-
   // --- NEBULA THEMES ---
   List<String> _unlockedThemes = ['Default'];
   String _activeNebulaTheme = 'Default';
@@ -935,12 +923,6 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         if (cloudData.containsKey('unlocked_journey_chapters')) {
           _unlockedJourneyChapters = Map<String, int>.from(
             cloudData['unlocked_journey_chapters'],
-          );
-        }
-
-        if (cloudData.containsKey('unlocked_milestones')) {
-          _unlockedMilestones = List<int>.from(
-            cloudData['unlocked_milestones'],
           );
         }
 
@@ -1565,7 +1547,6 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     _totalHabitsCompleted = 0;
     _totalHabitsAssigned = 30;
     _unlockedJourneyChapters.clear();
-    _unlockedMilestones.clear();
     _moodHistory.clear();
     _intentionHistory.clear();
     _completedHabits.clear();
@@ -1650,7 +1631,6 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
             FirebaseAuth.instance.currentUser?.displayName ?? 'Commander',
         'intention_history': _intentionHistory,
         'unlocked_journey_chapters': _unlockedJourneyChapters,
-        'unlocked_milestones': _unlockedMilestones,
         'audio_track': _selectedAudioTrack,
         'ambient_volume': _ambientVolume,
         'last_updated': FieldValue.serverTimestamp(),
