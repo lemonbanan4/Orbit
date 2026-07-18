@@ -105,16 +105,20 @@ class _JourneyScreenState extends State<JourneyScreen> {
           backgroundColor: OrbitTokens.ground,
           body: Stack(
             children: [
-              // Clean token ground with a faint violet glow, per the pitch.
+              // Clean token ground with a faint ambient glow that shifts
+              // with Cosmica's current aura (see AtmosphereProvider) —
+              // violet by default, then whatever she "cast" on your last
+              // habit completion.
               Positioned.fill(
                 child: IgnorePointer(
-                  child: DecoratedBox(
+                  child: AnimatedContainer(
+                    duration: 1200.ms,
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
                         center: const Alignment(0, -1),
                         radius: 1.3,
                         colors: [
-                          OrbitTokens.violet.withValues(alpha: 0.14),
+                          atmosphere.primaryGlow.withValues(alpha: 0.14),
                           Colors.transparent,
                         ],
                       ),

@@ -9,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../providers/routine_provider.dart';
 import '../../providers/ai_fairy_provider.dart';
 import '../../providers/telemetry_provider.dart';
+import '../../providers/atmosphere_provider.dart';
 import '../../widgets/reward_popup.dart';
 import '../../widgets/telemetry_levelup_dialog.dart';
 import '../../widgets/create_habit_sheet.dart';
@@ -819,6 +820,10 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                           .read<
                                                             AIFairyProvider
                                                           >();
+                                                      final atmosphereProvider =
+                                                          context.read<
+                                                            AtmosphereProvider
+                                                          >();
                                                       final soundsEnabled =
                                                           routineProvider
                                                               .soundsEnabled;
@@ -843,6 +848,15 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                               soundsEnabled,
                                                           skippedCount: skips,
                                                         );
+
+                                                        atmosphereProvider
+                                                            .setAura(
+                                                              AtmosphereProvider.auraForHabitCompletion(
+                                                                streak: streak,
+                                                                skippedCount:
+                                                                    skips,
+                                                              ),
+                                                            );
 
                                                         // Award experience matrix points
                                                         bool didLevelUp =

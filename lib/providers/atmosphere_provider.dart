@@ -19,4 +19,17 @@ class AtmosphereProvider extends ChangeNotifier {
     _currentAura = newAura;
     notifyListeners();
   }
+
+  /// Picks the aura Cosmica "casts" when a habit is completed — the same
+  /// streak/skippedCount context already passed to
+  /// AIFairyProvider.cheerForHabit() at every call site.
+  static OrbitAura auraForHabitCompletion({
+    required int streak,
+    required int skippedCount,
+  }) {
+    if (skippedCount > 0) return OrbitAura.deepNebula; // bouncing back
+    if (streak >= 7) return OrbitAura.nova; // on a roll
+    if (streak <= 1) return OrbitAura.dawn; // fresh start
+    return OrbitAura.voidSpace; // steady
+  }
 }

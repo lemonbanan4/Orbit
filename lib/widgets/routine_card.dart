@@ -9,6 +9,7 @@ import 'package:audioplayers/audioplayers.dart';
 import '../providers/routine_provider.dart';
 import '../providers/ai_fairy_provider.dart';
 import '../providers/telemetry_provider.dart';
+import '../providers/atmosphere_provider.dart';
 import 'reward_popup.dart';
 import 'telemetry_levelup_dialog.dart';
 import 'create_habit_sheet.dart';
@@ -1051,6 +1052,19 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                               routineProvider.soundsEnabled,
                                                                           skippedCount:
                                                                               skips,
+                                                                        );
+
+                                                                    context
+                                                                        .read<
+                                                                          AtmosphereProvider
+                                                                        >()
+                                                                        .setAura(
+                                                                          AtmosphereProvider.auraForHabitCompletion(
+                                                                            streak:
+                                                                                routineProvider.currentStreak,
+                                                                            skippedCount:
+                                                                                skips,
+                                                                          ),
                                                                         );
 
                                                                     final telemetry =

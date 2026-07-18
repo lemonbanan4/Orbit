@@ -4,10 +4,10 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/ai_fairy_provider.dart';
 import '../../providers/routine_provider.dart';
 import '../../providers/telemetry_provider.dart';
+import '../../providers/atmosphere_provider.dart';
 import 'premium_glass_card.dart';
 import '../../../services/voice_service.dart';
 import '../reward_popup.dart';
-import '../../theme/orbit_colors.dart';
 
 class AIFairyOverlay extends StatelessWidget {
   final double bottomPadding;
@@ -20,9 +20,11 @@ class AIFairyOverlay extends StatelessWidget {
       builder: (context, fairy, child) {
         if (!fairy.isCheering) return const SizedBox.shrink();
 
-        final Color calmAccent =
-            Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
-            const Color(0xFF00E5FF);
+        // Cosmica "casts" an aura on every habit completion (see
+        // AtmosphereProvider.auraForHabitCompletion) — reflect it in her
+        // own glow here, the moment it's most visible.
+        final atmosphere = context.watch<AtmosphereProvider>();
+        final Color calmAccent = atmosphere.primaryGlow;
 
         // Dynamic Avatar that reacts to Cosmica's internal state
         Widget avatar = Container(
