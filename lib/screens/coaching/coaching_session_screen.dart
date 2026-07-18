@@ -832,6 +832,15 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
                     if (currentNode.isInput)
                       ...[
                             // --- MOOD SELECTOR ---
+                            Text(
+                              'How are you feeling? (optional)',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.5),
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
@@ -874,9 +883,11 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
                                 style: const TextStyle(color: Colors.white),
                                 maxLines: 3,
                                 decoration: InputDecoration(
-                                  hintText: _selectedMood == null
-                                      ? 'Select your mood to begin...'
-                                      : 'Type your reflection here...',
+                                  // Mood is a purely optional tag on the note
+                                  // (_submitNote() already writes it as
+                                  // nullable) — it must never block sending,
+                                  // only offer it.
+                                  hintText: 'Type your reflection here...',
                                   hintStyle: TextStyle(
                                     color: Colors.white.withValues(alpha: 0.5),
                                   ),
@@ -885,15 +896,11 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
                                   suffixIcon: IconButton(
                                     icon: Icon(
                                       Icons.send_rounded,
-                                      color:
-                                          _noteController.text.isNotEmpty &&
-                                              _selectedMood != null
+                                      color: _noteController.text.isNotEmpty
                                           ? OrbitTokens.teal
                                           : Colors.white24,
                                     ),
-                                    onPressed:
-                                        _noteController.text.isNotEmpty &&
-                                            _selectedMood != null
+                                    onPressed: _noteController.text.isNotEmpty
                                         ? _submitNote
                                         : null,
                                   ),
