@@ -13,6 +13,7 @@ import '../paywall/premium_checker.dart';
 import '../coaching/coaching_session_screen.dart';
 import '../../theme/orbit_tokens.dart';
 import '../../utils/dev_overrides.dart';
+import 'bookmarked_wisdom_screen.dart';
 
 class SanctuaryScreen extends StatefulWidget {
   const SanctuaryScreen({super.key});
@@ -236,7 +237,23 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 48),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.bookmark_rounded,
+                            color: Colors.white,
+                          ),
+                          tooltip: 'Bookmarked Wisdom',
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const BookmarkedWisdomScreen(),
+                              ),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),

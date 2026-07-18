@@ -3,9 +3,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'dart:ui';
 
 import '../../screens/paywall/paywall_screen.dart';
+import '../../providers/routine_provider.dart';
 
 class WisdomScrollOverlay extends StatefulWidget {
   final String category;
@@ -133,18 +135,46 @@ class _WisdomScrollOverlayState extends State<WisdomScrollOverlay>
                                     fontFamily: 'Courier',
                                   ),
                                 ),
-                                Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: const BoxDecoration(
-                                        color: laserCyan,
-                                        shape: BoxShape.circle,
-                                      ),
-                                    )
-                                    .animate(
-                                      onPlay: (c) => c.repeat(reverse: true),
-                                    )
-                                    .fade(duration: 800.ms),
+                                Row(
+                                  children: [
+                                    Consumer<RoutineProvider>(
+                                      builder: (context, provider, _) {
+                                        final isBookmarked = provider
+                                            .bookmarkedQuotes
+                                            .contains(widget.content);
+                                        return GestureDetector(
+                                          onTap: () {
+                                            HapticFeedback.lightImpact();
+                                            provider.toggleBookmark(
+                                              widget.content,
+                                            );
+                                          },
+                                          child: Icon(
+                                            isBookmarked
+                                                ? Icons.bookmark_rounded
+                                                : Icons.bookmark_border_rounded,
+                                            color: laserCyan,
+                                            size: 20,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: const BoxDecoration(
+                                            color: laserCyan,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        )
+                                        .animate(
+                                          onPlay: (c) =>
+                                              c.repeat(reverse: true),
+                                        )
+                                        .fade(duration: 800.ms),
+                                  ],
+                                ),
                               ],
                             ),
                           ),
