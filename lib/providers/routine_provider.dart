@@ -1312,6 +1312,15 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
             .catchError((e) {
               debugPrint('Failed to log skipped session: $e');
             });
+        // A complete "Second Chance" notification (title, body, dashboard
+        // deep-link routing) already existed in NotificationService with
+        // zero callers anywhere — this is the actual skip action it was
+        // built for. 3 hours gives a same-day nudge without immediately
+        // re-pestering someone who just explicitly skipped.
+        NotificationService.scheduleReattemptReminder(
+          habit.title,
+          const Duration(hours: 3),
+        );
         skippedHabits.add(habit);
       }
     }
