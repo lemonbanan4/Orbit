@@ -424,7 +424,14 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
           0.0,
           100.0,
         );
-  List<double> _weeklyProgress = List.filled(7, 0.0);
+  // growable: true is load-bearing -- _checkDailyReset() calls
+  // .removeAt(0)/.add() on this list, and it can run against this default
+  // (before the real list is loaded from prefs a few lines later in
+  // _loadData()'s cached-habits fast path) on every user's first cold
+  // launch of a new calendar day. A plain List.filled() defaults to
+  // fixed-length, which made that removeAt() throw "Unsupported
+  // operation: Cannot remove from a fixed-length list" and crash the app.
+  List<double> _weeklyProgress = List.filled(7, 0.0, growable: true);
   List<double> get weeklyProgress => _weeklyProgress;
 
   // --- JOURNEY PROGRESS ---
