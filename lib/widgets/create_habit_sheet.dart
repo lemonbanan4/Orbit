@@ -9,6 +9,7 @@ import 'common/icon_picker_dialog.dart';
 import '../providers/routine_provider.dart';
 import '../models/habit.dart';
 import '../utils/icon_utils.dart';
+import '../theme/orbit_tokens.dart';
 
 class CreateHabitSheet extends StatefulWidget {
   final String? habitId;
@@ -16,6 +17,7 @@ class CreateHabitSheet extends StatefulWidget {
   final int? initialIcon;
   final String? initialRoutine; // ADDED THIS!
   final bool initialIsGoal;
+  final String? initialCategory;
 
   const CreateHabitSheet({
     super.key,
@@ -24,6 +26,7 @@ class CreateHabitSheet extends StatefulWidget {
     this.initialIcon,
     this.initialRoutine,
     this.initialIsGoal = false,
+    this.initialCategory,
   });
 
   static void show(
@@ -33,6 +36,7 @@ class CreateHabitSheet extends StatefulWidget {
     int? initialIcon,
     String? initialRoutine,
     bool initialIsGoal = false,
+    String? initialCategory,
   }) {
     showModalBottomSheet(
       context: context,
@@ -44,6 +48,7 @@ class CreateHabitSheet extends StatefulWidget {
         initialIcon: initialIcon,
         initialRoutine: initialRoutine,
         initialIsGoal: initialIsGoal,
+        initialCategory: initialCategory,
       ),
     );
   }
@@ -58,12 +63,24 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
   late String _selectedRoutine;
   late int _selectedIcon;
   late bool _isGoal;
+  String? _selectedCategory;
 
   final Map<String, IconData> _routineIcons = {
     'Morning': Icons.wb_sunny_rounded,
     'Work': Icons.center_focus_strong_rounded,
     'Night': Icons.nightlight_round,
   };
+
+  // The 5 Focus Journey categories (StellarPlanetVariant.name -> label/icon/
+  // color), matching the palette the Constellation Builder's stellar
+  // planets already use for the same 5 variants.
+  static const _categoryOptions = [
+    (value: 'fitness', label: 'Fitness', icon: Icons.fitness_center_rounded, color: OrbitTokens.morning),
+    (value: 'mind', label: 'Mind', icon: Icons.self_improvement_rounded, color: OrbitTokens.violet),
+    (value: 'productivity', label: 'Productivity', icon: Icons.menu_book_rounded, color: OrbitTokens.teal),
+    (value: 'growth', label: 'Growth', icon: Icons.explore_rounded, color: OrbitTokens.gold),
+    (value: 'core', label: 'Core', icon: Icons.auto_awesome_rounded, color: Color(0xFF3D5CFF)),
+  ];
 
   @override
   void initState() {
@@ -73,6 +90,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
     // Magic Fix: Safely default to passed routine or Morning!
     _selectedRoutine = widget.initialRoutine ?? 'Morning';
     _isGoal = widget.initialIsGoal;
+    _selectedCategory = widget.initialCategory;
   }
 
   @override
@@ -108,6 +126,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
           'color': 0xFF00E5FF,
           'isCompleted': false,
           'isGoal': _isGoal,
+          if (_selectedCategory != null) 'category': _selectedCategory,
         };
 
         await FirebaseFirestore.instance
@@ -139,6 +158,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
                   provider.getHabitsForRoutine(_selectedRoutine).length,
               isCompleted: existing?.isCompleted ?? false,
               isGoal: _isGoal,
+              category: _selectedCategory ?? existing?.category,
               history: existing?.history,
             ),
           );
@@ -285,6 +305,67 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
                           ),
                         ],
                       ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              "Focus Journey (optional)",
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _categoryOptions.map((option) {
+                final isSelected = _selectedCategory == option.value;
+                return GestureDetector(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    setState(() {
+                      _selectedCategory = isSelected ? null : option.value;
+                    });
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? option.color.withValues(alpha: 0.2)
+                          : Colors.white.withValues(alpha: 0.05),
+                      border: Border.all(
+                        color: isSelected ? option.color : Colors.transparent,
+                        width: 1.5,
+                      ),
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          option.icon,
+                          color: isSelected ? option.color : Colors.white54,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          option.label,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.white54,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 );

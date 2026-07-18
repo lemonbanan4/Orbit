@@ -655,6 +655,8 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                             habit.iconCodePoint,
                                                         initialIsGoal:
                                                             habit.isGoal,
+                                                        initialCategory:
+                                                            habit.category,
                                                       );
                                                     },
                                                     backgroundColor:

@@ -845,6 +845,8 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                       .iconCodePoint,
                                                                   initialIsGoal:
                                                                       habit.isGoal,
+                                                                  initialCategory:
+                                                                      habit.category,
                                                                 );
                                                               },
                                                               backgroundColor:

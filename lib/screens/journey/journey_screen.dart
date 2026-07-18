@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/routine_provider.dart';
 import '../../providers/telemetry_provider.dart';
 import '../../widgets/journey/upgraded_milestone_card.dart';
+import '../../widgets/common/stellar_planet.dart';
 import '../../theme/orbit_tokens.dart';
 
 // // Ensure correct path for reflection route
@@ -84,6 +85,42 @@ class _JourneyScreenState extends State<JourneyScreen> {
       requiredStreak: 30,
       rewardIcon: Icons.workspace_premium_rounded,
       rewardName: "Orbit God-Tier Dashboard Pack",
+    ),
+  ];
+
+  // Display metadata for the 5 Focus Journey categories — mirrors the
+  // options in create_habit_sheet.dart's category picker and the palette
+  // StellarPlanet already uses for the same variants.
+  static const _focusJourneyCategories = [
+    (
+      value: 'fitness',
+      label: 'Fitness',
+      color: OrbitTokens.morning,
+      variant: StellarPlanetVariant.fitness,
+    ),
+    (
+      value: 'mind',
+      label: 'Mind',
+      color: OrbitTokens.violet,
+      variant: StellarPlanetVariant.mind,
+    ),
+    (
+      value: 'productivity',
+      label: 'Productivity',
+      color: OrbitTokens.teal,
+      variant: StellarPlanetVariant.productivity,
+    ),
+    (
+      value: 'growth',
+      label: 'Growth',
+      color: OrbitTokens.gold,
+      variant: StellarPlanetVariant.growth,
+    ),
+    (
+      value: 'core',
+      label: 'Core',
+      color: Color(0xFF3D5CFF),
+      variant: StellarPlanetVariant.core,
     ),
   ];
 
@@ -240,6 +277,126 @@ class _JourneyScreenState extends State<JourneyScreen> {
                             ],
                           );
                         },
+                      ),
+                    ),
+                  ),
+                  // Per-category "Focus Journey" chapter progress — a
+                  // separate axis from the global streak milestones above,
+                  // driven by RoutineProvider.categoryChapter/
+                  // categoryChapterProgress (dormant unlockChapter/
+                  // getUnlockedChapters storage, now actually wired to a
+                  // trigger + UI).
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'FOCUS JOURNEYS',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ..._focusJourneyCategories.asMap().entries.map((
+                            entry,
+                          ) {
+                            final index = entry.key;
+                            final option = entry.value;
+                            final chapter = routineProvider.categoryChapter(
+                              option.value,
+                            );
+                            final progress = routineProvider
+                                .categoryChapterProgress(option.value);
+                            return Padding(
+                              padding: EdgeInsets.only(
+                                bottom:
+                                    index == _focusJourneyCategories.length - 1
+                                    ? 0
+                                    : 10,
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: OrbitTokens.surface2.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: option.color.withValues(
+                                      alpha: 0.2,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    StellarPlanet(
+                                      variant: option.variant,
+                                      size: 36,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment
+                                                    .spaceBetween,
+                                            children: [
+                                              Text(
+                                                option.label,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              Text(
+                                                'Chapter $chapter of ${RoutineProvider.maxChapters}',
+                                                style: TextStyle(
+                                                  color: option.color,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                            child: Stack(
+                                              children: [
+                                                Container(
+                                                  height: 4,
+                                                  width: double.infinity,
+                                                  color: OrbitTokens.surface2,
+                                                ),
+                                                FractionallySizedBox(
+                                                  widthFactor: progress,
+                                                  child: Container(
+                                                    height: 4,
+                                                    color: option.color,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
                       ),
                     ),
                   ),

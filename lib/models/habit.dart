@@ -14,6 +14,10 @@ class Habit {
   final String time;
   final bool isGoal;
   Map<String, bool> history;
+  // One of StellarPlanetVariant's names ('fitness'/'mind'/'productivity'/
+  // 'growth'/'core') — drives per-category Focus Journey chapter progress.
+  // Null for habits created before this field existed or left uncategorized.
+  final String? category;
 
   Habit({
     required this.id,
@@ -28,6 +32,7 @@ class Habit {
     this.isCompleted = false,
     this.time = '00:00',
     this.isGoal = false,
+    this.category,
     Map<String, bool>? history,
   }) : history = history ?? {};
 
@@ -92,6 +97,7 @@ class Habit {
       time: data['time']?.toString() ?? '00:00',
       isCompleted: isCompleted,
       isGoal: data['isGoal'] == true,
+      category: data['category']?.toString(),
       history: data['history'] is Map
           ? Map<String, bool>.from(
               (data['history'] as Map).map(
@@ -117,6 +123,7 @@ class Habit {
       'isCompleted': isCompleted,
       'isGoal': isGoal,
       'history': history,
+      if (category != null) 'category': category,
     };
   }
 }

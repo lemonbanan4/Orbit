@@ -444,6 +444,57 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  // --- FOCUS JOURNEYS (per-category chapter progress) ---
+  // Each of the 5 stellar-planet categories (see StellarPlanetVariant) is
+  // its own "journey" that advances a chapter every [_chapterSize] habit
+  // completions logged against habits tagged with that category, capped at
+  // [_maxChapters]. Built on top of the existing unlockChapter/
+  // getUnlockedChapters storage, keyed by the display label below.
+  static const Map<String, String> focusJourneyLabels = {
+    'fitness': 'Fitness',
+    'mind': 'Mind',
+    'productivity': 'Productivity',
+    'growth': 'Growth',
+    'core': 'Core',
+  };
+  static const int chapterSize = 5;
+  static const int maxChapters = 5;
+
+  /// Total completed days logged across every habit tagged with [category]
+  /// (a StellarPlanetVariant name, e.g. 'fitness').
+  int categoryCompletions(String category) {
+    return _habits.values
+        .where((h) => h.category == category)
+        .fold(0, (total, h) => total + h.completedDays);
+  }
+
+  int categoryChapter(String category) {
+    final label = focusJourneyLabels[category];
+    if (label == null) return 1;
+    return getUnlockedChapters(label);
+  }
+
+  /// Progress (0.0-1.0) toward the *next* chapter for [category], or 1.0
+  /// once the final chapter is reached.
+  double categoryChapterProgress(String category) {
+    if (categoryChapter(category) >= maxChapters) return 1.0;
+    return (categoryCompletions(category) % chapterSize) / chapterSize;
+  }
+
+  /// Re-derives each category's unlocked chapter from its completion tally
+  /// and persists any new unlock. Idempotent — safe to call every day-reset
+  /// since unlockChapter() only writes when a chapter actually advances.
+  void _checkFocusJourneyUnlocks() {
+    for (final category in focusJourneyLabels.keys) {
+      final completions = categoryCompletions(category);
+      final targetChapter = (1 + completions ~/ chapterSize).clamp(
+        1,
+        maxChapters,
+      );
+      unlockChapter(focusJourneyLabels[category]!, targetChapter);
+    }
+  }
+
   // --- MILESTONES ---
   List<int> _unlockedMilestones = [];
   List<int> get unlockedMilestones => _unlockedMilestones;
@@ -1088,6 +1139,8 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
         habit.isCompleted = false;
       });
+
+      _checkFocusJourneyUnlocks();
 
       notifyListeners();
       _saveToCloud(); // Sync the fresh day to Firebase immediately

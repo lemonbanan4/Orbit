@@ -167,6 +167,7 @@ class _ConstellationBuilderScreenState
             completedDays: 0,
             totalDays: 0,
             order: week,
+            category: StellarPlanet.variantForIcon(category).name,
           ),
         );
       }
