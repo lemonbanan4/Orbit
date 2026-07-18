@@ -4,12 +4,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import 'common/premium_glass_card.dart';
 import 'common/icon_picker_dialog.dart';
 import '../providers/routine_provider.dart';
 import '../models/habit.dart';
 import '../utils/icon_utils.dart';
 import '../theme/orbit_tokens.dart';
+import '../services/ai_coach_service.dart';
 
 class CreateHabitSheet extends StatefulWidget {
   final String? habitId;
@@ -64,6 +66,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
   late int _selectedIcon;
   late bool _isGoal;
   String? _selectedCategory;
+  bool _isScanning = false;
 
   final Map<String, IconData> _routineIcons = {
     'Morning': Icons.wb_sunny_rounded,
@@ -177,6 +180,55 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
     }
   }
 
+  // Moved here from a standalone home-screen FAB (AiLensButton) — a second
+  // permanently-shimmering FAB competing with "New Habit" for attention on
+  // the busiest screen in the app wasn't worth it for a feature people
+  // reach for occasionally. This sheet is where every habit gets created
+  // regardless of entry point, so it's just as discoverable here.
+  Future<void> _scanWithAiLens() async {
+    HapticFeedback.heavyImpact();
+    final picker = ImagePicker();
+    XFile? image;
+    try {
+      image = await picker.pickImage(source: ImageSource.camera);
+    } catch (e) {
+      debugPrint('AI Lens: camera unavailable: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Camera unavailable.')),
+        );
+      }
+      return;
+    }
+    if (image == null) return;
+
+    setState(() => _isScanning = true);
+    try {
+      final aiSuggestion = await AiCoachService.analyzeImageForHabit(image);
+      const Map<String, IconData> availableIcons = {
+        'Explore': Icons.explore_rounded,
+        'Fitness': Icons.fitness_center_rounded,
+        'Book': Icons.menu_book_rounded,
+        'Mind': Icons.self_improvement_rounded,
+        'Sun': Icons.wb_sunny_rounded,
+        'Moon': Icons.nightlight_round,
+        'Work': Icons.work_rounded,
+        'Heart': Icons.favorite_rounded,
+      };
+      final iconCodePoint =
+          (availableIcons[aiSuggestion['icon']] ?? Icons.explore_rounded)
+              .codePoint;
+      if (mounted) {
+        setState(() {
+          _titleController.text = aiSuggestion['title'] ?? _titleController.text;
+          _selectedIcon = iconCodePoint;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isScanning = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -225,21 +277,43 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
                   Icons.star_rounded,
                   color: Colors.white.withValues(alpha: 0.5),
                 ),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    getIconFromCodePoint(_selectedIcon),
-                    color: const Color(0xFF00E5FF),
-                  ),
-                  onPressed: () async {
-                    HapticFeedback.lightImpact();
-                    final pickedIcon = await IconPickerDialog.show(
-                      context,
-                      _selectedIcon,
-                    );
-                    if (pickedIcon != null) {
-                      setState(() => _selectedIcon = pickedIcon);
-                    }
-                  },
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: _isScanning
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF7000FF),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.document_scanner_rounded,
+                              color: Color(0xFF7000FF),
+                            ),
+                      tooltip: 'Scan with AI Lens',
+                      onPressed: _isScanning ? null : _scanWithAiLens,
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        getIconFromCodePoint(_selectedIcon),
+                        color: const Color(0xFF00E5FF),
+                      ),
+                      onPressed: () async {
+                        HapticFeedback.lightImpact();
+                        final pickedIcon = await IconPickerDialog.show(
+                          context,
+                          _selectedIcon,
+                        );
+                        if (pickedIcon != null) {
+                          setState(() => _selectedIcon = pickedIcon);
+                        }
+                      },
+                    ),
+                  ],
                 ),
                 filled: true,
                 fillColor: Colors.white.withValues(alpha: 0.05),
