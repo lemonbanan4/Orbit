@@ -1,6 +1,14 @@
 /// <reference types="jest" />
 import * as admin from "firebase-admin";
 import fft = require("firebase-functions-test");
+// firebase-functions-test's testEnv.wrap() picks v1 vs v2 wrapping by
+// checking the wrapped callback's arity (cloudFunction.run.length === 1) --
+// every onSchedule() handler in this codebase is `async () => {...}` (no
+// event param needed, a deliberate convention used consistently across all
+// six scheduled functions here), so that heuristic misdetects them as v1
+// and rejects the v2-shaped {scheduleTime} test event. wrapV2 skips the
+// heuristic and wraps unconditionally as v2.
+import {wrapV2} from "firebase-functions-test/lib/v2";
 
 // 1. Mock the Firebase Admin SDK before importing the function
 jest.mock("firebase-admin", () => {
@@ -72,8 +80,9 @@ describe("sendDailySummary", () => {
       });
       messagingSendMock.mockResolvedValue("message-id");
 
-      // Act: Wrap the v2 scheduled function and invoke it
-      const wrapped = testEnv.wrap(sendDailySummary);
+      // Act: wrap the v2 scheduled function and invoke it (see the wrapV2
+      // import comment above for why this isn't testEnv.wrap()).
+      const wrapped = wrapV2(sendDailySummary as any);
       const event = {scheduleTime: new Date().toISOString()};
       await wrapped(event as any);
 
@@ -107,7 +116,7 @@ describe("sendDailySummary", () => {
       });
 
       // Act
-      const wrapped = testEnv.wrap(sendDailySummary);
+      const wrapped = wrapV2(sendDailySummary as any);
       const event = {scheduleTime: new Date().toISOString()};
       await wrapped(event as any);
 
@@ -145,7 +154,7 @@ describe("deleteOldNotifications", () => {
       });
 
       // 3. Execute scheduled function
-      const wrapped = testEnv.wrap(deleteOldNotifications);
+      const wrapped = wrapV2(deleteOldNotifications as any);
       const event = {scheduleTime: mockNow.toISOString()};
       await wrapped(event as any);
 
