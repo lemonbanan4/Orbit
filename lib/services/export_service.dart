@@ -27,6 +27,31 @@ class ExportService {
     return buffer.toString();
   }
 
+  static String buildMoodCsv(Map<String, Map<String, String>> moodHistory) {
+    final dates = moodHistory.keys.toList()..sort();
+    final buffer = StringBuffer()..writeln('Date,Mood,Note');
+    for (final date in dates) {
+      final entry = moodHistory[date]!;
+      buffer.writeln(
+        [date, entry['mood'] ?? '', entry['note'] ?? '']
+            .map(_escapeCsvField)
+            .join(','),
+      );
+    }
+    return buffer.toString();
+  }
+
+  static String buildIntentionsCsv(Map<String, String> intentionHistory) {
+    final dates = intentionHistory.keys.toList()..sort();
+    final buffer = StringBuffer()..writeln('Date,Intention');
+    for (final date in dates) {
+      buffer.writeln(
+        [date, intentionHistory[date] ?? ''].map(_escapeCsvField).join(','),
+      );
+    }
+    return buffer.toString();
+  }
+
   static String _escapeCsvField(String field) {
     if (field.contains(',') || field.contains('"') || field.contains('\n')) {
       return '"${field.replaceAll('"', '""')}"';

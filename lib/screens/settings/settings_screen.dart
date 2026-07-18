@@ -35,14 +35,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _exportHabitHistory() async {
     final routineProvider = context.read<RoutineProvider>();
-    final csv = ExportService.buildHistoryCsv(routineProvider.habits.values);
+    final habitCsv = ExportService.buildHistoryCsv(routineProvider.habits.values);
+    final moodCsv = ExportService.buildMoodCsv(routineProvider.moodHistory);
+    final intentionsCsv =
+        ExportService.buildIntentionsCsv(routineProvider.intentionHistory);
 
-    if (csv.trim() == 'Habit,Routine,Date,Completed') {
+    final hasHabitData = habitCsv.trim() != 'Habit,Routine,Date,Completed';
+    final hasMoodData = moodCsv.trim() != 'Date,Mood,Note';
+    final hasIntentionData = intentionsCsv.trim() != 'Date,Intention';
+
+    if (!hasHabitData && !hasMoodData && !hasIntentionData) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              "No habit history yet — check back after your first daily reset.",
+              "No data yet to export — check back after your first daily reset.",
             ),
           ),
         );
@@ -53,15 +60,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _isExporting = true);
     HapticFeedback.mediumImpact();
     try {
-      final file = await ExportService.writeCsvToTempFile(
-        csv,
-        'orbit_habit_history_${DateTime.now().millisecondsSinceEpoch}.csv',
-      );
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final files = <XFile>[];
+      if (hasHabitData) {
+        final file = await ExportService.writeCsvToTempFile(
+          habitCsv,
+          'orbit_habit_history_$timestamp.csv',
+        );
+        files.add(XFile(file.path));
+      }
+      if (hasMoodData) {
+        final file = await ExportService.writeCsvToTempFile(
+          moodCsv,
+          'orbit_mood_log_$timestamp.csv',
+        );
+        files.add(XFile(file.path));
+      }
+      if (hasIntentionData) {
+        final file = await ExportService.writeCsvToTempFile(
+          intentionsCsv,
+          'orbit_intentions_$timestamp.csv',
+        );
+        files.add(XFile(file.path));
+      }
+
       await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(file.path)],
-          text: 'My Orbit habit history export',
-        ),
+        ShareParams(files: files, text: 'My Orbit data export'),
       );
     } catch (e) {
       if (mounted) {
@@ -702,7 +726,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       : Icons.file_download_rounded,
                   iconColor: _accent,
                   title: _isExporting ? 'Preparing export...' : 'Export My Data',
-                  subtitle: 'Download your full habit history as a CSV',
+                  subtitle: 'Habit history, mood log, and intentions as CSVs',
                 ),
               ],
             ),
