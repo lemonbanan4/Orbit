@@ -19,6 +19,7 @@ import '../../widgets/common/settings_tile.dart';
 import 'package:in_app_review/in_app_review.dart';
 import '../features/nebula_forge_screen.dart';
 import '../../theme/orbit_colors.dart';
+import '../../services/export_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -30,6 +31,48 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final _nameController = TextEditingController();
   bool _isSaving = false;
+  bool _isExporting = false;
+
+  Future<void> _exportHabitHistory() async {
+    final routineProvider = context.read<RoutineProvider>();
+    final csv = ExportService.buildHistoryCsv(routineProvider.habits.values);
+
+    if (csv.trim() == 'Habit,Routine,Date,Completed') {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "No habit history yet — check back after your first daily reset.",
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isExporting = true);
+    HapticFeedback.mediumImpact();
+    try {
+      final file = await ExportService.writeCsvToTempFile(
+        csv,
+        'orbit_habit_history_${DateTime.now().millisecondsSinceEpoch}.csv',
+      );
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path)],
+          text: 'My Orbit habit history export',
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to export: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
 
   // The app's actual brand accent (orange in dark mode, cyan in light) —
   // settings renders in both themes via BaseOrbitScreen, so every accent
@@ -638,6 +681,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ).animate().fade(delay: 200.ms).slideY(begin: 0.1),
+          const SizedBox(height: 40),
+          Text(
+            'My Data',
+            style: TextStyle(
+              color: textColor,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          PremiumGlassCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                SettingsTile(
+                  onTap: _isExporting ? () {} : _exportHabitHistory,
+                  icon: _isExporting
+                      ? Icons.hourglass_top_rounded
+                      : Icons.file_download_rounded,
+                  iconColor: _accent,
+                  title: _isExporting ? 'Preparing export...' : 'Export My Data',
+                  subtitle: 'Download your full habit history as a CSV',
+                ),
+              ],
+            ),
+          ).animate().fade(delay: 225.ms).slideY(begin: 0.1),
           const SizedBox(height: 40),
           Text(
             'Spread the Word',
