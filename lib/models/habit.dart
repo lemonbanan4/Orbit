@@ -91,6 +91,7 @@ class Habit {
       skippedCount: data['skippedCount'] is int ? data['skippedCount'] : 0,
       time: data['time']?.toString() ?? '00:00',
       isCompleted: isCompleted,
+      isGoal: data['isGoal'] == true,
       history: data['history'] is Map
           ? Map<String, bool>.from(
               (data['history'] as Map).map(
@@ -114,6 +115,7 @@ class Habit {
       'skippedCount': skippedCount,
       'time': time,
       'isCompleted': isCompleted,
+      'isGoal': isGoal,
       'history': history,
     };
   }

@@ -843,6 +843,8 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                           .sessionType,
                                                                   initialIcon: habit
                                                                       .iconCodePoint,
+                                                                  initialIsGoal:
+                                                                      habit.isGoal,
                                                                 );
                                                               },
                                                               backgroundColor:

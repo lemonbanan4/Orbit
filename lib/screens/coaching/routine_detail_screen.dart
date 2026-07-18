@@ -653,6 +653,8 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                             widget.sessionType,
                                                         initialIcon:
                                                             habit.iconCodePoint,
+                                                        initialIsGoal:
+                                                            habit.isGoal,
                                                       );
                                                     },
                                                     backgroundColor:

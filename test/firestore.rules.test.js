@@ -178,6 +178,28 @@ describe("Orbit Firestore Security Rules", () => {
     );
   });
 
+  it("Allows a user to mark their own habit as a goal", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const habitDoc = db
+      .collection("users")
+      .doc("user123")
+      .collection("habits")
+      .doc("habit1");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false });
+      await context
+        .firestore()
+        .collection("users")
+        .doc("user123")
+        .collection("habits")
+        .doc("habit1")
+        .set({ title: "Meditate", routine: "Morning", completedDays: 0, totalDays: 0 });
+    });
+
+    await assertSucceeds(habitDoc.update({ isGoal: true }));
+  });
+
   it("Denies a habit write with a field outside the allowlist", async () => {
     const db = testEnv.authenticatedContext("user123").firestore();
     const habitDoc = db

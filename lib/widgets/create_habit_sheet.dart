@@ -15,6 +15,7 @@ class CreateHabitSheet extends StatefulWidget {
   final String? initialTitle;
   final int? initialIcon;
   final String? initialRoutine; // ADDED THIS!
+  final bool initialIsGoal;
 
   const CreateHabitSheet({
     super.key,
@@ -22,6 +23,7 @@ class CreateHabitSheet extends StatefulWidget {
     this.initialTitle,
     this.initialIcon,
     this.initialRoutine,
+    this.initialIsGoal = false,
   });
 
   static void show(
@@ -30,6 +32,7 @@ class CreateHabitSheet extends StatefulWidget {
     String? initialTitle,
     int? initialIcon,
     String? initialRoutine,
+    bool initialIsGoal = false,
   }) {
     showModalBottomSheet(
       context: context,
@@ -40,6 +43,7 @@ class CreateHabitSheet extends StatefulWidget {
         initialTitle: initialTitle,
         initialIcon: initialIcon,
         initialRoutine: initialRoutine,
+        initialIsGoal: initialIsGoal,
       ),
     );
   }
@@ -53,6 +57,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
   bool _isLoading = false;
   late String _selectedRoutine;
   late int _selectedIcon;
+  late bool _isGoal;
 
   final Map<String, IconData> _routineIcons = {
     'Morning': Icons.wb_sunny_rounded,
@@ -67,6 +72,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
     _selectedIcon = widget.initialIcon ?? Icons.star_rounded.codePoint;
     // Magic Fix: Safely default to passed routine or Morning!
     _selectedRoutine = widget.initialRoutine ?? 'Morning';
+    _isGoal = widget.initialIsGoal;
   }
 
   @override
@@ -101,6 +107,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
           'totalDays': 0,
           'color': 0xFF00E5FF,
           'isCompleted': false,
+          'isGoal': _isGoal,
         };
 
         await FirebaseFirestore.instance
@@ -131,6 +138,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
                   existing?.order ??
                   provider.getHabitsForRoutine(_selectedRoutine).length,
               isCompleted: existing?.isCompleted ?? false,
+              isGoal: _isGoal,
               history: existing?.history,
             ),
           );
@@ -282,7 +290,25 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
                 );
               }).toList(),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _isGoal,
+              activeThumbColor: const Color(0xFF00E5FF),
+              title: const Text(
+                'Mark as Goal',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(
+                'Goal habits show a badge to help them stand out.',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+              ),
+              onChanged: (val) {
+                HapticFeedback.selectionClick();
+                setState(() => _isGoal = val);
+              },
+            ),
+            const SizedBox(height: 16),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF00E5FF),

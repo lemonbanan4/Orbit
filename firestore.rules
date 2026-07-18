@@ -70,7 +70,7 @@ service cloud.firestore {
       // side of the app's own model, so every addHabit() call was rejected).
       let allowedKeys = ['id', 'title', 'routine', 'iconCodePoint', 'color',
         'completedDays', 'totalDays', 'order', 'skippedCount', 'time', 'isCompleted',
-        'history'];
+        'history', 'isGoal'];
       return data.keys().hasOnly(allowedKeys) &&
              isValidString(data.title, 1, 100) &&
              isValidString(data.routine, 1, 50);
