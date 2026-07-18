@@ -75,6 +75,8 @@ class StatisticsScreen extends StatelessWidget {
                     const SizedBox(height: 40),
                     const _WeeklyConsistencyChart(),
                     const SizedBox(height: 40),
+                    const _BestDayCard(),
+                    const SizedBox(height: 40),
                     const _XpHistoryGraph(),
                     const SizedBox(height: 40),
                     const _PastMoodEntries(),
@@ -799,6 +801,173 @@ class _XpHistoryGraph extends StatelessWidget {
             ),
           ),
         ).animate().fade(delay: 200.ms, duration: 400.ms).slideY(begin: 0.1),
+      ],
+    );
+  }
+}
+
+class _BestDayCard extends StatelessWidget {
+  const _BestDayCard();
+
+  static const List<String> _weekdayNames = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+  static const List<String> _weekdayShort = [
+    'M',
+    'T',
+    'W',
+    'T',
+    'F',
+    'S',
+    'S',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textColor = theme.colorScheme.onSurface;
+    final Color orbColor1 =
+        theme.extension<OrbitColors>()?.orbColor1 ?? const Color(0xFF00E5FF);
+    final routineProvider = context.watch<RoutineProvider>();
+
+    // Average XP earned per weekday, computed from real date-keyed
+    // history — not a rolling window, so this reflects the user's whole
+    // tracked lifetime rather than just the last 7 days.
+    final totals = List<int>.filled(7, 0);
+    final daysSeen = List<int>.filled(7, 0);
+    routineProvider.xpHistory.forEach((dateStr, xp) {
+      final date = DateTime.tryParse(dateStr);
+      if (date == null) return;
+      final idx = date.weekday - 1;
+      totals[idx] += xp;
+      daysSeen[idx]++;
+    });
+
+    // Need a handful of different weekdays represented before calling out
+    // a "best" one — otherwise one lucky Tuesday looks like a pattern.
+    final weekdaysWithData = daysSeen.where((c) => c > 0).length;
+    if (weekdaysWithData < 3) {
+      return const SizedBox.shrink();
+    }
+
+    final averages = List<double>.generate(
+      7,
+      (i) => daysSeen[i] == 0 ? 0.0 : totals[i] / daysSeen[i],
+    );
+    var bestIdx = 0;
+    for (var i = 1; i < 7; i++) {
+      if (averages[i] > averages[bestIdx]) bestIdx = i;
+    }
+    final maxAvg = averages.reduce((a, b) => a > b ? a : b);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Best Day',
+          style: TextStyle(
+            color: textColor,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        PremiumGlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.auto_awesome_rounded, color: orbColor1, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "You're most consistent on ${_weekdayNames[bestIdx]}s",
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                height: 120,
+                child: BarChart(
+                  BarChartData(
+                    alignment: BarChartAlignment.spaceAround,
+                    maxY: maxAvg <= 0 ? 1 : maxAvg * 1.2,
+                    barTouchData: const BarTouchData(enabled: false),
+                    titlesData: FlTitlesData(
+                      show: true,
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          getTitlesWidget: (value, meta) {
+                            final idx = value.toInt();
+                            final isBest = idx == bestIdx;
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Text(
+                                _weekdayShort[idx],
+                                style: TextStyle(
+                                  color: isBest
+                                      ? orbColor1
+                                      : textColor.withValues(alpha: 0.5),
+                                  fontSize: 12,
+                                  fontWeight: isBest
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      leftTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                    ),
+                    gridData: const FlGridData(show: false),
+                    borderData: FlBorderData(show: false),
+                    barGroups: List.generate(7, (index) {
+                      final isBest = index == bestIdx;
+                      return BarChartGroupData(
+                        x: index,
+                        barRods: [
+                          BarChartRodData(
+                            toY: averages[index],
+                            color: isBest
+                                ? orbColor1
+                                : orbColor1.withValues(alpha: 0.3),
+                            width: 16,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ],
+                      );
+                    }),
+                  ),
+                  duration: const Duration(milliseconds: 800),
+                  curve: Curves.easeOutBack,
+                ),
+              ),
+            ],
+          ),
+        ).animate().fade(delay: 190.ms, duration: 400.ms).slideY(begin: 0.1),
       ],
     );
   }
