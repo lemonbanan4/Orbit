@@ -1,6 +1,6 @@
 // lib/services/alchemy_telemetry_service.dart
 
-import 'dart:math';
+import '../models/habit.dart';
 
 class HabitSynergy {
   final String habitA;
@@ -17,10 +17,12 @@ class HabitSynergy {
 }
 
 class AlchemyTelemetryService {
-  static final Random _random = Random();
-
-  /// Calculates real-time algorithmic pairings from the user's current habits list
-  static List<HabitSynergy> computeSynergyMatrix(List<dynamic> habits) {
+  /// Correlates real per-day completion history between adjacent habit
+  /// pairs — previously this generated a Random() variance on top of a
+  /// same-day isCompleted check and presented it as "real-time algorithmic
+  /// pairings," which was fabricated data dressed up as analysis. Now it's
+  /// a genuine co-occurrence rate computed from Habit.history.
+  static List<HabitSynergy> computeSynergyMatrix(List<Habit> habits) {
     if (habits.length < 2) {
       return [
         HabitSynergy(
@@ -35,30 +37,44 @@ class AlchemyTelemetryService {
 
     List<HabitSynergy> pairings = [];
 
-    // Loop through habits to create synergy combinations
-    for (int i = 0; i < min(habits.length - 1, 3); i++) {
+    for (int i = 0; i < (habits.length - 1).clamp(0, 3); i++) {
       final hA = habits[i];
       final hB = habits[i + 1];
 
-      // Realistically tie the telemetry generation to actual completion states
-      double baseSynergy = hA.isCompleted && hB.isCompleted ? 85.0 : 45.0;
-      double variance = _random.nextDouble() * 14.0;
-      double finalScore = (baseSynergy + variance).clamp(10.0, 99.0);
+      // Days both habits have any logged outcome (completed or skipped).
+      final sharedDays = hA.history.keys.toSet().intersection(
+        hB.history.keys.toSet(),
+      );
 
       String verdict;
-      if (finalScore >= 75.0) {
+      double score;
+      if (sharedDays.length < 3) {
+        score = 0.0;
         verdict =
-            "Strong Gravitational Pull. Completing '${hA.title}' creates an atmospheric cascade that almost guarantees the success of '${hB.title}'.";
+            "Not enough shared history yet. Keep logging both of these to reveal their true pattern.";
       } else {
-        verdict =
-            "Orbital Variance Detected. Friction exists between these coordinates. Try shifting the execution window of '${hB.title}' closer to '${hA.title}'.";
+        final aCompletedDays = sharedDays.where((d) => hA.history[d] == true);
+        final bothCompleted = aCompletedDays
+            .where((d) => hB.history[d] == true)
+            .length;
+        score = aCompletedDays.isEmpty
+            ? 0.0
+            : (bothCompleted / aCompletedDays.length) * 100;
+
+        if (score >= 75.0) {
+          verdict =
+              "Strong Gravitational Pull. On days you complete '${hA.title}', you complete '${hB.title}' too ${score.toStringAsFixed(0)}% of the time.";
+        } else {
+          verdict =
+              "Orbital Variance Detected. On days you complete '${hA.title}', you only complete '${hB.title}' ${score.toStringAsFixed(0)}% of the time. Try pairing their execution windows closer together.";
+        }
       }
 
       pairings.add(
         HabitSynergy(
-          habitA: hA.title as String,
-          habitB: hB.title as String,
-          synergyPercentage: double.parse(finalScore.toStringAsFixed(1)),
+          habitA: hA.title,
+          habitB: hB.title,
+          synergyPercentage: double.parse(score.toStringAsFixed(1)),
           cosmicVerdict: verdict,
         ),
       );
