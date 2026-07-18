@@ -43,12 +43,23 @@ class PastJourneysScreen extends StatelessWidget {
                   return _buildEmptyState();
                 }
 
-                // Filter for fully completed habits
+                // Filter for fully completed habits.
+                //
+                // totalDays used to be a fixed goal seeded at creation
+                // (21/7 days) that never changed, so `completed >= total`
+                // meant "hit every day of the actual goal." It's now a
+                // running "days tracked" tally that increments alongside
+                // completedDays every single day (see RoutineProvider's
+                // _checkDailyReset self-heal) -- for any never-skipped
+                // habit, completed == total from day one, which silently
+                // archived every actively-succeeding habit as "complete"
+                // immediately. 21 completions is the app's own established
+                // "habit formed" threshold (the old seed value this
+                // replaced).
                 final completedHabits = snapshot.data!.docs.where((doc) {
                   final data = doc.data() as Map<String, dynamic>;
                   final completed = data['completedDays'] as int? ?? 0;
-                  final total = data['totalDays'] as int? ?? 7;
-                  return completed >= total && total > 0;
+                  return completed >= 21;
                 }).toList();
 
                 if (completedHabits.isEmpty) {
@@ -65,13 +76,13 @@ class PastJourneysScreen extends StatelessWidget {
                     // never a real field, so this always fell back to
                     // "Unknown Journey" for every entry.
                     final title = data['title'] as String? ?? 'Unknown Journey';
-                    final total = data['totalDays'] as int? ?? 0;
+                    final completed = data['completedDays'] as int? ?? 0;
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 16.0),
                       child: JourneyCard(
                         title: title,
-                        subtitle: '$total-Day Journey Completed',
+                        subtitle: '$completed-Day Journey Completed',
                         progress: 1.0,
                         icon: Icons.check_circle_rounded,
                         accentColor: Colors.purpleAccent,
