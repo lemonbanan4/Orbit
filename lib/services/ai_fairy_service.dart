@@ -83,16 +83,24 @@ class AIFairyService {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('fairy_history')
-        .add({
-          'context': contextStr,
-          'fairyMessage': fairyMessage,
-          'userReply': userReply,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('fairy_history')
+          .add({
+            'context': contextStr,
+            'fairyMessage': fairyMessage,
+            'userReply': userReply,
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+    } catch (e) {
+      // Called fire-and-forget from ai_fairy_section.dart (no await, no
+      // caller-side error handling) — without this, a rejected write
+      // becomes an unhandled Future error instead of a low-severity,
+      // logged failure of a chat-history entry.
+      debugPrint('Failed to save fairy interaction: $e');
+    }
   }
 
   static Future<List<Map<String, dynamic>>> generateConstellation(
