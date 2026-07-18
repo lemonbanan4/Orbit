@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'dart:ui' as ui;
 import 'dart:io';
-import 'package:flutter/rendering.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/services.dart';
 import 'widgets/common/base_orbit_screen.dart';
 import 'providers/routine_provider.dart';
 import 'data/achievements_catalog.dart';
+import 'services/share_service.dart';
 
 class AchievementsScreen extends StatefulWidget {
   const AchievementsScreen({super.key});
@@ -166,23 +164,14 @@ class _AchievementCardState extends State<_AchievementCard> {
     if (!widget.isEarned || _isSharing) return;
     setState(() => _isSharing = true);
     try {
-      final boundary = _globalKey.currentContext?.findRenderObject()
-          as RenderRepaintBoundary?;
-      if (boundary == null) return;
-
-      final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (byteData == null) return;
-
-      final pngBytes = byteData.buffer.asUint8List();
-      final file = File(
-        '${Directory.systemTemp.path}/achievement_${widget.achievementKey}.png',
+      // ShareService.captureWidget is the same RepaintBoundary-capture
+      // logic this used to hand-roll — now shared with the (previously
+      // unused) richer share sheet below instead of duplicated here.
+      final file = await ShareService.captureWidget(
+        _globalKey,
+        'achievement_${widget.achievementKey}',
       );
-      await file.writeAsBytes(pngBytes);
-
-      if (mounted) _showShareBottomSheet(file);
-    } catch (e) {
-      debugPrint('Error generating share image: $e');
+      if (file != null && mounted) _showShareBottomSheet(file);
     } finally {
       if (mounted) setState(() => _isSharing = false);
     }
@@ -191,8 +180,13 @@ class _AchievementCardState extends State<_AchievementCard> {
   void _showShareBottomSheet(File imageFile) {
     final String shareText =
         "I just unlocked the '${widget.achievement['title']}' badge in Orbit! 🚀 Can you beat my streak?";
-    SharePlus.instance.share(
-      ShareParams(files: [XFile(imageFile.path)], text: shareText),
+    // Was a plain native share before — ShareService's sheet was fully
+    // built (native share + post-to-X + copy text + save to Photos) but
+    // sat unused while this screen only exposed the first option.
+    ShareService.showShareBottomSheet(
+      context: context,
+      imageFile: imageFile,
+      shareText: shareText,
     );
   }
 
