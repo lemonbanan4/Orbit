@@ -131,13 +131,26 @@ class _SkippedSessionsScreenState extends State<SkippedSessionsScreen> {
                                         _confettiController.play();
                                         await Future.delayed(
                                             const Duration(milliseconds: 600));
-                                        if (mounted) {
+                                        if (!mounted) return;
+                                        try {
                                           await FirebaseFirestore.instance
                                               .collection('users')
                                               .doc(user.uid)
                                               .collection('skipped_sessions')
                                               .doc(docs[index].id)
                                               .delete();
+                                        } catch (e) {
+                                          debugPrint(
+                                              'Failed to clear skipped session: $e');
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                    'Could not clear this session. Please try again.'),
+                                              ),
+                                            );
+                                          }
                                         }
                                       },
                                     ),
