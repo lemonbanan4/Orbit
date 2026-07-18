@@ -13,7 +13,6 @@ import '../../widgets/common/base_orbit_screen.dart';
 import '../../widgets/common/user_metrics_grid.dart';
 import '../../theme/orbit_colors.dart'; // For accessing our custom theme colors
 import '../coaching/mood_chart_widget.dart';
-import '../../theme/orbit_tokens.dart';
 
 class StatisticsScreen extends StatelessWidget {
   const StatisticsScreen({super.key});
@@ -1312,93 +1311,3 @@ class _PastCoachingNotes extends StatelessWidget {
   }
 }
 
-class WeeklyProgressChart extends StatelessWidget {
-  const WeeklyProgressChart({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final progress = context.watch<RoutineProvider>().weeklyProgress;
-    final Color accent =
-        Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
-        const Color(0xFF00E5FF);
-
-    // Convert data array to graph coordinates
-    final spots = List.generate(
-      progress.length,
-      (index) => FlSpot(index.toDouble(), progress[index] * 100),
-    );
-
-    return PremiumGlassCard(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Consistency Rate',
-            style: TextStyle(color: Colors.white70, fontSize: 16),
-          ),
-          const SizedBox(height: 32),
-          SizedBox(
-            height: 200,
-            child: LineChart(
-              LineChartData(
-                gridData: const FlGridData(show: false),
-                titlesData: const FlTitlesData(show: false), // Hide borders
-                borderData: FlBorderData(show: false),
-                lineTouchData: LineTouchData(
-                  touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (_) => OrbitTokens.surface,
-                    getTooltipItems: (touchedSpots) {
-                      return touchedSpots
-                          .map((spot) => LineTooltipItem(
-                                '${spot.y.toInt()}%',
-                                TextStyle(
-                                    color: accent,
-                                    fontWeight: FontWeight.bold),
-                              ))
-                          .toList();
-                    },
-                  ),
-                ),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: spots,
-                    isCurved: true,
-                    color: accent,
-                    barWidth: 4,
-                    isStrokeCapRound: true,
-                    dotData: FlDotData(
-                      show: true,
-                      getDotPainter: (spot, percent, barData, index) =>
-                          FlDotCirclePainter(
-                        radius: 4,
-                        color: Colors.white,
-                        strokeWidth: 2,
-                        strokeColor: accent,
-                      ),
-                    ),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: LinearGradient(
-                        colors: [
-                          accent.withValues(alpha: 0.3),
-                          Colors.transparent,
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
-                ],
-                minX: 0,
-                maxX: 6,
-                minY: 0,
-                maxY: 100,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
