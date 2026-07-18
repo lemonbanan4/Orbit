@@ -15,6 +15,7 @@ import '../providers/auth_provider.dart';
 
 import '../services/ai_coach_service.dart';
 import '../widgets/create_habit_sheet.dart';
+import '../widgets/ai_lens_button.dart';
 import '../screens/paywall/paywall_screen.dart';
 import '../widgets/common/base_orbit_screen.dart';
 import '../theme/orbit_colors.dart';
@@ -364,6 +365,8 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            const SizedBox(width: 12),
+            const AiLensButton(),
             const SizedBox(width: 12),
             FloatingActionButton.extended(
               heroTag: 'new_habit',

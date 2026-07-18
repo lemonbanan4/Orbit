@@ -15,7 +15,20 @@ class AiLensButton extends StatelessWidget {
       onPressed: () async {
         HapticFeedback.heavyImpact();
         final picker = ImagePicker();
-        final XFile? image = await picker.pickImage(source: ImageSource.camera);
+        XFile? image;
+        try {
+          image = await picker.pickImage(source: ImageSource.camera);
+        } catch (e) {
+          // No camera (simulator) or permission denied — picker throws
+          // rather than returning null, unlike a plain cancel.
+          debugPrint('AI Lens: camera unavailable: $e');
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Camera unavailable.')),
+            );
+          }
+          return;
+        }
 
         if (image != null && context.mounted) {
           showDialog(
