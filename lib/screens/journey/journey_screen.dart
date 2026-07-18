@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:orbit_app/providers/atmosphere_provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -135,6 +136,32 @@ class _JourneyScreenState extends State<JourneyScreen> {
     final routineProvider = context.watch<RoutineProvider>();
     // Map unlocked states precisely to current active streak count
     final currentStreak = routineProvider.currentStreak;
+
+    // Celebrate a Focus Journey hitting its final chapter — the XP was
+    // already granted the moment RoutineProvider detected it (during the
+    // daily-reset cycle); this just surfaces a one-time popup for it, then
+    // clears the flag so it doesn't repeat on the next rebuild.
+    final completedJourney = routineProvider.justCompletedJourney;
+    if (completedJourney != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        routineProvider.acknowledgeJourneyCompletion();
+        HapticFeedback.heavyImpact();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: OrbitTokens.surface,
+            behavior: SnackBarBehavior.floating,
+            content: Text(
+              '$completedJourney Journey Mastered! +${RoutineProvider.journeyCompletionBonusXp} XP',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        );
+      });
+    }
 
     return Consumer<AtmosphereProvider>(
       builder: (context, atmosphere, child) {
@@ -312,6 +339,8 @@ class _JourneyScreenState extends State<JourneyScreen> {
                             );
                             final progress = routineProvider
                                 .categoryChapterProgress(option.value);
+                            final isMastered =
+                                chapter >= RoutineProvider.maxChapters;
                             return Padding(
                               padding: EdgeInsets.only(
                                 bottom:
@@ -328,8 +357,9 @@ class _JourneyScreenState extends State<JourneyScreen> {
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
                                     color: option.color.withValues(
-                                      alpha: 0.2,
+                                      alpha: isMastered ? 0.6 : 0.2,
                                     ),
+                                    width: isMastered ? 1.5 : 1,
                                   ),
                                 ),
                                 child: Row(
@@ -357,13 +387,30 @@ class _JourneyScreenState extends State<JourneyScreen> {
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                               ),
-                                              Text(
-                                                'Chapter $chapter of ${RoutineProvider.maxChapters}',
-                                                style: TextStyle(
-                                                  color: option.color,
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w700,
-                                                ),
+                                              Row(
+                                                mainAxisSize:
+                                                    MainAxisSize.min,
+                                                children: [
+                                                  if (isMastered) ...[
+                                                    Icon(
+                                                      Icons.star_rounded,
+                                                      color: option.color,
+                                                      size: 13,
+                                                    ),
+                                                    const SizedBox(width: 3),
+                                                  ],
+                                                  Text(
+                                                    isMastered
+                                                        ? 'Mastered'
+                                                        : 'Chapter $chapter of ${RoutineProvider.maxChapters}',
+                                                    style: TextStyle(
+                                                      color: option.color,
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ),

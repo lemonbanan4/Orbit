@@ -459,6 +459,20 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   };
   static const int chapterSize = 5;
   static const int maxChapters = 5;
+  // Paid from the same _xp pool habit completions already earn (10 XP
+  // each) and streak freezes / Nebula Themes already spend — a full
+  // journey (chapter 1 -> 5) takes 20 completions, so this is a
+  // meaningfully larger payoff than any single day's grind.
+  static const int journeyCompletionBonusXp = 150;
+
+  // Set the day a journey first reaches maxChapters; cleared once the UI
+  // shows the celebration, mirroring the (previously dormant, now reused)
+  // _justLeveledUp/acknowledgeLevelUp pattern below.
+  String? _justCompletedJourney;
+  String? get justCompletedJourney => _justCompletedJourney;
+  void acknowledgeJourneyCompletion() {
+    _justCompletedJourney = null;
+  }
 
   /// Total completed days logged across every habit tagged with [category]
   /// (a StellarPlanetVariant name, e.g. 'fitness').
@@ -486,12 +500,26 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// since unlockChapter() only writes when a chapter actually advances.
   void _checkFocusJourneyUnlocks() {
     for (final category in focusJourneyLabels.keys) {
+      final label = focusJourneyLabels[category]!;
+      final previousChapter = getUnlockedChapters(label);
       final completions = categoryCompletions(category);
       final targetChapter = (1 + completions ~/ chapterSize).clamp(
         1,
         maxChapters,
       );
-      unlockChapter(focusJourneyLabels[category]!, targetChapter);
+      unlockChapter(label, targetChapter);
+
+      if (targetChapter == maxChapters && previousChapter < maxChapters) {
+        _xp += journeyCompletionBonusXp;
+        final today = DateTime.now().toIso8601String().substring(0, 10);
+        _xpHistory[today] = (_xpHistory[today] ?? 0) + journeyCompletionBonusXp;
+        _prefs?.setInt('xp', _xp);
+        // Only surface one celebration at a time — if two journeys finish
+        // on the same day-reset, the rest still got their XP, just not a
+        // popup (extremely rare, and each one still shows once it's the
+        // only outstanding completion).
+        _justCompletedJourney ??= label;
+      }
     }
   }
 
