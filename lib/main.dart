@@ -38,6 +38,8 @@ import 'providers/atmosphere_provider.dart'; // Adjust path if needed based on y
 import 'providers/telemetry_provider.dart'; // Adjust path if needed based on your structure
 
 import 'theme/app_theme.dart';
+import 'theme/orbit_colors.dart';
+import 'theme/nebula_themes.dart';
 
 // Services
 import 'services/cosmic_mirror_service.dart'; // For generating the weekly legend
@@ -151,15 +153,24 @@ void main() async {
     originalDebugPrint(message, wrapWidth: wrapWidth);
   };
 
-  // Pass all uncaught "fatal" errors from the framework to Crashlytics
+  // Pass all uncaught "fatal" errors from the framework to Crashlytics.
+  // Chained onto whatever handler was already installed (the default is
+  // FlutterError.presentError, so this preserves that in production)
+  // rather than replacing it outright — flutter_test/integration_test
+  // install their own FlutterError.onError to detect test failures, and
+  // clobbering it here made every test using this app's real main()
+  // fail with a binding assertion regardless of what the test did.
+  final previousOnError = FlutterError.onError;
   FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.presentError(details);
+    previousOnError?.call(details);
     FirebaseCrashlytics.instance.recordFlutterFatalError(details);
   };
   // 2. Catch asynchronous Dart errors (like unhandled Futures)
   // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
   // Optionally, you can also catch Dart errors that aren't caught by Flutter's error handling
+  final previousPlatformOnError = PlatformDispatcher.instance.onError;
   PlatformDispatcher.instance.onError = (error, stack) {
+    previousPlatformOnError?.call(error, stack);
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
     return true; // Return true to indicate that the error has been handled
   };
@@ -429,12 +440,20 @@ class _OrbitAppState extends State<OrbitApp> {
       user,
     ) async {
       if (user != null) {
-        final token = await FirebaseMessaging.instance.getToken();
-        if (token != null) {
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .set({'fcmToken': token}, SetOptions(merge: true));
+        // Throws on simulators (and real devices before APNS has
+        // provisioned a token) — was previously unguarded, an uncaught
+        // error inside this stream listener that only Crashlytics'
+        // global handlers happened to absorb silently in production.
+        try {
+          final token = await FirebaseMessaging.instance.getToken();
+          if (token != null) {
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .set({'fcmToken': token}, SetOptions(merge: true));
+          }
+        } catch (e) {
+          debugPrint('FirebaseMessaging.getToken error: $e');
         }
 
         // Sync RevenueCat with Firebase Auth User to ensure subscriptions work cross-device
@@ -546,6 +565,17 @@ class _OrbitAppState extends State<OrbitApp> {
     // line 6417.
     context.select<RoutineProvider, String>((p) => p.themeMode);
 
+    // Selected separately so a Nebula Theme purchase/switch (see
+    // RoutineProvider.setActiveNebulaTheme) restyles the app's OrbitColors
+    // accent without rebuilding on unrelated provider notifications.
+    final activeNebulaTheme = context.select<RoutineProvider, String>(
+      (p) => p.activeNebulaTheme,
+    );
+    final nebulaColors = OrbitColors(
+      orbColor1: NebulaThemes.byName(activeNebulaTheme).orbColor1,
+      orbColor2: NebulaThemes.byName(activeNebulaTheme).orbColor2,
+    );
+
     return MaterialApp.router(
       title: 'Orbit',
 
@@ -554,8 +584,8 @@ class _OrbitAppState extends State<OrbitApp> {
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.dark, // Forces Dark Mode permanently
       // --- THEMES ---
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme.copyWith(extensions: [nebulaColors]),
+      darkTheme: AppTheme.darkTheme.copyWith(extensions: [nebulaColors]),
 
       // --- ROUTING ENGINE ---
       routerConfig: _router,

@@ -20,6 +20,7 @@ import 'package:in_app_review/in_app_review.dart';
 import '../features/nebula_forge_screen.dart';
 import '../../theme/orbit_colors.dart';
 import '../../services/export_service.dart';
+import '../../widgets/settings/nebula_theme_sheet.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -584,6 +585,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 //   color: textColor.withValues(alpha: 0.1),
                 //   height: 1,
                 // ),
+                SettingsTile(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    NebulaThemeSheet.show(context);
+                  },
+                  icon: Icons.palette_rounded,
+                  title: 'Nebula Theme',
+                ),
+                Divider(
+                  color: textColor.withValues(alpha: 0.1),
+                  height: 1,
+                ),
                 SettingsTile(
                   onTap: () {
                     HapticFeedback.selectionClick();

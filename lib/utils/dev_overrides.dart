@@ -14,4 +14,10 @@ class DevOverrides {
   static const bool forceProInDebug = true;
 
   static bool get isProUnlocked => kDebugMode && forceProInDebug;
+
+  /// Flip to false to test the real Orbit Store XP costs (streak freezes,
+  /// Nebula Themes) in debug builds.
+  static const bool freeStoreInDebug = true;
+
+  static bool get storeIsFreeInDebug => kDebugMode && freeStoreInDebug;
 }

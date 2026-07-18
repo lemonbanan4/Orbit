@@ -14,6 +14,8 @@ import 'dart:convert';
 import '../services/notification_service.dart';
 import '../models/routine_alarm.dart';
 import '../models/habit.dart';
+import '../theme/nebula_themes.dart';
+import '../utils/dev_overrides.dart';
 
 class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   SharedPreferences? _prefs;
@@ -457,15 +459,54 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   // --- NEBULA THEMES ---
   List<String> _unlockedThemes = ['Default'];
   String _activeNebulaTheme = 'Default';
+  bool _isBuyingTheme = false;
 
   List<String> get unlockedThemes => _unlockedThemes;
   String get activeNebulaTheme => _activeNebulaTheme;
+  bool get isBuyingTheme => _isBuyingTheme;
 
-  void unlockTheme(String theme) {
-    if (!_unlockedThemes.contains(theme)) {
+  /// Spends the theme's XP cost (the unlockNebulaTheme callable's own
+  /// price) to permanently unlock a Nebula Theme. Returns null on success,
+  /// or a user-facing error message on failure.
+  Future<String?> unlockTheme(String theme) async {
+    if (_isBuyingTheme || _unlockedThemes.contains(theme)) return null;
+
+    if (DevOverrides.storeIsFreeInDebug) {
       _unlockedThemes.add(theme);
       notifyListeners();
       _saveToCloud();
+      return null;
+    }
+
+    _isBuyingTheme = true;
+    notifyListeners();
+
+    try {
+      final result = await FirebaseFunctions.instanceFor(
+        region: 'europe-west1',
+      ).httpsCallable('unlockNebulaTheme').call({'theme': theme});
+
+      final data = Map<String, dynamic>.from(result.data as Map);
+      _unlockedThemes.add(theme);
+      if (data['newXp'] is int) {
+        _xp = data['newXp'] as int;
+      } else {
+        _xp -= NebulaThemes.byName(theme).cost;
+      }
+      _prefs?.setInt('xp', _xp);
+      _saveToCloud();
+      return null;
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'failed-precondition') {
+        return 'Not enough XP — habits earn 10 XP each.';
+      }
+      return e.message ?? 'Could not reach the Orbit Store.';
+    } catch (e) {
+      debugPrint('unlockTheme error: $e');
+      return 'Could not reach the Orbit Store.';
+    } finally {
+      _isBuyingTheme = false;
+      notifyListeners();
     }
   }
 
