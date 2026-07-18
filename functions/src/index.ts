@@ -1007,10 +1007,16 @@ export const searchUsers = onCall(async (request) => {
     return {results: []};
   }
 
+  // 'name' is the field the app actually shows and lets users edit
+  // (profile_screen.dart, leaderboard_screen.dart, Settings' profile
+  // editor) -- 'displayName' is a separate field _saveToCloud() overwrites
+  // on every save with FirebaseAuth's own displayName property (usually
+  // null, falling back to "Commander"), so querying it here would return
+  // the wrong name for most users even though the query itself succeeds.
   const snapshot = await admin.firestore()
     .collection("users")
-    .where("displayName", ">=", query)
-    .where("displayName", "<=", `${query}`)
+    .where("name", ">=", query)
+    .where("name", "<=", query + "\uf8ff")
     .limit(20)
     .get();
 
@@ -1020,7 +1026,7 @@ export const searchUsers = onCall(async (request) => {
       const data = doc.data();
       return {
         uid: doc.id,
-        displayName: data.displayName || "Unknown",
+        displayName: data.name || "Unknown",
         xp: data.xp || 0,
       };
     });

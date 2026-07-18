@@ -53,10 +53,14 @@ service cloud.firestore {
         'wisdomStreak', 'lastWisdomDate', 'streakFreezes', 'isStreakFrozen'
       ];
 
-      // Prevent 1MB string payload attacks on display name
-      let isNameValid = !('displayName' in data) || isValidString(data.displayName, 0, 60);
-      
-      return data.keys().hasOnly(allowedKeys) && isNameValid;
+      // Prevent 1MB string payload attacks on display name — 'name' is
+      // the field actually shown/edited in the app (profile, leaderboard,
+      // settings); 'displayName' is a separate FirebaseAuth-mirrored
+      // field. Both need the same guard.
+      let isDisplayNameValid = !('displayName' in data) || isValidString(data.displayName, 0, 60);
+      let isNameValid = !('name' in data) || isValidString(data.name, 0, 60);
+
+      return data.keys().hasOnly(allowedKeys) && isDisplayNameValid && isNameValid;
     }
 
     function isValidHabit(data) {
