@@ -1131,6 +1131,34 @@ export const getPartnerInfo = onCall(async (request) => {
   };
 });
 
+// There has never been a way to remove a friend — the mutual friends[]
+// arrays can only be written server-side (same isOwner-only reasoning as
+// notifyOnFriendRequestAccepted's add path), and nothing calls a
+// removal equivalent.
+export const removeFriend = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Must be logged in.");
+  }
+
+  const friendUid = request.data?.friendUid;
+  if (!friendUid || typeof friendUid !== "string") {
+    throw new HttpsError("invalid-argument", "Missing friendUid.");
+  }
+
+  const uid = request.auth.uid;
+  const db = admin.firestore();
+  const batch = db.batch();
+  batch.update(db.collection("users").doc(uid), {
+    friends: admin.firestore.FieldValue.arrayRemove(friendUid),
+  });
+  batch.update(db.collection("users").doc(friendUid), {
+    friends: admin.firestore.FieldValue.arrayRemove(uid),
+  });
+  await batch.commit();
+
+  return {success: true};
+});
+
 // Cleans up guest accounts that are older than 30 days
 export const deleteOrphanedGuestAccounts = onSchedule(
   "every day 03:00",

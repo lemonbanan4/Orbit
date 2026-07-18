@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/orbit_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../widgets/common/base_orbit_screen.dart';
@@ -24,6 +25,49 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _confirmRemoveFriend(String friendUid, String friendName) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Friend?'),
+        content: Text(
+          "$friendName will be removed from your orbit. You'll need a new invite to reconnect.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    HapticFeedback.mediumImpact();
+    try {
+      await FirebaseFunctions.instanceFor(region: 'europe-west1')
+          .httpsCallable('removeFriend')
+          .call({'friendUid': friendUid});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Removed $friendName.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Failed to remove friend: $e'),
+              backgroundColor: Colors.redAccent),
+        );
+      }
+    }
   }
 
   Color _getRankColor(int rank) {
@@ -268,6 +312,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                             ),
                           ),
                         );
+
+                        if (!isMe) {
+                          card = GestureDetector(
+                            onLongPress: () =>
+                                _confirmRemoveFriend(docs[index].id, name as String),
+                            child: card,
+                          );
+                        }
 
                         // Add a pulsing glow to the top 3 ranks!
                         if (isTop3) {
