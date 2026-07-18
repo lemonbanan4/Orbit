@@ -465,10 +465,20 @@ class _PaywallScreenState extends State<PaywallScreen> {
         final url = Uri.parse('https://play.google.com/redeem');
         if (await canLaunchUrl(url)) {
           await launchUrl(url, mode: LaunchMode.externalApplication);
+        } else {
+          throw Exception('No app available to open the Play Store link');
         }
       }
     } catch (e) {
       debugPrint("Error presenting code redemption: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: Colors.redAccent,
+            content: Text("Couldn't open code redemption. Please try again."),
+          ),
+        );
+      }
     }
   }
 

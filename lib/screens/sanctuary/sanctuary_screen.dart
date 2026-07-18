@@ -40,14 +40,25 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
       setState(() => _isPro = true);
       return;
     }
-    try {
-      CustomerInfo customerInfo = await Purchases.getCustomerInfo();
-      if (customerInfo.entitlements.all["Orbit Pro"]?.isActive == true &&
-          mounted) {
-        setState(() => _isPro = true);
+    // A transient RevenueCat/network blip here is indistinguishable from
+    // "not subscribed" to the rest of this screen (fails closed, no error
+    // UI) — a real Pro subscriber could silently see gated content. One
+    // retry absorbs a one-off hiccup without adding a visible error state
+    // for what's a background check, not a user-initiated action.
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        CustomerInfo customerInfo = await Purchases.getCustomerInfo();
+        if (customerInfo.entitlements.all["Orbit Pro"]?.isActive == true &&
+            mounted) {
+          setState(() => _isPro = true);
+        }
+        return;
+      } catch (e) {
+        debugPrint('Failed to check pro status (attempt $attempt): $e');
+        if (attempt == 0) {
+          await Future.delayed(const Duration(seconds: 1));
+        }
       }
-    } catch (e) {
-      debugPrint('Failed to check pro status: $e');
     }
   }
 
@@ -1097,12 +1108,24 @@ class _JournalBottomSheetState extends State<_JournalBottomSheet> {
                                                       debugPrint(
                                                         "💥 Failed to delete entry: $e",
                                                       );
-                                                      if (mounted) {
+                                                      if (context.mounted) {
                                                         setState(
                                                           () => _deletingIds
                                                               .remove(
                                                                 docs[index].id,
                                                               ),
+                                                        );
+                                                        ScaffoldMessenger.of(
+                                                          context,
+                                                        ).showSnackBar(
+                                                          const SnackBar(
+                                                            content: Text(
+                                                              "Cosmic Interference: Failed to delete entry.",
+                                                            ),
+                                                            backgroundColor:
+                                                                Colors
+                                                                    .redAccent,
+                                                          ),
                                                         );
                                                       }
                                                     }
