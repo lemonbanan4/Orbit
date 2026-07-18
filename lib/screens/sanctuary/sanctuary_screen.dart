@@ -24,6 +24,10 @@ class SanctuaryScreen extends StatefulWidget {
 
 class _SanctuaryScreenState extends State<SanctuaryScreen> {
   bool _isPro = false;
+  // wisdomStreak was persisted to Firestore on every scroll-unroll but
+  // never actually surfaced anywhere in the UI — loaded here so the CTA
+  // card below can show it, same as the habit streak does on Home.
+  int _wisdomStreak = 0;
 
   // Debug-only paywall bypass (was a hardcoded `true` that leaked the
   // bypass into release builds — DevOverrides is inert outside debug).
@@ -33,6 +37,24 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
   void initState() {
     super.initState();
     _checkProStatus();
+    _loadWisdomStreak();
+  }
+
+  Future<void> _loadWisdomStreak() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      final streak = doc.data()?['wisdomStreak'] as int?;
+      if (streak != null && mounted) {
+        setState(() => _wisdomStreak = streak);
+      }
+    } catch (e) {
+      debugPrint('Failed to load wisdom streak: $e');
+    }
   }
 
   Future<void> _checkProStatus() async {
@@ -113,7 +135,9 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
           .collection('users')
           .doc(user.uid)
           .get();
-      int streak = userDoc.data()?['wisdomStreak'] ?? 0;
+      final userData = userDoc.data();
+      int streak = userData?['wisdomStreak'] ?? 0;
+      final lastWisdomTimestamp = userData?['lastWisdomDate'] as Timestamp?;
 
       if (mounted) {
         Navigator.pop(context);
@@ -130,23 +154,46 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
         );
 
         if (_isPro) {
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .update({
-                'wisdomStreak': streak + 1,
-                'lastWisdomDate': FieldValue.serverTimestamp(),
+          // lastWisdomDate was written on every unroll but never actually
+          // checked -- the streak incremented per tap, not per day, so
+          // rapidly re-tapping "Unroll Daily Wisdom" could farm the 5-day
+          // Sage Badge in one sitting. Only advance once per calendar day,
+          // and reset (rather than continue) if a day was skipped, matching
+          // how habit streaks already behave elsewhere in the app.
+          final today = DateTime.now();
+          final todayKey = DateTime(today.year, today.month, today.day);
+          final lastDate = lastWisdomTimestamp?.toDate();
+          final lastKey = lastDate == null
+              ? null
+              : DateTime(lastDate.year, lastDate.month, lastDate.day);
+
+          if (lastKey != todayKey) {
+            final daysSinceLast = lastKey == null
+                ? null
+                : todayKey.difference(lastKey).inDays;
+            final newStreak = (daysSinceLast == null || daysSinceLast > 1)
+                ? 1
+                : streak + 1;
+
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .update({
+                  'wisdomStreak': newStreak,
+                  'lastWisdomDate': FieldValue.serverTimestamp(),
+                });
+            if (mounted) setState(() => _wisdomStreak = newStreak);
+            if (newStreak == 5) {
+              Future.delayed(const Duration(seconds: 2), () {
+                if (mounted) {
+                  RewardPopup.show(
+                    context,
+                    title: "Sage Badge Unlocked!",
+                    xpEarned: 500,
+                  );
+                }
               });
-          if (streak + 1 == 5) {
-            Future.delayed(const Duration(seconds: 2), () {
-              if (mounted) {
-                RewardPopup.show(
-                  context,
-                  title: "Sage Badge Unlocked!",
-                  xpEarned: 500,
-                );
-              }
-            });
+            }
           }
         }
       }
@@ -297,26 +344,44 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
                                       ),
                                     ],
                                   ),
-                                  child: const Center(
-                                    child: Row(
+                                  child: Center(
+                                    child: Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        Icon(
-                                          Icons.auto_stories_rounded,
-                                          color: Colors.white,
-                                          size: 32,
+                                        const Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.auto_stories_rounded,
+                                              color: Colors.white,
+                                              size: 32,
+                                            ),
+                                            SizedBox(width: 16),
+                                            Text(
+                                              "Unroll Daily Wisdom",
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 1.2,
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        SizedBox(width: 16),
-                                        Text(
-                                          "Unroll Daily Wisdom",
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 1.2,
+                                        if (_wisdomStreak > 0) ...[
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            "🔥 $_wisdomStreak day streak",
+                                            style: TextStyle(
+                                              color: Colors.white
+                                                  .withValues(alpha: 0.85),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
-                                        ),
+                                        ],
                                       ],
                                     ),
                                   ),
