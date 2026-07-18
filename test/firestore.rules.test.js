@@ -70,6 +70,47 @@ describe("Orbit Firestore Security Rules", () => {
     await assertFails(guestDoc.update({ streakCount: 100 }));
   });
 
+  it("Allows a user to write and read their own coaching note", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const notesRef = db
+      .collection("users")
+      .doc("user123")
+      .collection("coaching_notes");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false });
+    });
+
+    await assertSucceeds(
+      notesRef.add({
+        text: "Felt good about today's routine.",
+        mood: "Calm",
+        createdAt: new Date(),
+      })
+    );
+    await assertSucceeds(notesRef.get());
+  });
+
+  it("Denies another user from reading someone else's coaching notes", async () => {
+    const aliceDb = testEnv.authenticatedContext("alice123").firestore();
+    const bobNotesRef = aliceDb
+      .collection("users")
+      .doc("bob456")
+      .collection("coaching_notes");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("bob456").set({ isGuest: false });
+      await context
+        .firestore()
+        .collection("users")
+        .doc("bob456")
+        .collection("coaching_notes")
+        .add({ text: "Private reflection", timestamp: new Date() });
+    });
+
+    await assertFails(bobNotesRef.get());
+  });
+
   it("Allows a user to log a skipped session with a habit title", async () => {
     const db = testEnv.authenticatedContext("user123").firestore();
     const sessionsRef = db

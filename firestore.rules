@@ -106,6 +106,13 @@ service cloud.firestore {
              isValidString(data.habitTitle, 1, 100);
     }
 
+    function isValidCoachingNote(data) {
+      let allowedKeys = ['text', 'createdAt', 'mood'];
+      return data.keys().hasOnly(allowedKeys) &&
+             isValidString(data.text, 0, 2000) &&
+             (!('mood' in data) || isValidString(data.mood, 0, 30));
+    }
+
     function isValidFriendRequest(data) {
       let allowedKeys = ['senderId', 'senderName', 'status', 'timestamp'];
       return data.keys().hasOnly(allowedKeys) &&
@@ -146,6 +153,17 @@ service cloud.firestore {
       match /skipped_sessions/{sessionId} {
         allow read, delete: if isOwner(userId);
         allow create, update: if isOwner(userId) && isValidSkippedSession(request.resource.data);
+      }
+
+      match /coaching_notes/{noteId} {
+        // Had no rule at all — every write from coaching_session_screen.dart
+        // (a reflection note + mood, submitted at the end of a coaching
+        // session) and every read from mood_chart_widget.dart's "Recent
+        // Mood Analysis" card on the Stats screen fell through to the
+        // default-deny catch-all below. The write was silently swallowed
+        // (caught, debugPrint only), so this has never worked for anyone.
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidCoachingNote(request.resource.data);
       }
 
       match /notifications/{notificationId} {
