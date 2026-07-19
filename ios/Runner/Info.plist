@@ -55,10 +55,6 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Orbit needs camera access so the AI Lens can suggest a habit from a photo.</string>
-	<key>NSHealthShareUsageDescription</key>
-	<string>We use your workout data to automatically complete habits.</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>We use your workout data to automatically complete habits.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>We need access to your microphone so you can speak your goals to the Routine Genie.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

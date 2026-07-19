@@ -22,9 +22,6 @@
 
 
 
-<!-- Health Connect Permissions -->
-
-
     <application
         android:label="Orbit"
         android:name="${applicationName}"
@@ -115,16 +112,6 @@
             </intent-filter>
         </activity-alias>
 
-        <!-- Required for Health Connect -->
-        <activity-alias
-            android:name="com.cph.health.HealthConnectPermissionController"
-            android:exported="true"
-            android:targetActivity=".MainActivity">
-            <intent-filter>
-                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
-            </intent-filter>
-        </activity-alias>
-
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
@@ -197,7 +184,5 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
-        <!-- Required for Health Connect -->
-        <package android:name="com.google.android.apps.healthdata" />
     </queries>
 </manifest>
