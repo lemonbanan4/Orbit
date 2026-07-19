@@ -686,8 +686,22 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  void addRoutineAlarm(String routineType, String newTime) {
+  // NotificationService.scheduleRoutineAlarms IDs each alarm as
+  // offset + i*7 + day (i = alarm index, day 0-6) and reserves
+  // offset+60..+66 for the group summary notification -- an unbounded
+  // alarm count lets a routine's own alarm IDs collide with its summary
+  // slot (from the 9th alarm on) or exceed cancelAlarms' fixed 0..69
+  // cleanup range, leaving orphaned "ghost" notifications that survive
+  // deletion. 8 alarms keeps the max ID at offset+55, safely under +60.
+  static const int maxAlarmsPerRoutine = 8;
+
+  /// Returns false (and adds nothing) if [routineType] is already at the
+  /// max alarm count.
+  bool addRoutineAlarm(String routineType, String newTime) {
     _routineAlarms[routineType] ??= [];
+    if (_routineAlarms[routineType]!.length >= maxAlarmsPerRoutine) {
+      return false;
+    }
     // Default new alarms to Monday-Friday!
     _routineAlarms[routineType]!.add(
       RoutineAlarm(
@@ -697,6 +711,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     );
     notifyListeners();
     _syncAlarms(routineType);
+    return true;
   }
 
   void removeRoutineAlarm(String routineType, int index) {

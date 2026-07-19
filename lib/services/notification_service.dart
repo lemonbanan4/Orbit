@@ -124,7 +124,11 @@ class NotificationService {
     required String body,
     required tz.TZDateTime scheduledDate,
     required NotificationDetails details,
-    required DateTimeComponents matchDateTimeComponents,
+    // Null means one-off (no repeat). Passing a value like
+    // DateTimeComponents.time makes the plugin treat this as a daily
+    // recurring notification -- only pass one for genuinely repeating
+    // reminders (routine alarms), never for a single delayed nudge.
+    DateTimeComponents? matchDateTimeComponents,
     String? payload,
   }) async {
     try {
@@ -338,7 +342,6 @@ class NotificationService {
             'The cosmos has aligned for another attempt. Ready to dive back in?',
         scheduledDate: scheduledTime,
         details: details,
-        matchDateTimeComponents: DateTimeComponents.time,
         payload: '{"screen": "dashboard"}',
       );
     } catch (e) {
@@ -436,6 +439,12 @@ class NotificationService {
     // trigger the actual OS prompt.
     if (userAgreed == true && context.mounted) {
       await checkAndRequestPermissions(context);
+      // Also request Android 12+'s exact-alarm permission here -- this was
+      // previously never called anywhere, so every routine/daily/reattempt
+      // reminder's exact scheduling attempt silently failed and fell back
+      // to inexact (drifting within the OS's batching window) with no way
+      // for the user to fix it.
+      await requestExactAlarmsPermission();
     }
   }
 

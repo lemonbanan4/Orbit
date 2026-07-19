@@ -831,6 +831,26 @@ export const redeemReferralCode = onCall(async (request) => {
     throw new HttpsError("not-found", "Referral code not found or invalid.");
   }
 
+  // Reserve the redemption transactionally before granting anything --
+  // without this, nothing stopped a user from calling this callable
+  // repeatedly with any valid code and stacking unlimited free 30-day Pro
+  // grants for themselves (and their referrer) every time.
+  const refereeRef = admin.firestore().collection("users").doc(refereeUid);
+  await admin.firestore().runTransaction(async (transaction) => {
+    const refereeDoc = await transaction.get(refereeRef);
+    if (refereeDoc.exists && refereeDoc.data()?.referredBy) {
+      throw new HttpsError(
+        "already-exists",
+        "You've already redeemed a referral code."
+      );
+    }
+    transaction.set(
+      refereeRef,
+      {referredBy: referrerUid},
+      {merge: true}
+    );
+  });
+
   const REVENUECAT_SECRET = process.env.REVENUECAT_SECRET_KEY;
   if (!REVENUECAT_SECRET) {
     throw new HttpsError(
@@ -877,10 +897,6 @@ export const redeemReferralCode = onCall(async (request) => {
   } catch (error) {
     logger.error("RC API Error:", error);
     throw new HttpsError("internal", "Failed to communicate with RevenueCat.");
-    throw new HttpsError(
-      "internal",
-      "Failed to communicate with RevenueCat."
-    );
   }
 });
 

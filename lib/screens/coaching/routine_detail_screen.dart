@@ -1263,10 +1263,19 @@ class RoutineAlarmsSheet extends StatelessWidget {
                           initialTime: TimeOfDay.now(),
                         );
                     if (newTime != null && context.mounted) {
-                      context.read<RoutineProvider>().addRoutineAlarm(
+                      final added = context.read<RoutineProvider>().addRoutineAlarm(
                         routineType,
                         '${newTime.hour.toString().padLeft(2, '0')}:${newTime.minute.toString().padLeft(2, '0')}',
                       );
+                      if (!added && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Max ${RoutineProvider.maxAlarmsPerRoutine} alarms per routine.',
+                            ),
+                          ),
+                        );
+                      }
                     }
                   },
                 ),
