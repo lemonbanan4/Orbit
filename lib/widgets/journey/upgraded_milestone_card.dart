@@ -2,9 +2,13 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../screens/journey/journey_screen.dart'; // Adjust exact path maps if needed
 import '../../theme/orbit_tokens.dart';
 import '../../screens/features/nebula_forge_screen.dart'; // Adjust exact path maps if needed
+import '../../screens/paywall/paywall_screen.dart';
+import '../paywall/premium_paywall_dialog.dart';
 
 class UpgradedMilestoneCard extends StatelessWidget {
   final int index;
@@ -109,14 +113,37 @@ class UpgradedMilestoneCard extends StatelessWidget {
 
   void _showMilestoneCompletionPopup(BuildContext context) {
     HapticFeedback.selectionClick();
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => NebulaForgeScreen(
-          sourcePhase: milestone.title, // Sends the specific phase title down
+    // NebulaForgeScreen is paywalled everywhere else it's reachable from
+    // (the Dashboard carousel, Settings) -- this was the one entry point
+    // that pushed it unconditionally regardless of Pro entitlement.
+    final isPro = context.read<AppAuthProvider>().isPro ?? false;
+    if (isPro) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => NebulaForgeScreen(
+            sourcePhase: milestone.title, // Sends the specific phase title down
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) => PremiumPaywallDialog(
+          title: "Unlock Nebula Forge Analytics",
+          description:
+              "Upgrade to Pro to analyze your habit synergy and gravitational patterns.",
+          onCancelPressed: () => Navigator.pop(context),
+          onUpgradePressed: () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PaywallScreen()),
+            );
+          },
+        ),
+      );
+    }
   }
 
   // lib/widgets/journey/upgraded_milestone_card.dart

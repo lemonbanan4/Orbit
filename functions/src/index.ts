@@ -100,11 +100,20 @@ export const notifyOnMilestoneUnlocked = onDocumentUpdated(
       const newMilestones = afterMilestones.filter(
         (m: string) => !beforeMilestones.includes(m)
       );
+      // TelemetryProvider.checkMilestoneUnlocks (lib/providers/
+      // telemetry_provider.dart) stores the *index* into this same
+      // streak-threshold table, not a day count or name -- without this
+      // mapping the push read "You've unlocked: 2" instead of a real
+      // streak-day milestone.
+      const streakThresholds = [
+        3, 7, 14, 21, 30, 45, 60, 90, 120, 150, 180, 210, 250, 300, 365,
+      ];
       let bodyText =
         "You just reached a new milestone. Keep up the great work!";
       if (newMilestones.length > 0) {
-        bodyText =
-          `You've unlocked: ${newMilestones[0]}. Keep up the great work!`;
+        const days = streakThresholds[newMilestones[0]];
+        const label = days ? `${days}-Day Streak` : "a new milestone";
+        bodyText = `You've unlocked: ${label}. Keep up the great work!`;
         try {
           await admin.firestore()
             .collection(`users/${userId}/notifications`)

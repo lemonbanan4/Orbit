@@ -124,8 +124,11 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
       fallbacks.shuffle();
       return fallbacks.first;
     }
-    userInterests.shuffle();
-    return userInterests.first
+    // RoutineProvider.interests returns its live internal list, not a
+    // copy -- shuffling it directly silently reordered the user's saved
+    // Focus Interests as a side effect of opening the Sacred Scroll.
+    final shuffled = [...userInterests]..shuffle();
+    return shuffled.first
         .toLowerCase()
         .replaceAll(' & ', '_')
         .replaceAll(' ', '_');

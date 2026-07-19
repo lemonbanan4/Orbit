@@ -18,6 +18,8 @@ import '../../widgets/common/primary_button.dart';
 import '../../widgets/common/settings_tile.dart';
 import 'package:in_app_review/in_app_review.dart';
 import '../features/nebula_forge_screen.dart';
+import '../paywall/paywall_screen.dart';
+import '../../widgets/paywall/premium_paywall_dialog.dart';
 import '../../theme/orbit_colors.dart';
 import '../../services/export_service.dart';
 import '../../widgets/settings/nebula_theme_sheet.dart';
@@ -34,6 +36,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _nameController = TextEditingController();
   bool _isSaving = false;
   bool _isExporting = false;
+
+  void _showPaywall(String title, String description) {
+    showDialog(
+      context: context,
+      builder: (context) => PremiumPaywallDialog(
+        title: title,
+        description: description,
+        onCancelPressed: () => Navigator.pop(context),
+        onUpgradePressed: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const PaywallScreen()),
+          );
+        },
+      ),
+    );
+  }
 
   Future<void> _exportHabitHistory() async {
     final routineProvider = context.read<RoutineProvider>();
@@ -645,16 +665,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   height: 1,
                 ),
                 SettingsTile(
+                  // The Dashboard's carousel entry point to the same screen
+                  // paywalls it (isPro check + PremiumPaywallDialog) -- this
+                  // tile pushed it unconditionally, letting free users
+                  // reach it straight from Settings.
                   onTap: () {
                     HapticFeedback.selectionClick();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const NebulaForgeScreen(
-                          sourcePhase: "Settings Module",
+                    final isPro =
+                        context.read<AppAuthProvider>().isPro ?? false;
+                    if (isPro) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NebulaForgeScreen(
+                            sourcePhase: "Settings Module",
+                          ),
                         ),
-                      ),
-                    );
+                      );
+                    } else {
+                      _showPaywall(
+                        "Unlock Nebula Forge Analytics",
+                        "Upgrade to Pro to analyze your habit synergy and gravitational patterns.",
+                      );
+                    }
                   },
                   icon: Icons.hub_rounded,
                   title: 'Nebula Forge Analytics',
