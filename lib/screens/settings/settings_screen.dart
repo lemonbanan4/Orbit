@@ -168,6 +168,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await RevenueCatUI.presentCustomerCenter();
     } catch (e) {
       debugPrint("Failed to open Customer Center: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open subscription management. Please try again.'),
+          ),
+        );
+      }
     }
   }
 
@@ -774,6 +781,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                   icon: Icons.notifications_rounded,
                   title: 'Notifications',
+                ),
+                Divider(color: textColor.withValues(alpha: 0.1), height: 1),
+                SettingsTile(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    openSubscriptionManagement();
+                  },
+                  icon: Icons.workspace_premium_rounded,
+                  title: 'Manage Subscription',
+                  subtitle: 'View, change, or cancel your Orbit Pro plan',
                 ),
                 Divider(color: textColor.withValues(alpha: 0.1), height: 1),
                 SettingsTile(
