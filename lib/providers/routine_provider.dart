@@ -279,6 +279,29 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<String> _interests = [];
   List<String> get interests => _interests;
 
+  /// Replaces the user's focus interests (drives Daily Wisdom's category
+  /// pick and the AI coach's focus areas). Interests were previously
+  /// write-once at onboarding with no way to change them after. Writes
+  /// directly to Firestore ('interests' is not part of _saveToCloud()'s
+  /// map -- onboarding writes it directly too). Returns null on success
+  /// or a user-facing error message.
+  Future<String?> setInterests(List<String> interests) async {
+    final previous = _interests;
+    _interests = List.of(interests);
+    notifyListeners();
+    try {
+      await _db.collection('users').doc(_userId).update({
+        'interests': _interests,
+      });
+      return null;
+    } catch (e) {
+      debugPrint('Failed to save interests: $e');
+      _interests = previous;
+      notifyListeners();
+      return 'Could not save your interests. Please try again.';
+    }
+  }
+
   // APP SETTINGS (Wired to SharedPreferences
   bool _soundsEnabled = true;
   bool _hapticsEnabled = true;

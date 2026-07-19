@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../data/interest_options.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -111,32 +112,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       title: 'Almost there! Tell us what you\'re interested in',
       subtitle: 'Pick as many as you like.',
       type: QuestionType.multiSelectGrid,
-      options: [
-        'Stoicism',
-        'Emotional Wellness',
-        'Pet Lovers',
-        'Structure & Organisation',
-        'Reading & Studying',
-        'The Environment',
-        'Mindful Eating',
-        'Self-discipline',
-        'Behavior Change',
-        'Gratitude',
-        'Creativity',
-        'Aging',
-        'Financial Habits',
-        'Self-love',
-        'Parenthood',
-        'Productivity',
-        'Better Relationships',
-        'Mindfulness',
-        'Physical Wellness',
-        'Anxiety & Stress',
-        'Detox Bad Habits',
-        'Purpose & Motivation',
-        'Better Sleep',
-        'Balanced Life',
-      ],
+      // Shared with Settings' interests editor — see interest_options.dart.
+      options: interestOptions,
     ),
   ];
 

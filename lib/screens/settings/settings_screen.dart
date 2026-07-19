@@ -21,6 +21,7 @@ import '../features/nebula_forge_screen.dart';
 import '../../theme/orbit_colors.dart';
 import '../../services/export_service.dart';
 import '../../widgets/settings/nebula_theme_sheet.dart';
+import '../../widgets/settings/interests_sheet.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -625,6 +626,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                   icon: Icons.palette_rounded,
                   title: 'Nebula Theme',
+                ),
+                Divider(
+                  color: textColor.withValues(alpha: 0.1),
+                  height: 1,
+                ),
+                SettingsTile(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    InterestsSheet.show(context);
+                  },
+                  icon: Icons.interests_rounded,
+                  title: 'Focus Interests',
+                  subtitle: 'Steer your Daily Wisdom and AI coaching',
                 ),
                 Divider(
                   color: textColor.withValues(alpha: 0.1),
