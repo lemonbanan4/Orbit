@@ -455,7 +455,28 @@ export const cleanupUserAccount = functions
         }
       }
 
-      // 2. Delete the main user document
+      // 2. Scrub this user out of everyone else's data — otherwise a
+      // friend/partner is left permanently pointing at a ghost account
+      // with no way to clear it (there's no unlink function at all, and
+      // removeFriend only ever runs when the *other* side is still around
+      // to call it).
+      const friendsOf = await admin.firestore().collection("users")
+        .where("friends", "array-contains", userId).get();
+      for (const doc of friendsOf.docs) {
+        await doc.ref.update({
+          friends: admin.firestore.FieldValue.arrayRemove(userId),
+        });
+      }
+
+      const linksRef = admin.firestore().collection("links");
+      const linksAsA = await linksRef.where("userA", "==", userId).get();
+      const linksAsB = await linksRef.where("userB", "==", userId).get();
+      const linkDeletions = [...linksAsA.docs, ...linksAsB.docs];
+      for (const doc of linkDeletions) {
+        await doc.ref.delete();
+      }
+
+      // 3. Delete the main user document
       await userRef.delete();
       logger.info(`Successfully deleted data for user: ${userId}`);
     } catch (error) {
@@ -1026,24 +1047,45 @@ export const linkPartner = onCall(async (request) => {
   }
 
   // notifyPartnerOnHabitComplete only ever reads the first matching link
-  // doc for a user, so the app's model is one partner at a time — refuse
-  // a second link rather than silently creating an ambiguous state.
-  const existingAsA = await admin.firestore().collection("links")
-    .where("userA", "==", userAUid).where("userB", "==", userBUid).get();
-  const existingAsB = await admin.firestore().collection("links")
-    .where("userA", "==", userBUid).where("userB", "==", userAUid).get();
-  if (!existingAsA.empty || !existingAsB.empty) {
-    throw new HttpsError(
-      "already-exists",
-      "You're already linked with this partner."
+  // doc for a user, so the app's model is one partner at a time. The old
+  // check here only looked for an existing link with this *specific*
+  // partner, not whether either side already had *any* partner at all —
+  // so a user could accumulate multiple ambiguous `links` docs. Checking
+  // and writing inside a transaction also closes the race where two
+  // concurrent calls both pass the "not already linked" check.
+  const linksRef = admin.firestore().collection("links");
+  await admin.firestore().runTransaction(async (transaction) => {
+    const aAsA = await transaction.get(
+      linksRef.where("userA", "==", userAUid)
     );
-  }
+    const aAsB = await transaction.get(
+      linksRef.where("userB", "==", userAUid)
+    );
+    if (!aAsA.empty || !aAsB.empty) {
+      throw new HttpsError(
+        "already-exists",
+        "You're already linked with a partner."
+      );
+    }
+    const bAsA = await transaction.get(
+      linksRef.where("userA", "==", userBUid)
+    );
+    const bAsB = await transaction.get(
+      linksRef.where("userB", "==", userBUid)
+    );
+    if (!bAsA.empty || !bAsB.empty) {
+      throw new HttpsError(
+        "already-exists",
+        "That user is already linked with a partner."
+      );
+    }
 
-  await admin.firestore().collection("links").add({
-    userA: userAUid,
-    userB: userBUid,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    sharedXP: 0,
+    transaction.set(linksRef.doc(), {
+      userA: userAUid,
+      userB: userBUid,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      sharedXP: 0,
+    });
   });
 
   return {success: true, message: "Successfully linked orbits!"};

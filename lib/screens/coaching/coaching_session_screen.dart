@@ -543,15 +543,32 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
     final cosmicMirror = context.read<CosmicMirrorService>();
 
     if (nodeId == 'legend_dynamic') {
-      final habits = _routineProvider.habits.values;
-      final habitsDone = habits
-          .where((h) => h.isCompleted)
-          .map((h) => h.title)
-          .toList();
-      final habitsMissed = habits
-          .where((h) => !h.isCompleted)
-          .map((h) => h.title)
-          .toList();
+      // The daily-reset cycle (RoutineProvider's history rollover) writes
+      // each closed-out day into habit.history keyed by date, but this used
+      // to only look at today's live isCompleted state -- so a "Weekly
+      // Review" legend was really just a review of today. Aggregate the
+      // last 7 days (today's live state + history for the prior 6) instead.
+      final now = DateTime.now();
+      final habitsDone = <String>[];
+      final habitsMissed = <String>[];
+      for (final habit in _routineProvider.habits.values) {
+        int completedCount = habit.isCompleted ? 1 : 0;
+        int trackedCount = 1;
+        for (int i = 1; i < 7; i++) {
+          final day = now.subtract(Duration(days: i));
+          final key = day.toIso8601String().substring(0, 10);
+          final wasCompleted = habit.history[key];
+          if (wasCompleted != null) {
+            trackedCount++;
+            if (wasCompleted) completedCount++;
+          }
+        }
+        if (completedCount >= (trackedCount / 2).ceil()) {
+          habitsDone.add(habit.title);
+        } else {
+          habitsMissed.add(habit.title);
+        }
+      }
       setState(() {
         _messageFuture = cosmicMirror.generateWeeklyLegend(
           habitsDone,

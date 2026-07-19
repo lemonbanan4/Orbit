@@ -200,6 +200,30 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
                                                         .add(targetUserId);
                                                   });
                                                   try {
+                                                    // currentUser.displayName
+                                                    // is the FirebaseAuth
+                                                    // field, which is a
+                                                    // separate, usually-null
+                                                    // mirror of 'name' (the
+                                                    // field actually shown/
+                                                    // edited in the app) --
+                                                    // read the real one so
+                                                    // the recipient doesn't
+                                                    // just see "Commander".
+                                                    final selfDoc =
+                                                        await FirebaseFirestore
+                                                            .instance
+                                                            .collection(
+                                                                'users')
+                                                            .doc(currentUser
+                                                                .uid)
+                                                            .get();
+                                                    final senderName =
+                                                        selfDoc.data()?[
+                                                                'name'] ??
+                                                            currentUser
+                                                                .displayName ??
+                                                            'Commander';
                                                     await FirebaseFirestore
                                                         .instance
                                                         .collection('users')
@@ -210,9 +234,8 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
                                                         .set({
                                                       'senderId':
                                                           currentUser.uid,
-                                                      'senderName': currentUser
-                                                              .displayName ??
-                                                          'Commander',
+                                                      'senderName':
+                                                          senderName,
                                                       'status': 'pending',
                                                       'timestamp': FieldValue
                                                           .serverTimestamp(),

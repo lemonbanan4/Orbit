@@ -1297,6 +1297,15 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       incrementTotalHabits(); // ALWAYS triggers on completion!
 
+      // markRoutineComplete() (streak advancement) previously had exactly
+      // one caller -- skipRoutine()'s bulk "skip remaining" action -- so
+      // completing every habit one-by-one through the normal checklist UI
+      // never advanced the streak at all. Check here too, the moment the
+      // last habit in a routine is genuinely completed.
+      if (isRoutineComplete(habit.routineType)) {
+        markRoutineComplete();
+      }
+
       if (_soundsEnabled) {
         try {
           await _audioPlayer.play(
