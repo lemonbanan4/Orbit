@@ -899,6 +899,15 @@ class _PaywallScreenState extends State<PaywallScreen> {
               .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic),
 
           // LAYER 4: CLOSE BUTTON
+          //
+          // Disabled while a purchase is in flight (_isPurchasing) or its
+          // entitlement is still being polled (_isVerifying) -- previously
+          // this always navigated away immediately regardless of state, so
+          // tapping Close right after tapping a purchase button would yank
+          // the user out of the flow before _pollForEntitlement ever
+          // resolved. The purchase could still succeed in the background,
+          // but the UI never showed it, and Apple flagged exactly this
+          // shape of bug under Guideline 2.1(b) in sandbox review.
           SafeArea(
                 child: Align(
                   alignment: Alignment.topRight,
@@ -906,10 +915,12 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     padding: const EdgeInsets.all(16.0),
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTap: () async {
-                        HapticFeedback.lightImpact();
-                        await _finishOnboardingAndGoToDashboard(context);
-                      },
+                      onTap: (_isPurchasing || _isVerifying)
+                          ? null
+                          : () async {
+                              HapticFeedback.lightImpact();
+                              await _finishOnboardingAndGoToDashboard(context);
+                            },
                       child: Container(
                         width: 36,
                         height: 36,
@@ -920,7 +931,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
                         ),
                         child: Icon(
                           Icons.close_rounded,
-                          color: OrbitTokens.inkDim,
+                          color: (_isPurchasing || _isVerifying)
+                              ? OrbitTokens.inkDim.withValues(alpha: 0.3)
+                              : OrbitTokens.inkDim,
                           size: 20,
                         ),
                       ),
