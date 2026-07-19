@@ -76,7 +76,7 @@ class AIFairyOverlay extends StatelessWidget {
                       children: [
                         // --- AI FAIRY AVATAR ---
                         GestureDetector(
-                          onTap: () {
+                          onTap: () async {
                             // Make the fairy speak her current message when tapped!
                             VoiceService.speak(fairy.currentMessage);
 
@@ -85,12 +85,18 @@ class AIFairyOverlay extends StatelessWidget {
                             final telemetryProvider = context
                                 .read<TelemetryProvider>();
                             if (routineProvider.incrementFairyTaps()) {
-                              RewardPopup.show(
-                                context,
-                                title: "Cosmica's Secret Badge Unlocked!",
-                                xpEarned: 500,
-                                currentTotalXp: telemetryProvider.globalXp,
-                              );
+                              // The popup was showing "+500 XP" without this
+                              // ever actually being called -- a fake reward
+                              // that never touched the real balance.
+                              await telemetryProvider.awardXp(500);
+                              if (context.mounted) {
+                                RewardPopup.show(
+                                  context,
+                                  title: "Cosmica's Secret Badge Unlocked!",
+                                  xpEarned: 500,
+                                  currentTotalXp: telemetryProvider.globalXp,
+                                );
+                              }
                             }
                           },
                           child: avatar,

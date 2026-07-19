@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -7,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../../providers/routine_provider.dart';
+import '../../providers/telemetry_provider.dart';
 import '../../widgets/wisdom/wisdom_scroll_overlay.dart';
 import '../../widgets/reward_popup.dart';
 import '../paywall/premium_checker.dart';
@@ -82,6 +84,24 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
         }
       }
     }
+  }
+
+  // The popup used to show "+500 XP" without any XP actually being
+  // granted. Extracted to its own method (rather than inlined several
+  // conditionals deep in _openSacredScroll) so the mounted/context guards
+  // are unambiguous to both readers and the analyzer.
+  Future<void> _grantSageBadgeReward() async {
+    if (!mounted) return;
+    final telemetryProvider = context.read<TelemetryProvider>();
+    await telemetryProvider.awardXp(500);
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+    RewardPopup.show(
+      context,
+      title: "Sage Badge Unlocked!",
+      xpEarned: 500,
+      currentTotalXp: telemetryProvider.globalXp,
+    );
   }
 
   String _pickWisdomCategory(List<String> userInterests) {
@@ -184,15 +204,7 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
                 });
             if (mounted) setState(() => _wisdomStreak = newStreak);
             if (newStreak == 5) {
-              Future.delayed(const Duration(seconds: 2), () {
-                if (mounted) {
-                  RewardPopup.show(
-                    context,
-                    title: "Sage Badge Unlocked!",
-                    xpEarned: 500,
-                  );
-                }
-              });
+              unawaited(_grantSageBadgeReward());
             }
           }
         }
