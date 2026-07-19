@@ -95,8 +95,6 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   // --- PARTNER LINK ---
-  bool get isLinked => true; // Set to true so you can test the UI!
-
   bool _partnerRecentlyFinished = false;
   bool get partnerRecentlyFinished => _partnerRecentlyFinished;
 
