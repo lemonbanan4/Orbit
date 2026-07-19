@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:provider/provider.dart';
+import '../providers/routine_provider.dart';
 import 'common/premium_glass_card.dart';
 
 class RewardPopup {
@@ -51,12 +53,18 @@ class RewardPopup {
       }
     }
 
-    // Play Audio Chimes safely
-    try {
-      final player = AudioPlayer();
-      player.play(AssetSource(audioPath));
-    } catch (e) {
-      debugPrint('Error playing reward sound: $e');
+    // Play Audio Chimes safely -- unlike RoutineProvider.toggleHabit()'s
+    // main completion chime, this never checked soundsEnabled, so
+    // disabling "Sound Effects" in Settings silenced habit-completion
+    // sounds but not badge/level-up popup chimes from any of this
+    // method's 4 call sites.
+    if (context.read<RoutineProvider>().soundsEnabled) {
+      try {
+        final player = AudioPlayer();
+        player.play(AssetSource(audioPath));
+      } catch (e) {
+        debugPrint('Error playing reward sound: $e');
+      }
     }
 
     showGeneralDialog(

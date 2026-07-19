@@ -535,7 +535,14 @@ class _OrbitAppState extends State<OrbitApp> {
   void _handleNotificationTap(RemoteMessage message) {
     // Check the custom data payload you sent from Firebase/Cloud Functions
     final screen = message.data['screen'];
-    if (screen == 'profile') {
+    if (screen == 'dashboard') {
+      // notifyPartnerOnHabitComplete, notifyOnPartnerLinked, and the
+      // inactive-account nudge all send screen: "dashboard", but this
+      // value was never handled here and fell through to the generic
+      // Notifications inbox below instead. Pop back to the root, which is
+      // MainNavigationScreen showing the Home tab -- the actual dashboard.
+      navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    } else if (screen == 'profile') {
       navigatorKey.currentState?.push(
         MaterialPageRoute(builder: (context) => const ProfileScreen()),
       );

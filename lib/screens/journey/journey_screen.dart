@@ -183,6 +183,15 @@ class _JourneyScreenState extends State<JourneyScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         routineProvider.acknowledgeJourneyCompletion();
+        // The +150 XP this popup announces was only ever added to
+        // RoutineProvider's spendable-currency pool, never through
+        // TelemetryProvider.awardXp() -- so the Level bar right above this
+        // celebration (which reads TelemetryProvider.globalXp) never moved,
+        // making the reward this popup claims invisible everywhere except
+        // as spendable currency.
+        context.read<TelemetryProvider>().awardXp(
+          RoutineProvider.journeyCompletionBonusXp,
+        );
         HapticFeedback.heavyImpact();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

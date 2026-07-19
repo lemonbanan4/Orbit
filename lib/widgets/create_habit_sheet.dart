@@ -120,16 +120,28 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
         // (which mirrors Habit.toMap()) — a 'createdAt' field here used to
         // get every write rejected with PERMISSION_DENIED, silently, since
         // the failure was only ever debugPrint'd.
+        //
+        // This is used for both create AND edit (widget.habitId != null).
+        // completedDays/totalDays/isCompleted/color used to be hardcoded to
+        // their initial values unconditionally -- SetOptions(merge: true)
+        // only *preserves* keys absent from the write, so every edit (even
+        // just renaming a habit) silently zeroed the real Firestore
+        // completedDays/totalDays/isCompleted. upsertHabitLocally() patched
+        // the correct values back into local state, masking this in the UI
+        // right up until the next full reload from Firestore, at which
+        // point the real progress was gone. Only set them on create.
         final habitData = {
           'title': title,
           'routine': _selectedRoutine,
           'iconCodePoint': _selectedIcon,
-          'completedDays': 0,
-          'totalDays': 0,
-          'color': 0xFF00E5FF,
-          'isCompleted': false,
           'isGoal': _isGoal,
           if (_selectedCategory != null) 'category': _selectedCategory,
+          if (widget.habitId == null) ...{
+            'completedDays': 0,
+            'totalDays': 0,
+            'color': 0xFF00E5FF,
+            'isCompleted': false,
+          },
         };
 
         await FirebaseFirestore.instance
