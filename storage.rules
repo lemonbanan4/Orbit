@@ -1,0 +1,33 @@
+rules_version = '2';
+
+// This project has never had real Storage rules deployed -- the console's
+// default 30-day test-mode template (wide-open read/write to every path,
+// meant to be replaced before shipping) was left in place and expired on
+// 2026-07-14, silently hard-denying all reads/writes since. That broke
+// profile_screen.dart's avatar upload (the only Storage feature in the
+// app -- writes to avatars/{uid}_{timestamp}.jpg, read via
+// leaderboard_screen.dart's NetworkImage(photoUrl)) and, before it
+// expired, left the entire bucket open to anyone with the bucket
+// reference for about a month.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /avatars/{fileName} {
+      // Avatars are shown to other users on the leaderboard, so any
+      // signed-in user may read one -- but only the owning user (whose
+      // uid prefixes the filename, matching the write path's naming
+      // convention) may write or delete it.
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+        fileName.matches(request.auth.uid + '_.*') &&
+        request.resource.size < 5 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null &&
+        fileName.matches(request.auth.uid + '_.*');
+    }
+
+    // Deny everything else by default.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
