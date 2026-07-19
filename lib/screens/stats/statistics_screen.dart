@@ -63,7 +63,18 @@ class StatisticsScreen extends StatelessWidget {
                       currentStreak: currentStreak,
                       longestStreak: longestStreak,
                       completedMilestones: completedMilestones,
-                      totalXp: routineProvider.xp,
+                      // routineProvider.xp is spendable currency (streak
+                      // freezes, Nebula theme unlocks spend it) -- it
+                      // *decreases*, so "Total XP Earned" showed a number
+                      // that could go down. xpHistory is a live per-day
+                      // ledger of every +10 actually earned (see
+                      // incrementTotalHabits), so summing it is the real
+                      // lifetime total, same pool the XP History graph
+                      // below already reads from.
+                      totalXp: routineProvider.xpHistory.values.fold(
+                        0,
+                        (total, xp) => total + xp,
+                      ),
                     ),
                     const SizedBox(height: 40),
                     const _HabitInsightsCard(),
@@ -605,13 +616,29 @@ class _WeeklyConsistencyChart extends StatelessWidget {
                 maxY: 1.2,
                 lineBarsData: [
                   LineChartBarData(
-                    spots: List.generate(
-                      7,
-                      (index) => FlSpot(
+                    // weeklyProgress only advances during the daily-reset
+                    // rollover (it stores *yesterday's* completion rate),
+                    // so its last entry is always yesterday -- yet the
+                    // x-axis below explicitly labels index 6 "today". Shift
+                    // the window to end on today's live completion rate
+                    // (the 6 stored entries already cover the 6 days before
+                    // that) so the label and the plotted value agree.
+                    spots: List.generate(7, (index) {
+                      if (index == 6) {
+                        final todayHabits = routineProvider.habits.values;
+                        final todayProgress = todayHabits.isEmpty
+                            ? 0.0
+                            : todayHabits
+                                      .where((h) => h.isCompleted)
+                                      .length /
+                                  todayHabits.length;
+                        return FlSpot(6, todayProgress);
+                      }
+                      return FlSpot(
                         index.toDouble(),
-                        routineProvider.weeklyProgress[index],
-                      ),
-                    ),
+                        routineProvider.weeklyProgress[index + 1],
+                      );
+                    }),
                     isCurved: true,
                     color: orbColor2,
                     barWidth: 4,

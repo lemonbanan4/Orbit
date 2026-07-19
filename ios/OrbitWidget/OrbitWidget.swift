@@ -34,7 +34,7 @@ struct OrbitWidgetEntryView : View {
             Circle() // Glowing Orb
                 .fill(Color(red: 0/255, green: 229/255, blue: 255/255).opacity(0.3))
                 .frame(width: 150, height: 150).blur(radius: 30).offset(x: 50, y: -50)
-            
+
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Image(systemName: "flame.fill").foregroundColor(.orange)
@@ -45,6 +45,12 @@ struct OrbitWidgetEntryView : View {
                 Text("\"\(entry.intention)\"").font(.system(size: 14, weight: .semibold, design: .serif)).foregroundColor(.white).italic().lineLimit(2)
             }.padding()
         }
+        // This is the widget kind RoutineProvider._updateHomeWidget() actually
+        // pushes fresh data to on every habit toggle -- it had no widgetURL at
+        // all, so tapping it did nothing. _handleWidgetNavigation in main.dart
+        // already turns any orbit:// URI into a router push; empty host/path
+        // resolves to '/', the home dashboard.
+        .widgetURL(URL(string: "orbit://"))
     }
 }
 
