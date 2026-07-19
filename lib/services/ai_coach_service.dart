@@ -43,11 +43,30 @@ class AiCoachService {
     }
   }
 
+  // A tiny stable signature so cached AI output regenerates when the
+  // user edits their Focus Interests (String.hashCode isn't guaranteed
+  // stable across sessions, so sum code units instead).
+  static String _interestsSignature(List<String>? interests) {
+    if (interests == null || interests.isEmpty) return '0';
+    final joined = interests.join(',');
+    var sum = 0;
+    for (final c in joined.codeUnits) {
+      sum = (sum + c) % 100000;
+    }
+    return '${interests.length}_$sum';
+  }
+
+  static String _interestsContext(List<String>? interests) {
+    if (interests == null || interests.isEmpty) return '';
+    return 'The user cares most about these focus areas: ${interests.join(", ")}. When natural, angle the message toward one of them.';
+  }
+
   static Future<String> generateInsight({
     required int completedCount,
     required int totalHabits,
     required int currentStreak,
     List<String>? recentSkipReasons,
+    List<String>? interests,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -56,7 +75,8 @@ class AiCoachService {
 
     // 1. Create a unique hash for today's state
     final today = DateTime.now().toIso8601String().split('T')[0];
-    final stateKey = "${today}_${completedCount}_$totalHabits";
+    final stateKey =
+        "${today}_${completedCount}_${totalHabits}_${_interestsSignature(interests)}";
 
     final docRef = FirebaseFirestore.instance
         .collection('users')
@@ -88,9 +108,10 @@ class AiCoachService {
 
       final prompt =
           '''
-You are an AI habit coach inside a space-themed habit tracking app. 
+You are an AI habit coach inside a space-themed habit tracking app.
 Your user has completed $completedCount out of $totalHabits habits today, and their current streak is $currentStreak days.
 $skipContext
+${_interestsContext(interests)}
 Write a short, encouraging, 1-2 sentence message to motivate them. Keep it space-themed and actionable!
       ''';
 
@@ -131,13 +152,15 @@ Write a short, encouraging, 1-2 sentence message to motivate them. Keep it space
 
   static Future<String> generateDailyIntention({
     String? latestSkipReason,
+    List<String>? interests,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return 'Master your day.';
 
     // 1. Create a unique hash for today's state
     final today = DateTime.now().toIso8601String().split('T')[0];
-    final stateKey = "${today}_${latestSkipReason ?? 'none'}";
+    final stateKey =
+        "${today}_${latestSkipReason ?? 'none'}_${_interestsSignature(interests)}";
 
     final docRef = FirebaseFirestore.instance
         .collection('users')
@@ -169,8 +192,9 @@ Write a short, encouraging, 1-2 sentence message to motivate them. Keep it space
 
       final prompt =
           '''
-You are a cosmic AI coach. Generate a short, highly inspiring, space-themed daily intention (maximum 6 words) for the user. 
+You are a cosmic AI coach. Generate a short, highly inspiring, space-themed daily intention (maximum 6 words) for the user.
 $skipContext
+${_interestsContext(interests)}
 Examples: "Embrace the stellar unknown.", "Command your orbit today.", "Shine brighter than supernovas."
 Do not include quotes around the text.
       ''';

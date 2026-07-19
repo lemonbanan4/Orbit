@@ -204,6 +204,9 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
 
     int currentStreak = 0;
     List<String> skipReasons = [];
+    // Captured before the awaits below so no BuildContext use crosses an
+    // async gap.
+    final interests = context.read<RoutineProvider>().interests;
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       try {
@@ -241,6 +244,7 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
         totalHabits: total,
         currentStreak: currentStreak,
         recentSkipReasons: skipReasons.isNotEmpty ? skipReasons : null,
+        interests: interests.isNotEmpty ? interests : null,
       );
 
       if (mounted) setState(() => _currentAiInsight = insight);
@@ -603,6 +607,12 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
                                             await AiCoachService.generateDailyIntention(
                                               latestSkipReason:
                                                   _latestSkipReason,
+                                              interests:
+                                                  routineProvider
+                                                      .interests
+                                                      .isNotEmpty
+                                                  ? routineProvider.interests
+                                                  : null,
                                             );
                                         await routineProvider.setDailyIntention(
                                           aiIntention,
