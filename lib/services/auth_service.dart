@@ -357,8 +357,22 @@ class AuthService {
       // Merge the guest's progress into the permanent account
       await usersRef.doc(newUid).set(guestData, SetOptions(merge: true));
 
-      // Migrate known subcollections (shallow copy doesn't move these automatically)
-      final subcollections = ['habits', 'notifications', 'coaching_notes'];
+      // Migrate known subcollections (shallow copy doesn't move these automatically).
+      // Must cover every subcollection users can actually write to (see the
+      // `match` blocks in firestore.rules) -- this previously missed
+      // journal_entries, cache, fairy_history, skipped_sessions, and
+      // friend_requests, so a guest who journaled, chatted with the fairy,
+      // or skipped a session lost all of it the moment they linked an account.
+      final subcollections = [
+        'habits',
+        'notifications',
+        'coaching_notes',
+        'journal_entries',
+        'cache',
+        'fairy_history',
+        'skipped_sessions',
+        'friend_requests',
+      ];
       for (final subcollection in subcollections) {
         final guestSubRef = usersRef.doc(guestUid).collection(subcollection);
         final newSubRef = usersRef.doc(newUid).collection(subcollection);

@@ -612,6 +612,16 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
               });
         } catch (e) {
           debugPrint('Error saving coaching note: $e');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  "Cosmic Interference: Failed to save your reflection.",
+                ),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+          }
         }
       }
     }

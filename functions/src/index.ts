@@ -310,8 +310,11 @@ export const notifyOnFriendRequestAccepted = onDocumentUpdated(
       // 2. Fetch the user who accepted the request
       const targetUserDoc =
         await db.collection("users").doc(targetUserId).get();
+      // 'name' is the field actually shown/edited in the app; 'displayName'
+      // is a stale FirebaseAuth-mirrored field usually null (see the same
+      // fix already applied to searchUsers/getPartnerInfo below).
       const acceptorName =
-        targetUserDoc.data()?.displayName || "A user";
+        targetUserDoc.data()?.name || "A user";
 
       // 3. Fetch the sender to get their FCM token
       const senderDoc = await db.collection("users").doc(senderId).get();
@@ -360,7 +363,10 @@ export const notifyOnPartnerLinked = onDocumentCreated(
     const userBDoc = await admin
       .firestore().collection("users").doc(userBId).get();
 
-    const nameA = userADoc.data()?.displayName || "A fellow astronaut";
+    // 'name' is the field actually shown/edited in the app; 'displayName'
+    // is a stale FirebaseAuth-mirrored field usually null (see the same
+    // fix already applied to searchUsers/getPartnerInfo below).
+    const nameA = userADoc.data()?.name || "A fellow astronaut";
     const tokenB = userBDoc.data()?.fcmToken;
 
     if (tokenB) {
@@ -415,8 +421,22 @@ export const cleanupUserAccount = functions
     try {
       const userRef = admin.firestore().collection("users").doc(userId);
 
-      // 1. Delete known subcollections to avoid orphaned documents
-      const subcollections = ["habits", "notifications", "friend_requests"];
+      // 1. Delete known subcollections to avoid orphaned documents.
+      // Must cover every subcollection under users/{userId} (see the
+      // `match` blocks in firestore.rules) -- this previously missed
+      // coaching_notes, journal_entries, cache, fairy_history, and
+      // skipped_sessions, so deleting a Firebase Auth account left all of
+      // that personal data behind forever instead of actually purging it.
+      const subcollections = [
+        "habits",
+        "notifications",
+        "friend_requests",
+        "coaching_notes",
+        "journal_entries",
+        "cache",
+        "fairy_history",
+        "skipped_sessions",
+      ];
       for (const subcollection of subcollections) {
         const snapshot = await userRef.collection(subcollection).get();
         if (snapshot.empty) {
