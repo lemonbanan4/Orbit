@@ -7,12 +7,23 @@ class AtmosphereProvider extends ChangeNotifier {
 
   OrbitAura get currentAura => _currentAura;
 
-  // Theme Colors based on Aura
-  Color get primaryGlow =>
-      _currentAura == OrbitAura.nova ? Colors.amberAccent : Colors.purpleAccent;
-  Color get accentColor => _currentAura == OrbitAura.dawn
-      ? Colors.cyanAccent
-      : Colors.deepPurpleAccent;
+  // Theme Colors based on Aura. Used to only distinguish nova from
+  // everything else, so the "bouncing back from a skip" (deepNebula) and
+  // "fresh start" (dawn) cues -- both computed correctly by
+  // auraForHabitCompletion from real streak/skip state -- were invisible,
+  // rendering identically to the default steady (voidSpace) glow.
+  Color get primaryGlow {
+    switch (_currentAura) {
+      case OrbitAura.nova:
+        return Colors.amberAccent;
+      case OrbitAura.dawn:
+        return Colors.cyanAccent;
+      case OrbitAura.deepNebula:
+        return Colors.deepPurple;
+      case OrbitAura.voidSpace:
+        return Colors.purpleAccent;
+    }
+  }
 
   // Method for the AI Fairy to "Cast a Spell" and change the vibe
   void setAura(OrbitAura newAura) {

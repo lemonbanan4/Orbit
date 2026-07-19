@@ -25,7 +25,6 @@ import '../../widgets/common/level_progress_card.dart';
 import '../../widgets/common/profile_action_button.dart';
 import '../../widgets/common/base_orbit_screen.dart';
 import '../onboarding/login_screen.dart';
-import '../../widgets/reward_popup.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -409,11 +408,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   computeEarnedAchievements(context.watch<RoutineProvider>())
                       .toList();
 
-              final currentXp = data['xp'] as int? ?? 0;
-              final level = RewardPopup.getLevel(currentXp);
-              final progress = RewardPopup.getLevelProgress(currentXp);
-              final xpToNextLevel = 100 +
-                  ((level - 1) * 50); // XP required to hit the *next* level
+              // 'xp' is RoutineProvider's spendable currency (streak
+              // freezes, Nebula theme unlocks cost XP from it) -- Level is
+              // actually tracked by TelemetryProvider via 'current_level'/
+              // 'global_xp' (same fields journey_screen.dart reads), so
+              // deriving Level from 'xp' via RewardPopup's formula meant
+              // this screen disagreed with the Journey screen for the same
+              // user, and spending in the store visibly lowered "Level".
+              final level = data['current_level'] as int? ?? 1;
+              final currentXp = data['global_xp'] as int? ?? 0;
+              final xpToNextLevel = level * 150; // Matches TelemetryProvider
+              final progress = currentXp / xpToNextLevel;
 
               return ListView(
                 controller: _scrollController,

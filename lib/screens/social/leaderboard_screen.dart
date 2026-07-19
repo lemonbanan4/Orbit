@@ -7,7 +7,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../widgets/common/base_orbit_screen.dart';
 import '../../widgets/common/premium_glass_card.dart';
-import '../../widgets/reward_popup.dart';
 import '../common/add_friend_screen.dart';
 import '../common/friend_requests_screen.dart';
 
@@ -221,14 +220,24 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       );
                     }
 
+                    // Rank by 'current_level' first, then 'global_xp' (XP
+                    // progress within that level -- TelemetryProvider
+                    // resets it to 0 on every level-up rather than
+                    // accumulating it, so it's only meaningful as a
+                    // same-level tiebreaker, not a standalone score). The
+                    // old code ranked by 'xp', RoutineProvider's spendable
+                    // currency (streak freezes, Nebula theme unlocks cost
+                    // XP from it) -- so spending in the store actively
+                    // lowered your leaderboard rank.
                     final docs = snapshot.data!.docs.toList()
                       ..sort((a, b) {
-                        final aXp =
-                            (a.data() as Map<String, dynamic>)['xp'] as int? ??
-                            0;
-                        final bXp =
-                            (b.data() as Map<String, dynamic>)['xp'] as int? ??
-                            0;
+                        final aData = a.data() as Map<String, dynamic>;
+                        final bData = b.data() as Map<String, dynamic>;
+                        final aLevel = aData['current_level'] as int? ?? 1;
+                        final bLevel = bData['current_level'] as int? ?? 1;
+                        if (aLevel != bLevel) return bLevel.compareTo(aLevel);
+                        final aXp = aData['global_xp'] as int? ?? 0;
+                        final bXp = bData['global_xp'] as int? ?? 0;
                         return bXp.compareTo(aXp);
                       });
 
@@ -246,8 +255,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         final isMe = docs[index].id == currentUserId;
 
                         final name = data['name'] ?? 'Explorer';
-                        final xp = data['xp'] as int? ?? 0;
-                        final level = RewardPopup.getLevel(xp);
+                        final xp = data['global_xp'] as int? ?? 0;
+                        final level = data['current_level'] as int? ?? 1;
                         final photoUrl = data['photoUrl'] as String?;
 
                         final rankColor = _getRankColor(rank);

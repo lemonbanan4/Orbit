@@ -10,6 +10,7 @@ import '../../providers/routine_provider.dart';
 import '../../providers/ai_fairy_provider.dart';
 import '../../providers/telemetry_provider.dart';
 import '../../providers/atmosphere_provider.dart';
+import '../../services/notification_service.dart';
 import '../../widgets/reward_popup.dart';
 import '../../widgets/telemetry_levelup_dialog.dart';
 import '../../widgets/create_habit_sheet.dart';
@@ -831,15 +832,52 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                       final soundsEnabled =
                                                           routineProvider
                                                               .soundsEnabled;
-                                                      final streak =
-                                                          routineProvider
-                                                              .currentStreak;
 
                                                       // 2. Trigger the state change mutation
                                                       await routineProvider
                                                           .toggleHabit(
                                                             habit.id,
                                                           );
+
+                                                      // toggleHabit() can
+                                                      // advance the streak
+                                                      // internally (when it
+                                                      // completes the last
+                                                      // habit in a routine),
+                                                      // so read the streak
+                                                      // AFTER toggling --
+                                                      // reading it before
+                                                      // meant the exact
+                                                      // completion that
+                                                      // crossed a milestone
+                                                      // was checked against
+                                                      // the stale value and
+                                                      // silently missed.
+                                                      final streak =
+                                                          routineProvider
+                                                              .currentStreak;
+
+                                                      // Clear active notifications if all daily habits are now completed
+                                                      final allCompleted =
+                                                          routineProvider
+                                                              .habits
+                                                              .values
+                                                              .isNotEmpty &&
+                                                          routineProvider
+                                                              .habits
+                                                              .values
+                                                              .every(
+                                                                (h) => h
+                                                                    .isCompleted,
+                                                              );
+                                                      if (allCompleted) {
+                                                        await NotificationService
+                                                            .clearActiveRoutineReminders();
+                                                      }
+
+                                                      if (!context.mounted) {
+                                                        return;
+                                                      }
 
                                                       if (!wasCompleted) {
                                                         HapticFeedback.lightImpact();
