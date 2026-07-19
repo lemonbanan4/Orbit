@@ -108,7 +108,11 @@ class AIFairyOverlay extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Cosmica',
+                                fairy.activeHabitName == null
+                                    ? 'Cosmica'
+                                    : 'Cosmica · ${fairy.activeHabitName}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   color: calmAccent,
                                   fontWeight: FontWeight.bold,

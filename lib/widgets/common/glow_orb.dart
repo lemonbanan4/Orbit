@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -23,17 +25,20 @@ class GlowOrb extends StatelessWidget {
       bottom: bottom,
       left: left,
       right: right,
-      child: Container(
-        width: size,
-        height: size,
-        // A true glow — radial falloff to transparent — rather than a
-        // hard-edged colored disc (which read as a giant "planet" once the
-        // photographic backgrounds were removed).
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [color, color.withValues(alpha: 0.0)],
-            stops: const [0.0, 1.0],
+      // Real Gaussian blur + radial falloff: an ambient glow, not a
+      // hard-edged colored disc (which read as a giant flat planet once
+      // the photographic backgrounds were removed).
+      child: ImageFiltered(
+        imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [color, color.withValues(alpha: 0.0)],
+              stops: const [0.0, 1.0],
+            ),
           ),
         ),
       )
