@@ -77,8 +77,9 @@ Providers own state and call services; services should stay free of ChangeNotifi
 ### Screens
 `lib/screens/` is organized by feature area, not by widget type: `onboarding/`, `navigation/`
 (the shell — `main_navigation_screen.dart` is the real app shell with its own internal tab state),
-`habits/`, `routines/`, `journey/`, `coaching/`, `sanctuary/`, `stats/`, `social/`, `paywall/`,
-`settings/`, `videos/`, `common/`. Top-level routing (`go_router` in `lib/main.dart`) only defines a
+`habits/`, `journey/`, `coaching/`, `sanctuary/`, `stats/`, `social/`, `paywall/`, `settings/`,
+`features/` (standalone premium screens — Celestial Reflection, Nebula Forge, Pro Coaching), `common/`.
+Top-level routing (`go_router` in `lib/main.dart`) only defines a
 handful of routes (`/`, `/profile`, `/journey`, `/habit`) used for deep links from push notifications
 and the home-screen widget (`orbit://...` URIs); most in-app navigation happens via internal state in
 `MainNavigationScreen` rather than named routes.
@@ -87,9 +88,12 @@ and the home-screen widget (`orbit://...` URIs); most in-app navigation happens 
 Single file (~1200 lines) containing all backend functions, grouped by trigger type:
 - Firestore triggers: push notifications on new chat message, milestone unlock, friend request
   (sent/accepted), partner habit completion, partner link, streak-freeze consumption.
-- Scheduled (`onSchedule`): weekly progress reset, stale-notification cleanup, daily summary push,
-  orphaned guest account deletion, retention emails, inactive-account management.
-- Callable (`onCall`): referral code redemption, streak-freeze purchase.
+- Scheduled (`onSchedule`): stale-notification cleanup (paginated — collection-group query needs the
+  `notifications` `timestamp` field override in `firestore.indexes.json`), daily summary push, orphaned
+  guest account deletion (needs the `users` `isGuest`+`createdAt` composite index), retention emails,
+  inactive-account management.
+- Callable (`onCall`): referral code redemption, streak-freeze purchase, Nebula Theme unlock,
+  partner linking, user search, partner info lookup, friend removal.
 - HTTP (`onRequest`): RevenueCat webhook, email-open tracking pixel.
 Data model matches `firestore.rules`: everything nests under `users/{userId}`, with
 `habits/{habitId}`, `skipped_sessions/{sessionId}`, `notifications/{notificationId}` subcollections.
@@ -121,12 +125,16 @@ capture both Flutter framework errors and `debugPrint` output (see the `debugPri
 ## 🚀 Current Launch/App Store Strategy
 - **Company Entity:** Orbit is a product of **CogCore LLC** (Wyoming).
 - **Compliance Status:**
-    - Privacy Policy/Terms must reflect CogCore LLC. https://orbitroutine/privcay.html, https://orbitroutine/terms.html
+    - Privacy Policy/Terms must reflect CogCore LLC. https://orbitroutine.com/privacy.html, https://orbitroutine.com/terms.html
     - Standard Apple EULA link used: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 - **Current Rejection Blockers:**
-    - Guideline 2.1(b): IAP "Close" button functionality bug in sandbox.
+    - Guideline 2.1(b): IAP "Close" button functionality bug in sandbox. _pollForEntitlement/_isVerifying
+      state was added to handle sandbox entitlement lag, but the Close button itself wasn't updated to
+      respect it -- tapping Close during an in-flight purchase still navigated away immediately, which is
+      the exact bug shape this guideline describes. Fixed (Close now disabled while _isPurchasing/_isVerifying
+      is true) but not yet confirmed against actual App Review.
     - Guideline 3.1.2(c): Missing subscription metadata in App Store description.
 - **Immediate Priorities:**
-    - IAP logic resides in lib/screens/paywall/paywall_screen.dart. Rejection fixed by adding _pollForEntitlement and _isVerifying state to handle sandbox lag.
+    - IAP logic resides in lib/screens/paywall/paywall_screen.dart.
     - Audit description to include Subscription Terms (Title, Length, Price, EULA link).
     - Ensure all legal URLs link to the CogCore LLC-verified policy.
