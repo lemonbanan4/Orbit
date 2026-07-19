@@ -444,46 +444,56 @@ export const cleanupUserAccount = functions
   });
 
 // Cleans up notifications older than 30 days every night at 2:00 AM
+//
+// Paginated rather than a single .get() -- this query was silently failing
+// with FAILED_PRECONDITION (missing collection-group index on `timestamp`)
+// on every single run since this function was first deployed, so nothing
+// was ever actually deleted. Once the missing index was added, the first
+// real run tried to load the entire multi-month backlog into memory at
+// once and hit an OOM (258 MiB used against a 256 MiB limit). Processing
+// in bounded pages, with a wall-clock budget per invocation, fixes both
+// the immediate backlog and protects against this ever recurring --
+// today's run clears what it can within the time budget, and whatever's
+// left gets picked up by tomorrow's run.
 export const deleteOldNotifications = onSchedule(
   "every day 02:00",
   async () => {
+    const PAGE_SIZE = 300;
+    const TIME_BUDGET_MS = 50_000; // leaves headroom under the 60s timeout
+    const startedAt = Date.now();
+
     try {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      // Use collectionGroup to query 'notifications' across ALL users
-      const oldNotificationsSnap = await admin
-        .firestore()
-        .collectionGroup("notifications")
-        .where("timestamp", "<=", thirtyDaysAgo)
-        .get();
+      let totalDeleted = 0;
+      let lastDoc: FirebaseFirestore.QueryDocumentSnapshot | undefined;
 
-      if (oldNotificationsSnap.empty) {
-        logger.info("No old notifications to delete.");
-        return;
-      }
-
-      let currentBatch = admin.firestore().batch();
-      const batches: typeof currentBatch[] = [];
-      let operationCount = 0;
-
-      oldNotificationsSnap.docs.forEach((doc) => {
-        currentBatch.delete(doc.ref);
-        operationCount++;
-
-        if (operationCount === 499) {
-          batches.push(currentBatch);
-          currentBatch = admin.firestore().batch();
-          operationCount = 0;
+      while (Date.now() - startedAt < TIME_BUDGET_MS) {
+        let query = admin
+          .firestore()
+          .collectionGroup("notifications")
+          .where("timestamp", "<=", thirtyDaysAgo)
+          .orderBy("timestamp")
+          .limit(PAGE_SIZE);
+        if (lastDoc) {
+          query = query.startAfter(lastDoc);
         }
-      });
 
-      if (operationCount > 0) {
-        batches.push(currentBatch);
+        const pageSnap = await query.get();
+        if (pageSnap.empty) break;
+
+        const batch = admin.firestore().batch();
+        pageSnap.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+
+        totalDeleted += pageSnap.size;
+        lastDoc = pageSnap.docs[pageSnap.docs.length - 1];
+
+        if (pageSnap.size < PAGE_SIZE) break; // last page was partial -- done
       }
 
-      await Promise.all(batches.map((batch) => batch.commit()));
-      logger.info(`Deleted ${oldNotificationsSnap.size} old notifications.`);
+      logger.info(`Deleted ${totalDeleted} old notifications.`);
     } catch (error) {
       logger.error("Error deleting old notifications:", error);
     }

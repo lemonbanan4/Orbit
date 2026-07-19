@@ -20,6 +20,9 @@ jest.mock("firebase-admin", () => {
     collection: jest.fn().mockReturnThis(),
     collectionGroup: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
+    startAfter: jest.fn().mockReturnThis(),
     get: jest.fn(),
     batch: jest.fn(() => batchMock),
   };
@@ -128,6 +131,7 @@ describe("sendDailySummary", () => {
 describe("deleteOldNotifications", () => {
   let firestoreWhereMock: jest.Mock;
   let firestoreGetMock: jest.Mock;
+  let batchDeleteMock: jest.Mock;
 
   beforeEach(() => {
     // Get references to the specific mocked chain components
@@ -135,22 +139,26 @@ describe("deleteOldNotifications", () => {
       .collectionGroup("").where as jest.Mock;
     firestoreGetMock = admin.firestore()
       .collectionGroup("").get as jest.Mock;
+    batchDeleteMock = admin.firestore().batch().delete as jest.Mock;
     jest.clearAllMocks();
   });
 
   it(
-    "should query for and delete notifications exactly 30 days old",
+    "should query for and delete notifications exactly 30 days old, " +
+      "one page at a time",
     async () => {
     // 1. Mock the system time exactly to May 31, 2024
       jest.useFakeTimers();
       const mockNow = new Date("2024-05-31T02:00:00Z");
       jest.setSystemTime(mockNow);
 
-      // 2. Setup mock data
+      // 2. A single page smaller than PAGE_SIZE (300) so the pagination
+      // loop in deleteOldNotifications terminates after one iteration.
+      const mockDocRef = {ref: "mock-doc-ref"};
       firestoreGetMock.mockResolvedValue({
         empty: false,
         size: 1,
-        docs: [{ref: "mock-doc-ref"}],
+        docs: [mockDocRef],
       });
 
       // 3. Execute scheduled function
@@ -166,7 +174,14 @@ describe("deleteOldNotifications", () => {
         expectedDate
       );
 
-      // 5. Restore timers so other tests aren't affected
+      // 5. Assert the matched doc was actually queued for deletion --
+      // this is what regressed silently when the pagination rewrite
+      // switched to .orderBy()/.limit()/.startAfter(), none of which the
+      // mock previously implemented (calls just threw, swallowed by the
+      // function's own try/catch, and the test still reported green).
+      expect(batchDeleteMock).toHaveBeenCalledWith(mockDocRef.ref);
+
+      // 6. Restore timers so other tests aren't affected
       jest.useRealTimers();
     });
 });
