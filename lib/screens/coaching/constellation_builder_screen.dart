@@ -324,10 +324,27 @@ class _ConstellationBuilderScreenState
                               _isListening = false;
                               _soundLevel = 0.0;
                             });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Voice input hit a snag. Please try again or type instead.',
+                                ),
+                              ),
+                            );
                           }
                           _speech.stop();
                         },
                       );
+
+                      if (!available && mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Voice input isn\'t available on this device right now.',
+                            ),
+                          ),
+                        );
+                      }
 
                       if (available) {
                         setState(() => _isListening = true);

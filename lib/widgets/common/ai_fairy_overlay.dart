@@ -168,7 +168,10 @@ class AIFairyOverlay extends StatelessWidget {
                                       elevation: 0,
                                       shadowColor: Colors.transparent,
                                       side: BorderSide.none,
-                                      onPressed: () => fairy.dismissFairy(),
+                                      onPressed: () {
+                                        fairy.recordReply(reply);
+                                        fairy.dismissFairy();
+                                      },
                                     );
                                   }).toList(),
                                 ),

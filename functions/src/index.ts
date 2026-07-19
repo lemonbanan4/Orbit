@@ -65,7 +65,10 @@ export const sendPushNotificationOnNewMessage = onDocumentCreated(
         },
       },
       data: {
-        screen: "notifications", // app to route the user to the Inbox screen
+        // Lets a specific writer (e.g. onFreezeConsumed) route the tap
+        // somewhere other than the default Inbox by setting a 'screen'
+        // field on the notification doc itself.
+        screen: String(notificationData.screen || "notifications"),
       },
       token: String(userData.fcmToken),
     };
@@ -95,7 +98,6 @@ export const notifyOnMilestoneUnlocked = onDocumentUpdated(
     // Check if a new milestone was added to the array
     if (afterMilestones.length > beforeMilestones.length) {
       const userId = event.params.userId;
-      const fcmToken = afterData.fcmToken;
 
       const newMilestones = afterMilestones.filter(
         (m: string) => !beforeMilestones.includes(m)
@@ -114,6 +116,11 @@ export const notifyOnMilestoneUnlocked = onDocumentUpdated(
         const days = streakThresholds[newMilestones[0]];
         const label = days ? `${days}-Day Streak` : "a new milestone";
         bodyText = `You've unlocked: ${label}. Keep up the great work!`;
+        // Writing this doc is enough -- sendPushNotificationOnNewMessage
+        // (this file, top) already fires on every create under
+        // users/{userId}/notifications and sends the actual push. This
+        // function used to *also* call admin.messaging().send() directly
+        // below, so every milestone sent two near-identical pushes.
         try {
           await admin.firestore()
             .collection(`users/${userId}/notifications`)
@@ -127,33 +134,6 @@ export const notifyOnMilestoneUnlocked = onDocumentUpdated(
         } catch (error) {
           logger.error("Error saving in-app milestone notification:", error);
         }
-      }
-
-      if (!fcmToken) return;
-
-      const payload = {
-        notification: {
-          title: "Milestone Unlocked! 🌟",
-          body: bodyText,
-        },
-        android: {
-          notification: {sound: "orbit_chime"},
-        },
-        apns: {
-          payload: {aps: {sound: "orbit_chime.wav"}},
-        },
-        data: {
-          screen: "path_detail",
-          type: "milestone", // Routes per logic in main.dart
-        },
-        token: String(fcmToken),
-      };
-
-      try {
-        await admin.messaging().send(payload);
-        logger.info(`Milestone notification sent to user ${userId}`);
-      } catch (error) {
-        logger.error("Error sending milestone notification:", error);
       }
     }
   }
@@ -618,38 +598,28 @@ export const onFreezeConsumed = onDocumentUpdated(
       afterData.isStreakFrozen === true &&
       beforeData.isStreakFrozen !== true
     ) {
-      const fcmToken = afterData.fcmToken;
       const userId = event.params.userId;
 
       const title = "Streak Freeze Activated! ❄️";
       const body = "You missed a habit, but your Streak Freeze saved your " +
         "streak! Check in today to keep it going.";
 
+      // Writing this doc is enough -- sendPushNotificationOnNewMessage
+      // (this file, top) already fires on every create under
+      // users/{userId}/notifications and sends the actual push, reading
+      // 'screen' off the doc for tap routing. This function used to *also*
+      // call admin.messaging().send() directly, so every freeze-consumed
+      // event sent two near-identical pushes.
       await admin.firestore()
         .collection(`users/${userId}/notifications`)
         .add({
           title: title,
           body: body, // Named 'body' instead of 'message' to match the schema
           type: "system",
+          screen: "profile",
           timestamp: admin.firestore.FieldValue.serverTimestamp(),
           isArchived: false,
         });
-
-      if (fcmToken) {
-        const payload = {
-          notification: {title, body},
-          android: {notification: {sound: "orbit_chime"}},
-          apns: {payload: {aps: {sound: "orbit_chime.wav"}}},
-          data: {screen: "profile"},
-          token: String(fcmToken),
-        };
-        try {
-          await admin.messaging().send(payload);
-          logger.info(`Freeze push notification sent to ${userId}`);
-        } catch (error) {
-          logger.error("Error sending freeze push notification:", error);
-        }
-      }
     }
   }
 );

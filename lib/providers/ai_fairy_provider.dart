@@ -59,6 +59,18 @@ class AIFairyProvider extends ChangeNotifier {
     }
   }
 
+  /// Persists the tapped suggested-reply chip to fairy_history --
+  /// AIFairyService.saveInteraction() was fully built (own Firestore rule,
+  /// cleaned up on account deletion/migration) but had zero callers, so
+  /// this entire chat-history feature never received a write.
+  void recordReply(String userReply) {
+    _service.saveInteraction(
+      _activeHabitName ?? 'general',
+      _currentMessage,
+      userReply,
+    );
+  }
+
   void dismissFairy() {
     _isCheering = false; // Set to false when fairy is dismissed
     _activeHabitName = null; // Clear the active habit name
