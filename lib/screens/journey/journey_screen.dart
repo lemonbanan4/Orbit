@@ -6,7 +6,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/routine_provider.dart';
 import '../../providers/telemetry_provider.dart';
 import '../../widgets/journey/upgraded_milestone_card.dart';
+import '../../widgets/journey/shareable_streak_card.dart';
 import '../../widgets/common/stellar_planet.dart';
+import '../../services/share_service.dart';
 import '../../theme/orbit_tokens.dart';
 
 // // Ensure correct path for reflection route
@@ -131,6 +133,41 @@ class _JourneyScreenState extends State<JourneyScreen> {
     super.dispose();
   }
 
+  // ShareService.captureOffscreenWidget()/showShareBottomSheet() were fully
+  // built (custom off-screen graphic rendering + a share sheet with native
+  // share/post-to-X/copy/save-to-Photos) but had zero callers anywhere in
+  // the app. This is the natural place for it: the screen that already
+  // shows the streak/level header.
+  Future<void> _shareStreak(BuildContext context) async {
+    HapticFeedback.lightImpact();
+    final routineProvider = context.read<RoutineProvider>();
+    final telemetryProvider = context.read<TelemetryProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    final file = await ShareService.captureOffscreenWidget(
+      ShareableStreakCard(
+        streak: routineProvider.currentStreak,
+        level: telemetryProvider.currentLevel,
+      ),
+      'orbit_streak',
+    );
+
+    if (!context.mounted) return;
+    if (file == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Could not generate share image.')),
+      );
+      return;
+    }
+
+    ShareService.showShareBottomSheet(
+      context: context,
+      imageFile: file,
+      shareText:
+          "I'm on a ${routineProvider.currentStreak}-day streak in Orbit! 🚀",
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final routineProvider = context.watch<RoutineProvider>();
@@ -201,6 +238,16 @@ class _JourneyScreenState extends State<JourneyScreen> {
                     pinned: true,
                     elevation: 0,
                     backgroundColor: Colors.transparent,
+                    actions: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.ios_share_rounded,
+                          color: Colors.white70,
+                        ),
+                        tooltip: 'Share my streak',
+                        onPressed: () => _shareStreak(context),
+                      ),
+                    ],
                     flexibleSpace: FlexibleSpaceBar(
                       centerTitle: true,
                       title: const Text(
