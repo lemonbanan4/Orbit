@@ -363,22 +363,6 @@ class NotificationService {
     }
   }
 
-  static Future<void> requestIOSPermissions() async {
-    final IOSFlutterLocalNotificationsPlugin? iosImplementation =
-        notificationsPlugin
-            .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin
-            >();
-
-    if (iosImplementation != null) {
-      await iosImplementation.requestPermissions(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-    }
-  }
-
   /// Retrieves a list of all currently scheduled and pending notifications
   static Future<List<PendingNotificationRequest>>
   getPendingNotifications() async {
@@ -453,34 +437,6 @@ class NotificationService {
     if (userAgreed == true && context.mounted) {
       await checkAndRequestPermissions(context);
     }
-  }
-
-  static Future<void> showGroupSummary() async {
-    const AndroidNotificationDetails
-    summaryDetails = AndroidNotificationDetails(
-      'routine_channel_v2', // MUST match the channel ID of my grouped notifications
-      'Routine Reminders',
-      channelDescription: 'Reminders for your daily habits',
-      groupKey: 'orbit_reminders',
-      setAsGroupSummary: true,
-      styleInformation: InboxStyleInformation(
-        [], // Add strings here if you want specific line items to appear in the expanded view
-        summaryText: "You have pending cosmic habits!",
-      ),
-    );
-
-    const NotificationDetails details = NotificationDetails(
-      android: summaryDetails,
-      iOS: _defaultIOSDetails,
-    );
-
-    // Show or schedule the summary notification using a dedicated ID
-    await notificationsPlugin.show(
-      id: 0,
-      title: 'Orbit Reminders',
-      body: 'Pending habits',
-      notificationDetails: details,
-    );
   }
 
   /// Clears all currently visible routine notifications from the device's tray

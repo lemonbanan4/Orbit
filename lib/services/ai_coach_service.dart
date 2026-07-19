@@ -10,38 +10,6 @@ import 'dart:convert';
 import 'dart:io';
 
 class AiCoachService {
-  static Future<String> generateGreeting() async {
-    try {
-      // 1. Fetch your key
-      final apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
-
-      // 2. Initialize Gemini (using the latest stable flash model)
-      GenerativeModel buildModel(String m) => GenerativeModel(
-        model: m,
-        apiKey: apiKey,
-        generationConfig: GenerationConfig(
-          responseMimeType: 'application/json',
-        ),
-        systemInstruction: Content.system(
-          "You are an AI Fairy and Cosmic Guide inside a habit tracker called Orbit. "
-          "Keep your response strictly under 2 sentences.",
-        ),
-      );
-
-      // 3. The Prompt
-      const prompt =
-          "Give the user a short, highly motivational, and cosmic-themed welcome message to ignite their productivity today.";
-
-      final response = await GeminiGateway.withFallback(
-        (m) => buildModel(m).generateContent([Content.text(prompt)]),
-      );
-      return response.text?.trim() ??
-          "The stars are quiet today. Forge your own path!";
-    } catch (e) {
-      debugPrint('Error generating greeting: $e');
-      return "The cosmic connection is weak, but your potential is infinite. Keep pushing!";
-    }
-  }
 
   // A tiny stable signature so cached AI output regenerates when the
   // user edits their Focus Interests (String.hashCode isn't guaranteed

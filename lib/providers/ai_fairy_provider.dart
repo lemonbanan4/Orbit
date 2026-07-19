@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:orbit_app/services/ai_fairy_service.dart';
+import 'package:orbit_app/services/voice_service.dart';
 import 'package:audioplayers/audioplayers.dart';
 
 class AIFairyProvider extends ChangeNotifier {
@@ -61,6 +62,11 @@ class AIFairyProvider extends ChangeNotifier {
   void dismissFairy() {
     _isCheering = false; // Set to false when fairy is dismissed
     _activeHabitName = null; // Clear the active habit name
+    // If the user tapped the fairy to hear her message spoken (TTS via
+    // VoiceService.speak in ai_fairy_overlay), dismissing her should also
+    // silence her — previously the speech just kept playing over whatever
+    // the user did next.
+    VoiceService.stop();
     notifyListeners();
   }
 }
