@@ -68,10 +68,13 @@ Most new user-facing state belongs as fields/methods on this provider unless it'
 AI-chat scoped.
 
 ### Services vs. providers
-`lib/services/` holds stateless/Firebase-facing logic that providers call into: `firestore_service`,
-`auth_service`, `notification_service` (local notifications + FCM), `ai_coach_service` /
-`ai_fairy_service` (AI coach, backed by `google_generative_ai`), `cosmic_mirror_service` (weekly
-recap generation), `voice_service` (TTS/speech-to-text), `share_service`, `alchemy_telemetry_service`.
+`lib/services/` holds stateless/Firebase-facing logic that providers call into: `auth_service`,
+`notification_service` (local notifications + FCM), `ai_coach_service` / `ai_fairy_service` (AI
+coach, backed by `google_generative_ai` via `gemini_gateway`'s model-fallback wrapper),
+`cosmic_mirror_service` (weekly recap generation), `voice_service` (TTS only — speech-to-text is
+used directly in constellation_builder_screen.dart), `share_service` (widget-to-PNG capture + rich
+share sheet), `export_service` (CSV export), `alchemy_telemetry_service` (habit-pair correlation
+from real completion history).
 Providers own state and call services; services should stay free of ChangeNotifier/UI concerns.
 
 ### Screens
