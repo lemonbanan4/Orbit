@@ -104,14 +104,23 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
     );
   }
 
+  // Categories confirmed to have scroll content in the wisdom_library
+  // collection. Onboarding offers 24 interests but the library only has
+  // docs for these — used as the retry pool when a user's own interest
+  // maps to a doc that doesn't exist (e.g. 'Better Sleep' -> better_sleep),
+  // which previously dead-ended in "The stars are quiet today." every
+  // single time for users whose picked interests all lacked content.
+  static const List<String> _stockedWisdomCategories = [
+    'stoicism',
+    'creativity',
+    'mindfulness',
+    'productivity',
+    'anxiety_stress',
+  ];
+
   String _pickWisdomCategory(List<String> userInterests) {
     if (userInterests.isEmpty) {
-      final fallbacks = [
-        'stoicism',
-        'creativity',
-        'mindfulness',
-        'productivity',
-      ];
+      final fallbacks = [..._stockedWisdomCategories];
       fallbacks.shuffle();
       return fallbacks.first;
     }
@@ -137,11 +146,23 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
 
     try {
       final routineProvider = context.read<RoutineProvider>();
-      final category = _pickWisdomCategory(routineProvider.interests);
-      final doc = await FirebaseFirestore.instance
+      var category = _pickWisdomCategory(routineProvider.interests);
+      var doc = await FirebaseFirestore.instance
           .collection('wisdom_library')
           .doc(category)
           .get();
+
+      // If the interest-derived category has no library doc, retry once
+      // with a category known to be stocked instead of showing the
+      // "stars are quiet" dead end.
+      if (!doc.exists && !_stockedWisdomCategories.contains(category)) {
+        final fallbacks = [..._stockedWisdomCategories]..shuffle();
+        category = fallbacks.first;
+        doc = await FirebaseFirestore.instance
+            .collection('wisdom_library')
+            .doc(category)
+            .get();
+      }
 
       String wisdomText = "The stars are quiet today. Check back later.";
       final data = doc.data();
