@@ -17,6 +17,13 @@ jobs:
           flutter-version: "3.44.1"
           channel: "stable"
       - run: flutter pub get
+      # .env is gitignored (holds the real Gemini API key) and declared as a
+      # pubspec asset -- on a fresh checkout it doesn't exist, which makes
+      # `flutter analyze` fail on an asset_does_not_exist warning before it
+      # even gets to real analysis. Neither analyze nor the existing unit
+      # tests touch its contents, so a placeholder is enough to satisfy the
+      # asset check.
+      - run: echo "GEMINI_API_KEY=" > .env
       - run: flutter analyze
       - run: flutter test
 
