@@ -78,11 +78,36 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
   // color), matching the palette the Constellation Builder's stellar
   // planets already use for the same 5 variants.
   static const _categoryOptions = [
-    (value: 'fitness', label: 'Fitness', icon: Icons.fitness_center_rounded, color: OrbitTokens.morning),
-    (value: 'mind', label: 'Mind', icon: Icons.self_improvement_rounded, color: OrbitTokens.violet),
-    (value: 'productivity', label: 'Productivity', icon: Icons.menu_book_rounded, color: OrbitTokens.teal),
-    (value: 'growth', label: 'Growth', icon: Icons.explore_rounded, color: OrbitTokens.gold),
-    (value: 'core', label: 'Core', icon: Icons.auto_awesome_rounded, color: Color(0xFF3D5CFF)),
+    (
+      value: 'fitness',
+      label: 'Fitness',
+      icon: Icons.fitness_center_rounded,
+      color: OrbitTokens.morning,
+    ),
+    (
+      value: 'mind',
+      label: 'Mind',
+      icon: Icons.self_improvement_rounded,
+      color: OrbitTokens.violet,
+    ),
+    (
+      value: 'productivity',
+      label: 'Productivity',
+      icon: Icons.menu_book_rounded,
+      color: OrbitTokens.teal,
+    ),
+    (
+      value: 'growth',
+      label: 'Growth',
+      icon: Icons.explore_rounded,
+      color: OrbitTokens.gold,
+    ),
+    (
+      value: 'core',
+      label: 'Core',
+      icon: Icons.auto_awesome_rounded,
+      color: Color(0xFF3D5CFF),
+    ),
   ];
 
   @override
@@ -184,7 +209,9 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
       debugPrint('Error creating habit: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not save habit. Please try again.')),
+          const SnackBar(
+            content: Text('Could not save habit. Please try again.'),
+          ),
         );
       }
     } finally {
@@ -206,9 +233,9 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
     } catch (e) {
       debugPrint('AI Lens: camera unavailable: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Camera unavailable.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Camera unavailable.')));
       }
       return;
     }
@@ -232,7 +259,8 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
               .codePoint;
       if (mounted) {
         setState(() {
-          _titleController.text = aiSuggestion['title'] ?? _titleController.text;
+          _titleController.text =
+              aiSuggestion['title'] ?? _titleController.text;
           _selectedIcon = iconCodePoint;
         });
       }
@@ -398,7 +426,9 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
             ),
             const SizedBox(height: 24),
             Text(
-              "Focus Journey (optional)",
+              widget.habitId == null
+                  ? "Focus Journey (optional)"
+                  : "Focus Journey (set at creation)",
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.5),
                 fontSize: 12,
@@ -406,56 +436,71 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
               ),
             ),
             const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _categoryOptions.map((option) {
-                final isSelected = _selectedCategory == option.value;
-                return GestureDetector(
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    setState(() {
-                      _selectedCategory = isSelected ? null : option.value;
-                    });
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? option.color.withValues(alpha: 0.2)
-                          : Colors.white.withValues(alpha: 0.05),
-                      border: Border.all(
-                        color: isSelected ? option.color : Colors.transparent,
-                        width: 1.5,
+            Opacity(
+              opacity: widget.habitId == null ? 1.0 : 0.5,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _categoryOptions.map((option) {
+                  final isSelected = _selectedCategory == option.value;
+                  return GestureDetector(
+                    // categoryCompletions() sums a habit's *entire* history
+                    // of completedDays under whatever category it's
+                    // currently tagged with -- re-tagging an already
+                    // long-running habit retroactively moved its whole
+                    // completion count into the new category, which could
+                    // instantly max out (25 completions unlocks all 5
+                    // chapters + 150 XP) a Focus Journey the user never
+                    // actually did any work in. Category is create-time only.
+                    onTap: widget.habitId != null
+                        ? null
+                        : () {
+                            HapticFeedback.selectionClick();
+                            setState(() {
+                              _selectedCategory = isSelected
+                                  ? null
+                                  : option.value;
+                            });
+                          },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
                       ),
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          option.icon,
-                          color: isSelected ? option.color : Colors.white54,
-                          size: 16,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? option.color.withValues(alpha: 0.2)
+                            : Colors.white.withValues(alpha: 0.05),
+                        border: Border.all(
+                          color: isSelected ? option.color : Colors.transparent,
+                          width: 1.5,
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          option.label,
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.white54,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            option.icon,
+                            color: isSelected ? option.color : Colors.white54,
+                            size: 16,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 6),
+                          Text(
+                            option.label,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.white54,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              }).toList(),
+                  );
+                }).toList(),
+              ),
             ),
             const SizedBox(height: 16),
             SwitchListTile(
@@ -464,7 +509,10 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
               activeThumbColor: const Color(0xFF00E5FF),
               title: const Text(
                 'Mark as Goal',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               subtitle: Text(
                 'Goal habits show a badge to help them stand out.',

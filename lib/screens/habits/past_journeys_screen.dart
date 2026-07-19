@@ -3,9 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../../widgets/common/journey_card.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../../theme/orbit_tokens.dart';
+import '../../models/habit.dart';
+import '../../providers/routine_provider.dart';
 
 class PastJourneysScreen extends StatelessWidget {
   const PastJourneysScreen({super.key});
@@ -17,15 +20,18 @@ class PastJourneysScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: OrbitTokens.ground,
       appBar: AppBar(
-        title: const Text('Past Journeys',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Past Journeys',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: user == null
           ? const Center(
-              child: CircularProgressIndicator(color: OrbitTokens.teal))
+              child: CircularProgressIndicator(color: OrbitTokens.teal),
+            )
           : StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('users')
@@ -35,8 +41,8 @@ class PastJourneysScreen extends StatelessWidget {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
-                      child:
-                          CircularProgressIndicator(color: OrbitTokens.teal));
+                    child: CircularProgressIndicator(color: OrbitTokens.teal),
+                  );
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -88,8 +94,11 @@ class PastJourneysScreen extends StatelessWidget {
                         accentColor: Colors.purpleAccent,
                         onTap: () {},
                         trailing: IconButton(
-                          icon: const Icon(Icons.restart_alt_rounded,
-                              color: Colors.amber, size: 28),
+                          icon: const Icon(
+                            Icons.restart_alt_rounded,
+                            color: Colors.amber,
+                            size: 28,
+                          ),
                           tooltip: 'Restart Journey',
                           onPressed: () async {
                             HapticFeedback.lightImpact();
@@ -99,9 +108,10 @@ class PastJourneysScreen extends StatelessWidget {
 
                             try {
                               AudioPlayer().play(
-                                  AssetSource('audio/success_chime.mp3'));
+                                AssetSource('audio/success_chime.mp3'),
+                              );
                               await userRef.update({
-                                'interests': FieldValue.arrayUnion([title])
+                                'interests': FieldValue.arrayUnion([title]),
                               });
                               // Use the real habit doc id from the snapshot —
                               // deriving one from the (broken) title used to
@@ -110,34 +120,62 @@ class PastJourneysScreen extends StatelessWidget {
                                   .collection('habits')
                                   .doc(habitDoc.id)
                                   .update({
-                                'completedDays': 0,
-                                'totalDays': 0,
-                                'skippedCount': 0,
-                              });
+                                    'completedDays': 0,
+                                    'totalDays': 0,
+                                    'skippedCount': 0,
+                                  });
+
+                              // This screen writes straight to Firestore,
+                              // bypassing RoutineProvider entirely -- its
+                              // in-memory Habit for this id (if this is
+                              // still an actively-tracked habit, which it
+                              // usually is) kept the old, higher
+                              // completedDays/totalDays. The next daily-
+                              // reset rollover increments *that* stale
+                              // in-memory value and writes it straight back
+                              // to Firestore, silently undoing this reset
+                              // within a day. Sync local state too.
+                              if (context.mounted) {
+                                final routineProvider = context
+                                    .read<RoutineProvider>();
+                                final existing =
+                                    routineProvider.habits[habitDoc.id];
+                                if (existing != null) {
+                                  final resetHabit = Habit.fromSnapshot(
+                                    habitDoc,
+                                    isCompleted: existing.isCompleted,
+                                  );
+                                  resetHabit.completedDays = 0;
+                                  resetHabit.totalDays = 0;
+                                  resetHabit.skippedCount = 0;
+                                  routineProvider.upsertHabitLocally(
+                                    habitDoc.id,
+                                    resetHabit,
+                                  );
+                                }
+                              }
 
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                      content: Text('Journey Restarted! 🚀'),
-                                      backgroundColor: Colors.green),
+                                    content: Text('Journey Restarted! 🚀'),
+                                    backgroundColor: Colors.green,
+                                  ),
                                 );
                               }
                             } catch (e) {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                      content:
-                                          Text('Could not restart: $e')),
+                                    content: Text('Could not restart: $e'),
+                                  ),
                                 );
                               }
                             }
                           },
                         ),
                       ),
-                    )
-                        .animate()
-                        .fade(delay: (index * 100).ms)
-                        .slideY(begin: 0.1);
+                    ).animate().fade(delay: (index * 100).ms).slideY(begin: 0.1);
                   },
                 );
               },
@@ -152,16 +190,20 @@ class PastJourneysScreen extends StatelessWidget {
         children: [
           Icon(Icons.history_rounded, size: 80, color: Colors.white24),
           SizedBox(height: 24),
-          Text('No Past Journeys Yet',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold)),
+          Text(
+            'No Past Journeys Yet',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           SizedBox(height: 12),
           Text(
-              'When you fully complete a focus area,\nit will be archived here.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white54, fontSize: 16)),
+            'When you fully complete a focus area,\nit will be archived here.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white54, fontSize: 16),
+          ),
         ],
       ),
     ).animate().fade();
