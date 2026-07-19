@@ -406,47 +406,6 @@ export const onUserSignUp = functions
   });
 
 // Resets weekly progress for all users every Sunday at midnight
-export const resetWeeklyProgress = onSchedule(
-  "every sunday 00:00",
-  async () => {
-    try {
-      const usersSnapshot = await admin.firestore().collection("users").get();
-
-      // Firestore batches can only handle 500 operations at a time
-      let currentBatch = admin.firestore().batch();
-      const batches: typeof currentBatch[] = [];
-      let operationCount = 0;
-
-      usersSnapshot.docs.forEach((doc) => {
-        // Example: Reset weekly-specific fields
-        // (Customize these to match your exact DB fields)
-        currentBatch.update(doc.ref, {
-          weeklyProgress: 0,
-          weeklyXp: 0,
-        });
-        operationCount++;
-
-        if (operationCount === 499) {
-          batches.push(currentBatch);
-          currentBatch = admin.firestore().batch();
-          operationCount = 0;
-        }
-      });
-
-      if (operationCount > 0) {
-        batches.push(currentBatch);
-      }
-
-      await Promise.all(batches.map((batch) => batch.commit()));
-      logger.info(
-        `Successfully reset weekly progress for ${usersSnapshot.size} users.`,
-      );
-    } catch (error) {
-      logger.error("Error resetting weekly progress:", error);
-    }
-  },
-);
-
 // Triggered automatically when a user deletes their Firebase Auth account
 export const cleanupUserAccount = functions
   .region("europe-west1")
