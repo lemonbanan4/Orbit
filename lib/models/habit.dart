@@ -18,6 +18,11 @@ class Habit {
   // 'growth'/'core') — drives per-category Focus Journey chapter progress.
   // Null for habits created before this field existed or left uncategorized.
   final String? category;
+  // 7 entries, index 0=Monday..6=Sunday (same convention as
+  // RoutineAlarm.activeDays) — which days this habit is actually due.
+  // Defaults to every day, so habits created before this field existed
+  // behave exactly as before.
+  final List<bool> activeDays;
 
   Habit({
     required this.id,
@@ -33,8 +38,17 @@ class Habit {
     this.time = '00:00',
     this.isGoal = false,
     this.category,
+    List<bool>? activeDays,
     Map<String, bool>? history,
-  }) : history = history ?? {};
+  }) : history = history ?? {},
+       activeDays = (activeDays != null && activeDays.length == 7)
+           ? activeDays
+           : List.filled(7, true);
+
+  /// True if this habit is scheduled to run on [date] (defaults to today).
+  bool isActiveOn([DateTime? date]) {
+    return activeDays[(date ?? DateTime.now()).weekday - 1];
+  }
 
   factory Habit.fromSnapshot(DocumentSnapshot doc, {bool isCompleted = false}) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
@@ -105,6 +119,9 @@ class Habit {
               ),
             )
           : {},
+      activeDays: data['activeDays'] is List && data['activeDays'].length == 7
+          ? (data['activeDays'] as List).map((v) => v == true).toList()
+          : null,
     );
   }
 
@@ -123,6 +140,7 @@ class Habit {
       'isCompleted': isCompleted,
       'isGoal': isGoal,
       'history': history,
+      'activeDays': activeDays,
       if (category != null) 'category': category,
     };
   }

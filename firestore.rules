@@ -112,10 +112,15 @@ service cloud.firestore {
       // side of the app's own model, so every addHabit() call was rejected).
       let allowedKeys = ['id', 'title', 'routine', 'iconCodePoint', 'color',
         'completedDays', 'totalDays', 'order', 'skippedCount', 'time', 'isCompleted',
-        'history', 'isGoal', 'category'];
+        'history', 'isGoal', 'category', 'activeDays'];
+      // Which days of the week this habit is due (see Habit.activeDays) --
+      // must be exactly 7 booleans if present at all.
+      let isActiveDaysValid = !('activeDays' in data) ||
+        (data.activeDays is list && data.activeDays.size() == 7);
       return data.keys().hasOnly(allowedKeys) &&
              isValidString(data.title, 1, 100) &&
-             isValidString(data.routine, 1, 50);
+             isValidString(data.routine, 1, 50) &&
+             isActiveDaysValid;
     }
 
     function isValidJournalEntry(data) {

@@ -46,6 +46,66 @@ void main() {
     });
   });
 
+  group('Habit.activeDays / isActiveOn', () {
+    Habit makeHabit({List<bool>? activeDays}) => Habit(
+      id: '1',
+      title: 'Test',
+      routineType: 'Morning',
+      iconCodePoint: 0,
+      color: 0,
+      completedDays: 0,
+      totalDays: 0,
+      activeDays: activeDays,
+    );
+
+    test('defaults to every day when not specified', () {
+      final habit = makeHabit();
+      expect(habit.activeDays, List.filled(7, true));
+      // 2026-07-20 is a Monday.
+      expect(habit.isActiveOn(DateTime(2026, 7, 20)), isTrue);
+      expect(habit.isActiveOn(DateTime(2026, 7, 26)), isTrue); // Sunday
+    });
+
+    test('respects a Mon/Wed/Fri schedule', () {
+      final habit = makeHabit(
+        activeDays: [true, false, true, false, true, false, false],
+      );
+      expect(habit.isActiveOn(DateTime(2026, 7, 20)), isTrue); // Monday
+      expect(habit.isActiveOn(DateTime(2026, 7, 21)), isFalse); // Tuesday
+      expect(habit.isActiveOn(DateTime(2026, 7, 22)), isTrue); // Wednesday
+      expect(habit.isActiveOn(DateTime(2026, 7, 25)), isFalse); // Saturday
+    });
+
+    test('falls back to every day for a malformed (wrong-length) value', () {
+      final habit = makeHabit(activeDays: [true, false]);
+      expect(habit.activeDays, List.filled(7, true));
+    });
+
+    test('fromMap parses a stored schedule, and defaults when absent', () {
+      final withSchedule = Habit.fromMap('1', {
+        'title': 'Gym',
+        'routine': 'Morning',
+        'activeDays': [true, false, true, false, true, false, false],
+      });
+      expect(withSchedule.activeDays[0], isTrue);
+      expect(withSchedule.activeDays[1], isFalse);
+
+      final legacyHabit = Habit.fromMap('2', {
+        'title': 'Old habit, no schedule field',
+        'routine': 'Morning',
+      });
+      expect(legacyHabit.activeDays, List.filled(7, true));
+    });
+
+    test('toMap round-trips activeDays', () {
+      final habit = makeHabit(
+        activeDays: [false, true, false, true, false, true, false],
+      );
+      final restored = Habit.fromMap('1', habit.toMap());
+      expect(restored.activeDays, habit.activeDays);
+    });
+  });
+
   group('ExportService CSV builders', () {
     test('buildHistoryCsv produces a header-only CSV with no history', () {
       final habit = Habit(

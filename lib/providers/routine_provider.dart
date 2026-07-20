@@ -23,6 +23,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   final FirebaseAuth _auth;
 
   StreamSubscription<User?>? _authSubscription;
+  Timer? _midnightTimer;
   final audioplayers.AudioPlayer _audioPlayer;
   final ja.AudioPlayer _ambientPlayer;
   bool _isDisposed = false;
@@ -791,12 +792,31 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         _loadData();
       }
     });
+
+    _scheduleMidnightRollover();
+  }
+
+  // _checkDailyReset() previously only ran on init/cloud-load and on
+  // AppLifecycleState.resumed -- a user who keeps the app open across local
+  // midnight (journaling, checking stats late at night) kept _lastResetDate
+  // stuck on the prior day, so habit toggles/XP/mood entries made after
+  // midnight were still stamped with yesterday's date key until the app was
+  // backgrounded and resumed. Self-reschedules for every following midnight.
+  void _scheduleMidnightRollover() {
+    final now = DateTime.now();
+    final nextMidnight = DateTime(now.year, now.month, now.day + 1);
+    _midnightTimer = Timer(nextMidnight.difference(now), () {
+      if (_isDisposed) return;
+      _checkDailyReset();
+      _scheduleMidnightRollover();
+    });
   }
 
   @override
   void dispose() {
     _isDisposed = true;
     _authSubscription?.cancel();
+    _midnightTimer?.cancel();
     _audioPlayer.dispose();
     _ambientPlayer.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -1085,28 +1105,44 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
       // Capture the date that's ending before it gets overwritten below —
       // per-habit history entries below belong to this day, not "today".
       final String? completedDayKey = _lastResetDate;
+      // Which activeDays slot the closing day falls on (1=Monday..7=Sunday
+      // -> index 0-6) -- used below so a habit's Tue/Thu-only schedule
+      // doesn't get tallied as "missed" on a Monday it was never due.
+      final int? closingWeekday = completedDayKey != null
+          ? DateTime.tryParse(completedDayKey)?.weekday
+          : null;
 
       // --- NEW: Calculate and save yesterday's progress ---
       if (_lastResetDate != null) {
         // Don't run on first ever launch. Use the new _habits list.
         final allHabits = _habits.values.toList();
-        if (allHabits.isNotEmpty) {
-          final completedCount = allHabits.where((h) => h.isCompleted).length;
-          final yesterdayProgress = completedCount / allHabits.length;
+        // "Due" = actually scheduled for the closing day, or completed
+        // anyway (voluntary extra effort always counts, never dilutes the
+        // denominator with days a habit wasn't even supposed to run).
+        final dueHabits = closingWeekday == null
+            ? allHabits
+            : allHabits
+                  .where(
+                    (h) => h.isCompleted || h.activeDays[closingWeekday - 1],
+                  )
+                  .toList();
+        final completedCount = dueHabits.where((h) => h.isCompleted).length;
+        final yesterdayProgress = dueHabits.isEmpty
+            ? 0.0
+            : completedCount / dueHabits.length;
 
-          // Update our list (remove oldest, add newest)
-          _weeklyProgress.removeAt(0);
-          _weeklyProgress.add(yesterdayProgress);
+        // Update our list (remove oldest, add newest)
+        _weeklyProgress.removeAt(0);
+        _weeklyProgress.add(yesterdayProgress);
 
-          // Add yesterday's possible habits to the lifetime pool!
-          _totalHabitsAssigned += allHabits.length;
-          _prefs?.setInt('total_habits_assigned', _totalHabitsAssigned);
+        // Add yesterday's actually-due habits to the lifetime pool!
+        _totalHabitsAssigned += dueHabits.length;
+        _prefs?.setInt('total_habits_assigned', _totalHabitsAssigned);
 
-          _prefs?.setStringList(
-            'weekly_progress_history',
-            _weeklyProgress.map((d) => d.toString()).toList(),
-          );
-        }
+        _prefs?.setStringList(
+          'weekly_progress_history',
+          _weeklyProgress.map((d) => d.toString()).toList(),
+        );
       }
 
       // --- STREAK LOGIC ---
@@ -1114,7 +1150,15 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         try {
           DateTime last = DateTime.parse(_lastResetDate!);
           DateTime curr = DateTime.parse(today);
-          final daysMissed = curr.difference(last).inDays;
+          // Diff via UTC-normalized dates, not the local-time DateTimes
+          // DateTime.parse produces -- a local-time difference truncates
+          // across a DST transition (a "day" can be 23h/25h wall-clock),
+          // which could under/over-count real calendar days missed and
+          // throw off both the streak-break threshold and freeze
+          // eligibility below. UTC has no DST, so this is always exact.
+          final daysMissed = DateTime.utc(curr.year, curr.month, curr.day)
+              .difference(DateTime.utc(last.year, last.month, last.day))
+              .inDays;
           // If more than 1 day has passed, OR they didn't complete a routine yesterday, break streak!
           final wouldBreak = daysMissed > 1 || !_hasIncreasedStreakToday;
 
@@ -1160,8 +1204,15 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
       _habits.forEach((id, habit) {
         // Only tally a real day if there was a previous day to close out —
         // the very first reset after install/cloud-restore has no prior
-        // date, so there's nothing to record yet.
-        if (completedDayKey != null) {
+        // date, so there's nothing to record yet. Also skip tallying a
+        // habit that wasn't actually due on the closing day and wasn't
+        // completed anyway -- it was never "missed" if it was never
+        // scheduled, so it shouldn't count against totalDays/skippedCount
+        // or leave a history entry at all.
+        final wasDueOrDone =
+            habit.isCompleted ||
+            (closingWeekday != null && habit.activeDays[closingWeekday - 1]);
+        if (completedDayKey != null && wasDueOrDone) {
           // Self-heal the legacy habit-creation seed (totalDays used to
           // start at a vestigial 21/7 "goal" constant nothing ever
           // consumed) — if the tallies don't already add up, this habit
@@ -1204,9 +1255,14 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     return _habits[habitId]?.isCompleted ?? false;
   }
 
-  // Checks if every habit in a specific routine is currently done
+  // Checks if every habit *actually due today* in a specific routine is
+  // done -- habits scheduled for other days (Habit.activeDays) don't count
+  // toward "did you finish today," matching how they're excluded from the
+  // daily-reset tally below.
   bool isRoutineComplete(String routineType) {
-    List<Habit> habits = getHabitsForRoutine(routineType);
+    List<Habit> habits = getHabitsForRoutine(
+      routineType,
+    ).where((h) => h.isActiveOn()).toList();
     if (habits.isEmpty) return false;
     return habits.every((habit) => isHabitCompleted(habit.id));
   }
@@ -1332,7 +1388,11 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Map<String, dynamic>? skipRoutine(String routineType) {
-    List<Habit> habits = getHabitsForRoutine(routineType);
+    // Only skip what's actually due today -- marking a habit scheduled for
+    // a different day "complete" via "skip remaining" doesn't make sense.
+    List<Habit> habits = getHabitsForRoutine(
+      routineType,
+    ).where((h) => h.isActiveOn()).toList();
     List<Habit> skippedHabits = [];
     for (var habit in habits) {
       if (!isHabitCompleted(habit.id)) {

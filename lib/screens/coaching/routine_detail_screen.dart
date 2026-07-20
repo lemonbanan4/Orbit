@@ -658,6 +658,8 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                             habit.isGoal,
                                                         initialCategory:
                                                             habit.category,
+                                                        initialActiveDays:
+                                                            habit.activeDays,
                                                       );
                                                     },
                                                     backgroundColor:
@@ -826,9 +828,10 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                             AIFairyProvider
                                                           >();
                                                       final atmosphereProvider =
-                                                          context.read<
-                                                            AtmosphereProvider
-                                                          >();
+                                                          context
+                                                              .read<
+                                                                AtmosphereProvider
+                                                              >();
                                                       final soundsEnabled =
                                                           routineProvider
                                                               .soundsEnabled;
@@ -871,8 +874,7 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                                     .isCompleted,
                                                               );
                                                       if (allCompleted) {
-                                                        await NotificationService
-                                                            .clearActiveRoutineReminders();
+                                                        await NotificationService.clearActiveRoutineReminders();
                                                       }
 
                                                       if (!context.mounted) {
@@ -891,14 +893,12 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                           skippedCount: skips,
                                                         );
 
-                                                        atmosphereProvider
-                                                            .setAura(
-                                                              AtmosphereProvider.auraForHabitCompletion(
-                                                                streak: streak,
-                                                                skippedCount:
-                                                                    skips,
-                                                              ),
-                                                            );
+                                                        atmosphereProvider.setAura(
+                                                          AtmosphereProvider.auraForHabitCompletion(
+                                                            streak: streak,
+                                                            skippedCount: skips,
+                                                          ),
+                                                        );
 
                                                         // Award experience matrix points
                                                         bool didLevelUp =
@@ -1071,24 +1071,51 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                             width: 16,
                                                           ),
                                                           Expanded(
-                                                            child: Text(
-                                                              habit.title,
-                                                              style: TextStyle(
-                                                                fontSize: 16,
-                                                                color:
-                                                                    isCompleted
-                                                                    ? Colors
-                                                                          .white54
-                                                                    : Colors
-                                                                          .white,
-                                                                decoration:
-                                                                    isCompleted
-                                                                    ? TextDecoration
-                                                                          .lineThrough
-                                                                    : null,
-                                                              ),
-                                                              maxLines: null,
-                                                              softWrap: true,
+                                                            child: Column(
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .start,
+                                                              mainAxisSize:
+                                                                  MainAxisSize
+                                                                      .min,
+                                                              children: [
+                                                                Text(
+                                                                  habit.title,
+                                                                  style: TextStyle(
+                                                                    fontSize:
+                                                                        16,
+                                                                    color:
+                                                                        isCompleted
+                                                                        ? Colors
+                                                                              .white54
+                                                                        : Colors
+                                                                              .white,
+                                                                    decoration:
+                                                                        isCompleted
+                                                                        ? TextDecoration
+                                                                              .lineThrough
+                                                                        : null,
+                                                                  ),
+                                                                  maxLines:
+                                                                      null,
+                                                                  softWrap:
+                                                                      true,
+                                                                ),
+                                                                if (!habit
+                                                                    .isActiveOn())
+                                                                  const Text(
+                                                                    'Not scheduled today',
+                                                                    style: TextStyle(
+                                                                      color: Colors
+                                                                          .white38,
+                                                                      fontSize:
+                                                                          11,
+                                                                      fontStyle:
+                                                                          FontStyle
+                                                                              .italic,
+                                                                    ),
+                                                                  ),
+                                                              ],
                                                             ),
                                                           ),
                                                           if (isGoal)

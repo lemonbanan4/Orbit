@@ -20,6 +20,7 @@ class CreateHabitSheet extends StatefulWidget {
   final String? initialRoutine; // ADDED THIS!
   final bool initialIsGoal;
   final String? initialCategory;
+  final List<bool>? initialActiveDays;
 
   const CreateHabitSheet({
     super.key,
@@ -29,6 +30,7 @@ class CreateHabitSheet extends StatefulWidget {
     this.initialRoutine,
     this.initialIsGoal = false,
     this.initialCategory,
+    this.initialActiveDays,
   });
 
   static void show(
@@ -39,6 +41,7 @@ class CreateHabitSheet extends StatefulWidget {
     String? initialRoutine,
     bool initialIsGoal = false,
     String? initialCategory,
+    List<bool>? initialActiveDays,
   }) {
     showModalBottomSheet(
       context: context,
@@ -51,6 +54,7 @@ class CreateHabitSheet extends StatefulWidget {
         initialRoutine: initialRoutine,
         initialIsGoal: initialIsGoal,
         initialCategory: initialCategory,
+        initialActiveDays: initialActiveDays,
       ),
     );
   }
@@ -67,12 +71,15 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
   late bool _isGoal;
   String? _selectedCategory;
   bool _isScanning = false;
+  late List<bool> _activeDays;
 
   final Map<String, IconData> _routineIcons = {
     'Morning': Icons.wb_sunny_rounded,
     'Work': Icons.center_focus_strong_rounded,
     'Night': Icons.nightlight_round,
   };
+
+  static const _weekdayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   // The 5 Focus Journey categories (StellarPlanetVariant.name -> label/icon/
   // color), matching the palette the Constellation Builder's stellar
@@ -119,6 +126,11 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
     _selectedRoutine = widget.initialRoutine ?? 'Morning';
     _isGoal = widget.initialIsGoal;
     _selectedCategory = widget.initialCategory;
+    _activeDays =
+        widget.initialActiveDays != null &&
+            widget.initialActiveDays!.length == 7
+        ? List.of(widget.initialActiveDays!)
+        : List.filled(7, true);
   }
 
   @override
@@ -160,6 +172,11 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
           'routine': _selectedRoutine,
           'iconCodePoint': _selectedIcon,
           'isGoal': _isGoal,
+          // Unlike completedDays/totalDays/isCompleted above, this reflects
+          // the *current* desired schedule on every save (create or edit)
+          // -- there's no "reset to a stale default" risk here since it's
+          // exactly what the day picker below shows the user right now.
+          'activeDays': _activeDays,
           if (_selectedCategory != null) 'category': _selectedCategory,
           if (widget.habitId == null) ...{
             'completedDays': 0,
@@ -199,6 +216,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
               isCompleted: existing?.isCompleted ?? false,
               isGoal: _isGoal,
               category: _selectedCategory ?? existing?.category,
+              activeDays: _activeDays,
               history: existing?.history,
             ),
           );
@@ -501,6 +519,59 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
                   );
                 }).toList(),
               ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              "Repeats",
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(7, (dayIndex) {
+                final isActive = _activeDays[dayIndex];
+                return GestureDetector(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    // A habit due on zero days makes no sense (it would
+                    // never be tallied and could never advance a streak) --
+                    // keep at least one day active, same guard used
+                    // elsewhere in the app for alarm day toggles.
+                    final activeCount = _activeDays.where((d) => d).length;
+                    if (isActive && activeCount <= 1) return;
+                    setState(() => _activeDays[dayIndex] = !isActive);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: isActive
+                          ? const Color(0xFF00E5FF)
+                          : Colors.white.withValues(alpha: 0.05),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isActive
+                            ? const Color(0xFF00E5FF)
+                            : Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _weekdayLabels[dayIndex],
+                      style: TextStyle(
+                        color: isActive ? Colors.black : Colors.white54,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                );
+              }),
             ),
             const SizedBox(height: 16),
             SwitchListTile(
