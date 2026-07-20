@@ -50,6 +50,39 @@ subprojects {
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
 
+// The :app module explicitly targets JVM 17 (see app/build.gradle.kts), but
+// third-party plugin subprojects (pulled straight from pub.dev, e.g.
+// home_widget) don't set their own jvmTarget and fall back to the Kotlin
+// Gradle Plugin's default of 1.8 -- which only actually breaks the release
+// build, since that's when R8/minification forces full recompilation and
+// bytecode inlining across module boundaries. A dependency compiled at 11
+// (androidx.glance, kotlinx.coroutines) can't be inlined into code compiled
+// at 1.8, producing "Cannot inline bytecode built with JVM target 11 into
+// bytecode that is being built with JVM target 1.8". Force every subproject
+// to the same JVM 17 target the app itself already uses.
+subprojects {
+    afterEvaluate {
+        extensions.findByType<org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension>()
+            ?.compilerOptions
+            ?.jvmTarget
+            ?.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        tasks.withType<org.gradle.api.tasks.compile.JavaCompile> {
+            sourceCompatibility = JavaVersion.VERSION_17.toString()
+            targetCompatibility = JavaVersion.VERSION_17.toString()
+        }
+        // Some plugin subprojects (e.g. jni-1.0.0, a transitive native
+        // dependency) set their own `ndkVersion = flutter.ndkVersion`
+        // directly in their build.gradle, which the :app-level override in
+        // app/build.gradle.kts doesn't reach. flutter.ndkVersion currently
+        // resolves to 28.2.13676358, which is present under the SDK's ndk/
+        // dir but missing build/cmake/android.toolchain.cmake entirely (an
+        // incomplete/corrupted local install) -- force every subproject
+        // onto 27.1.12297006, which is fully installed and verified working.
+        extensions.findByType<com.android.build.gradle.BaseExtension>()
+            ?.ndkVersion = "27.1.12297006"
+    }
+}
+
 subprojects {
     project.evaluationDependsOn(":app")
 }

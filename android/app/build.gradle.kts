@@ -18,6 +18,13 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace = "com.invokerlab.orbit"
     compileSdk = 36
+    // Pinned instead of the flutter.ndkVersion default -- that default
+    // (28.2.13676358) is present under the SDK's ndk/ dir but missing its
+    // build/cmake/android.toolchain.cmake entirely (an incomplete/corrupted
+    // local install), which fails native compilation for any plugin using
+    // JNI (e.g. speech_to_text's jni dependency) on release builds.
+    // 27.1.12297006 is fully installed and verified working.
+    ndkVersion = "27.1.12297006"
 
     defaultConfig {
         applicationId = "com.invokerlab.orbit"
