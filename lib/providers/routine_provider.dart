@@ -315,6 +315,11 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   double _ambientVolume = 0.5;
   String _selectedAvatar = 'rocket'; // Default avatar
   bool _confettiEnabled = true;
+  // Habit ID pinned to the iOS/Android "Habit Widget" home-screen widget --
+  // null means nothing is featured (widget shows a pick-one prompt).
+  String? _featuredHabitId;
+
+  String? get featuredHabitId => _featuredHabitId;
 
   bool get soundsEnabled => _soundsEnabled;
   bool get hapticsEnabled => _hapticsEnabled;
@@ -911,6 +916,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     _streakFreezes = _prefs?.getInt('streak_freezes') ?? 0;
     _isStreakFrozen = _prefs?.getBool('is_streak_frozen') ?? false;
     _selectedAvatar = _prefs?.getString('avatar') ?? 'rocket';
+    _featuredHabitId = _prefs?.getString('featured_habit_id');
     _bookmarkedQuotes = _prefs?.getStringList('bookmarked_quotes') ?? [];
     _lettersReadToday = _prefs?.getInt('letters_read_today') ?? 0;
     _unlockedReaderBadge = _prefs?.getBool('unlocked_reader_badge') ?? false;
@@ -995,6 +1001,9 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
         if (cloudData.containsKey('avatar')) {
           _selectedAvatar = cloudData['avatar'];
+        }
+        if (cloudData.containsKey('featured_habit_id')) {
+          _featuredHabitId = cloudData['featured_habit_id'];
         }
 
         // Load the daily completion status (the old way, for compatibility)
@@ -1307,6 +1316,9 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
       _checkFocusJourneyUnlocks();
 
       notifyListeners();
+      // The featured habit's streak can change here too (a miss recorded
+      // above breaks it) without ever going through toggleHabit today.
+      if (_featuredHabitId != null) _updateFeaturedHabitWidget();
       _saveToCloud(); // Sync the fresh day to Firebase immediately
     }
   }
@@ -1444,6 +1456,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_isDisposed) return;
     notifyListeners();
     _updateHomeWidget(); // Trigger home widget update on any habit toggle
+    if (habitId == _featuredHabitId) _updateFeaturedHabitWidget();
     _saveToCloud();
   }
 
@@ -1513,6 +1526,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_isDisposed) return;
     notifyListeners();
     _updateHomeWidget();
+    if (habitId == _featuredHabitId) _updateFeaturedHabitWidget();
     _saveToCloud();
   }
 
@@ -1647,6 +1661,11 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
       // Remove from local state
       _habits.remove(habitId);
       notifyListeners();
+      // Otherwise the featured-habit widget would be left permanently
+      // pointing at a habit that no longer exists.
+      if (habitId == _featuredHabitId) {
+        setFeaturedHabit(null);
+      }
     } catch (e, stack) {
       debugPrint('Failed to remove habit $habitId: $e');
       FirebaseCrashlytics.instance.recordError(
@@ -1969,6 +1988,58 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
       );
     } catch (e) {
       debugPrint('Error updating home screen widget: $e');
+    }
+  }
+
+  /// Pins [habitId] to the "Habit Widget" home-screen widget, or clears it
+  /// when null. A direct targeted write (like setInterests), not the big
+  /// debounced _saveToCloud() -- merge writes only *preserve* fields
+  /// they omit, they don't delete them, so clearing the selection needs
+  /// an explicit FieldValue.delete() rather than just leaving the key out
+  /// of a future save.
+  Future<String?> setFeaturedHabit(String? habitId) async {
+    final previous = _featuredHabitId;
+    _featuredHabitId = habitId;
+    notifyListeners();
+    _updateFeaturedHabitWidget();
+    try {
+      if (habitId == null) {
+        await _prefs?.remove('featured_habit_id');
+      } else {
+        await _prefs?.setString('featured_habit_id', habitId);
+      }
+      await _db.collection('users').doc(_userId).update({
+        'featured_habit_id': habitId ?? FieldValue.delete(),
+      });
+      return null;
+    } catch (e) {
+      debugPrint('Failed to save featured habit: $e');
+      _featuredHabitId = previous;
+      notifyListeners();
+      _updateFeaturedHabitWidget();
+      return 'Could not save your featured habit. Please try again.';
+    }
+  }
+
+  Future<void> _updateFeaturedHabitWidget() async {
+    try {
+      final habit = _featuredHabitId == null
+          ? null
+          : _habits[_featuredHabitId];
+      await HomeWidget.saveWidgetData<String>(
+        'title',
+        habit?.title ?? 'Pick a habit in Settings',
+      );
+      await HomeWidget.saveWidgetData<int>(
+        'streak',
+        habit?.computeCurrentStreak() ?? 0,
+      );
+      await HomeWidget.updateWidget(
+        androidName: 'HabitWidget',
+        iOSName: 'HabitWidget',
+      );
+    } catch (e) {
+      debugPrint('Error updating habit widget: $e');
     }
   }
 

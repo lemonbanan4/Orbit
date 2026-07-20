@@ -74,6 +74,39 @@ class Habit {
     return activeDays[(date ?? DateTime.now()).weekday - 1];
   }
 
+  /// This habit's own consecutive-day completion streak, walking backward
+  /// through [history]. Purely derived (no separately persisted counter,
+  /// so it can't drift from the underlying data) -- unlike the app-wide
+  /// streak, there's no per-habit counter anywhere else to reuse.
+  ///
+  /// Today only ever adds to the streak if already completed; an
+  /// incomplete-but-still-due-today habit doesn't break it, matching how
+  /// the app-wide streak isn't broken mid-day either (only at the daily
+  /// reset). A day this habit wasn't due on (per [activeDays]) is skipped
+  /// rather than breaking the streak -- _checkDailyReset only ever writes
+  /// a history entry for a day the habit was due-or-completed, so a
+  /// missing entry on a due day means the walk has run past when the
+  /// habit started existing, which should also stop the count.
+  int computeCurrentStreak() {
+    int streak = isCompleted ? 1 : 0;
+    DateTime day = DateTime.now().subtract(const Duration(days: 1));
+    while (streak < 3650) {
+      final key = day.toIso8601String().substring(0, 10);
+      final entry = history[key];
+      if (entry == null) {
+        if (!isActiveOn(day)) {
+          day = day.subtract(const Duration(days: 1));
+          continue;
+        }
+        break;
+      }
+      if (!entry) break;
+      streak++;
+      day = day.subtract(const Duration(days: 1));
+    }
+    return streak;
+  }
+
   factory Habit.fromSnapshot(DocumentSnapshot doc, {bool isCompleted = false}) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
     return Habit.fromMap(doc.id, data, isCompleted: isCompleted);

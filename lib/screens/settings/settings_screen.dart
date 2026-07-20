@@ -24,6 +24,7 @@ import '../../theme/orbit_colors.dart';
 import '../../services/export_service.dart';
 import '../../widgets/settings/nebula_theme_sheet.dart';
 import '../../widgets/settings/interests_sheet.dart';
+import '../../widgets/settings/featured_habit_sheet.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -663,6 +664,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.interests_rounded,
                   title: 'Focus Interests',
                   subtitle: 'Steer your Daily Wisdom and AI coaching',
+                ),
+                Divider(
+                  color: textColor.withValues(alpha: 0.1),
+                  height: 1,
+                ),
+                SettingsTile(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    FeaturedHabitSheet.show(context);
+                  },
+                  icon: Icons.widgets_outlined,
+                  title: 'Habit Widget',
+                  subtitle: 'Pin a habit to your home screen',
                 ),
                 Divider(
                   color: textColor.withValues(alpha: 0.1),

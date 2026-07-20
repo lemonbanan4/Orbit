@@ -395,6 +395,18 @@ describe("Orbit Firestore Security Rules", () => {
     await assertFails(habitDoc.update({ isArchived: "yes" }));
   });
 
+  it("Allows setting featured_habit_id to a valid string but denies a non-string value", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const userDoc = db.collection("users").doc("user123");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false });
+    });
+
+    await assertSucceeds(userDoc.update({ featured_habit_id: "habit1" }));
+    await assertFails(userDoc.update({ featured_habit_id: 12345 }));
+  });
+
   it("Denies a habit write with a field outside the allowlist", async () => {
     const db = testEnv.authenticatedContext("user123").firestore();
     const habitDoc = db

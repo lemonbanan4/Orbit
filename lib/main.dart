@@ -426,18 +426,6 @@ class _OrbitAppState extends State<OrbitApp> {
     });
   }
 
-  Future<void> updateHabitWidget(String title, int streak) async {
-    // Save the data using the exact keys expected by your Swift code
-    await HomeWidget.saveWidgetData<String>('title', title);
-    await HomeWidget.saveWidgetData<int>('streak', streak);
-
-    // Tell the OS to reload the widget with the new data.
-    await HomeWidget.updateWidget(
-      androidName: 'HabitWidget',
-      iOSName: 'HabitWidget',
-    );
-  }
-
   Future<void> _setupPushNotifications() async {
     if (kIsWeb) return;
 

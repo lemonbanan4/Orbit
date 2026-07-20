@@ -209,6 +209,68 @@ void main() {
     });
   });
 
+  group('Habit.computeCurrentStreak', () {
+    String daysAgo(int n) =>
+        DateTime.now().subtract(Duration(days: n)).toIso8601String().substring(0, 10);
+
+    Habit makeHabit({
+      bool isCompleted = false,
+      List<bool>? activeDays,
+      Map<String, bool>? history,
+    }) => Habit(
+      id: '1',
+      title: 'Test',
+      routineType: 'Morning',
+      iconCodePoint: 0,
+      color: 0,
+      completedDays: 0,
+      totalDays: 0,
+      isCompleted: isCompleted,
+      activeDays: activeDays,
+      history: history,
+    );
+
+    test('counts today if already completed, with no history', () {
+      expect(makeHabit(isCompleted: true).computeCurrentStreak(), 1);
+    });
+
+    test('is 0 when not completed today and no history', () {
+      expect(makeHabit().computeCurrentStreak(), 0);
+    });
+
+    test('extends through a consecutive run of completed days', () {
+      final habit = makeHabit(
+        history: {daysAgo(1): true, daysAgo(2): true, daysAgo(3): true},
+      );
+      expect(habit.computeCurrentStreak(), 3);
+    });
+
+    test('stops at the first recorded miss', () {
+      final habit = makeHabit(
+        history: {daysAgo(1): true, daysAgo(2): false, daysAgo(3): true},
+      );
+      expect(habit.computeCurrentStreak(), 1);
+    });
+
+    test('a not-yet-completed today does not break the streak', () {
+      final habit = makeHabit(
+        history: {daysAgo(1): true, daysAgo(2): true},
+      );
+      expect(habit.computeCurrentStreak(), 2);
+    });
+
+    test('a day the habit was not scheduled on does not break the streak', () {
+      final skippedDay = DateTime.now().subtract(const Duration(days: 2));
+      final activeDays = List<bool>.filled(7, true);
+      activeDays[skippedDay.weekday - 1] = false;
+      final habit = makeHabit(
+        activeDays: activeDays,
+        history: {daysAgo(1): true, daysAgo(3): true, daysAgo(4): true},
+      );
+      expect(habit.computeCurrentStreak(), 3);
+    });
+  });
+
   group('ExportService CSV builders', () {
     test('buildHistoryCsv produces a header-only CSV with no history', () {
       final habit = Habit(

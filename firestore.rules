@@ -60,15 +60,22 @@ service cloud.firestore {
         // otherwise be silently rejected forever.
         'isPro', 'willRenew', 'proExpirationDate', 'retentionEmailSent',
         'referredBy', 'hasReadWarningEmail', 'warningEmailOpenedAt',
-        'emailTrackingToken'
+        'emailTrackingToken', 'featured_habit_id'
       ];
 
       // Prevent 1MB string payload attacks on display name — 'name' is
       // the field actually shown/edited in the app (profile, leaderboard,
       // settings); 'displayName' is a separate FirebaseAuth-mirrored
-      // field. Both need the same guard.
-      let isDisplayNameValid = !('displayName' in data) || isValidString(data.displayName, 0, 60);
-      let isNameValid = !('name' in data) || isValidString(data.name, 0, 60);
+      // field. Both need the same guard. featured_habit_id is grouped in
+      // here too (rather than its own `let`) purely to stay under
+      // Firestore's 10-variable-per-function limit -- it's cleared via
+      // FieldValue.delete() (see setFeaturedHabit), never written as an
+      // explicit null, so it only ever needs to accept "absent" or "a
+      // real habit ID string."
+      let isMiscFieldsValid =
+        (!('displayName' in data) || isValidString(data.displayName, 0, 60)) &&
+        (!('name' in data) || isValidString(data.name, 0, 60)) &&
+        (!('featured_habit_id' in data) || isValidString(data.featured_habit_id, 0, 100));
 
       // Anti-cheat: every economy/progression field here was previously
       // unvalidated beyond its key being allowlisted -- a client could set
@@ -87,7 +94,7 @@ service cloud.firestore {
       let isUnlockedThemesValid = !('unlocked_themes' in data) || (data.unlocked_themes is list && data.unlocked_themes.size() <= 100);
       let isAchievementsValid = !('achievements' in data) || (data.achievements is list && data.achievements.size() <= 500);
 
-      return data.keys().hasOnly(allowedKeys) && isDisplayNameValid && isNameValid &&
+      return data.keys().hasOnly(allowedKeys) && isMiscFieldsValid &&
         isXpValid && isGlobalXpValid && isCurrentLevelValid && isCurrentStreakValid &&
         isLongestStreakValid && isStreakFreezesValid && isUnlockedThemesValid &&
         isAchievementsValid;
