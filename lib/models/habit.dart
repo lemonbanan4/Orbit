@@ -35,8 +35,13 @@ class Habit {
   final String? unit;
   int currentCount;
   // Paused, not deleted -- keeps all its stats/history but drops out of
-  // the daily checklist and every completion/progress calculation until
-  // unarchived. Defaults to false so existing habits are unaffected.
+  // the daily checklist and stops being counted as a "miss" once archived,
+  // until unarchived. Not fully invisible everywhere by design: a genuine
+  // completion earned before archiving still counts (e.g. the same-day
+  // progress chart in statistics_screen.dart), and categoryCompletions()
+  // still sums an archived habit's lifetime completedDays toward its Focus
+  // Journey category -- pausing forgives future misses, it doesn't erase
+  // real past effort. Defaults to false so existing habits are unaffected.
   bool isArchived;
 
   Habit({

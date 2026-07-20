@@ -9,18 +9,29 @@ class ExportService {
   static String buildHistoryCsv(Iterable<Habit> habits) {
     final rows = <List<String>>[];
     for (final habit in habits) {
+      // Target/Unit/Archived reflect the habit's *current* metadata, not a
+      // per-day snapshot -- history only ever stored a completion bool per
+      // day, not the actual quantity reached on past days for count-based
+      // habits, so that historical detail was never collected and can't be
+      // reconstructed here. Still better than a "complete data export"
+      // silently omitting whether a habit even used quantity tracking, or
+      // whether it's currently paused, at all.
       for (final entry in habit.history.entries) {
         rows.add([
           habit.title,
           habit.routineType,
           entry.key,
           entry.value ? 'Yes' : 'No',
+          habit.targetCount?.toString() ?? '',
+          habit.unit ?? '',
+          habit.isArchived ? 'Yes' : 'No',
         ]);
       }
     }
     rows.sort((a, b) => a[2].compareTo(b[2]));
 
-    final buffer = StringBuffer()..writeln('Habit,Routine,Date,Completed');
+    final buffer = StringBuffer()
+      ..writeln('Habit,Routine,Date,Completed,Target,Unit,Archived');
     for (final row in rows) {
       buffer.writeln(row.map(_escapeCsvField).join(','));
     }

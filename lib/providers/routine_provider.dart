@@ -865,8 +865,9 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Habits currently paused (isArchived) -- for a dedicated management
-  /// view; excluded from getHabitsForRoutine() and every completion/
-  /// progress calculation.
+  /// view; excluded from getHabitsForRoutine() and from being counted as a
+  /// "miss" (see Habit.isArchived for the couple of deliberate exceptions
+  /// where a genuine completion still counts).
   List<Habit> get archivedHabits =>
       _habits.values.where((h) => h.isArchived).toList()
         ..sort((a, b) => a.title.compareTo(b.title));
