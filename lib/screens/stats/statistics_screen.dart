@@ -765,6 +765,15 @@ class _WeeklyConsistencyChart extends StatelessWidget {
     final Color orbColor1 = orbitColors?.orbColor1 ?? const Color(0xFF00E5FF);
     final Color orbColor2 = orbitColors?.orbColor2 ?? const Color(0xFF7000FF);
 
+    // Matches the rest of this screen's convention (_HabitInsightsCard,
+    // _HabitHeatmapCard, _BestDayCard) of hiding a card entirely rather
+    // than rendering a chart with nothing meaningful to plot -- a
+    // brand-new user with zero habits used to see a flat, unexplained
+    // empty line here.
+    if (routineProvider.habits.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -904,6 +913,13 @@ class _XpHistoryGraph extends StatelessWidget {
     final routineProvider = context.watch<RoutineProvider>();
     final Color orbColor1 =
         theme.extension<OrbitColors>()?.orbColor1 ?? const Color(0xFF00E5FF);
+
+    // Same reasoning as _WeeklyConsistencyChart above -- a user who's
+    // never earned any XP used to see a row of zero-height bars with no
+    // explanation instead of this card just not appearing.
+    if (routineProvider.xpHistory.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -298,6 +298,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                             ),
                             title: Text(
                               isMe ? '$name (You)' : name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: isMe ? accent : textColor,
                                 fontWeight: isMe

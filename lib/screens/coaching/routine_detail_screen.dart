@@ -164,6 +164,8 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                       ),
                       title: Text(
                         widget.routineTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,

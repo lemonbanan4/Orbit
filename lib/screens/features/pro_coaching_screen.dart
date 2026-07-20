@@ -19,10 +19,25 @@ class ProCoachingScreen extends StatefulWidget {
 class _ProCoachingScreenState extends State<ProCoachingScreen> {
   bool _isScanning = false;
   String _scanResult = "";
+  // _isScanning only blocks *concurrent* taps -- nothing stopped mashing
+  // the scan button back-to-back once each call finished, each one a
+  // real Gemini call.
+  DateTime? _lastScanAt;
+  static const _scanCooldown = Duration(seconds: 10);
 
   void _runAlignmentScan() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+    final now = DateTime.now();
+    if (_lastScanAt != null && now.difference(_lastScanAt!) < _scanCooldown) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Give the telemetry a moment before scanning again.'),
+        ),
+      );
+      return;
+    }
+    _lastScanAt = now;
 
     setState(() {
       _isScanning = true;

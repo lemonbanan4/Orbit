@@ -114,6 +114,39 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator(color: accent));
           }
+          if (snapshot.hasError) {
+            // Previously fell straight through to the invite form on any
+            // fetch failure (network blip, cold start) -- an already-linked
+            // user would see themselves as unlinked with no explanation.
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.wifi_off_rounded,
+                      size: 48,
+                      color: Colors.white38,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "Couldn't load your partner status.",
+                      style: TextStyle(color: Colors.white70),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () => setState(() {
+                        _partnerInfoFuture = _fetchPartnerInfo();
+                      }),
+                      child: Text('Retry', style: TextStyle(color: accent)),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
           if (snapshot.data?['linked'] == true) {
             return _PartnerDashboard(info: snapshot.data!, accent: accent);
           }

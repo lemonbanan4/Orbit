@@ -33,15 +33,23 @@ class AIFairyService {
   Future<AIFairyResponse> getFairyInteraction(
     String habitName, {
     int skippedCount = 0,
+    int streak = 0,
   }) async {
     String skipContext = skippedCount > 0
         ? "The user missed or skipped this habit $skippedCount times recently, but finally completed it today! Acknowledge their return to the path and offer cosmic encouragement."
         : "The user is staying consistent on their path.";
+    // The caller already knows the real streak (RoutineProvider) -- feed
+    // it into the prompt rather than letting the model guess or generate
+    // a generic line, so any streak the fairy mentions is actually true.
+    String streakContext = streak > 1
+        ? "Their current streak on this habit is $streak days -- you may reference this specific number if it fits naturally."
+        : "";
 
     final prompt =
         """
-      The user just looked at their habit: '$habitName'. 
+      The user just looked at their habit: '$habitName'.
       $skipContext
+      $streakContext
       Give them a mystical, encouraging 1-sentence message.
       Also, provide 3 short options (max 3 words each) for the user to reply with.
       Respond ONLY in this JSON format:
@@ -103,49 +111,4 @@ class AIFairyService {
     }
   }
 
-  static Future<List<Map<String, dynamic>>> generateConstellation(
-    String goal,
-  ) async {
-    try {
-      // Using the flash model for speed
-      final apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
-      GenerativeModel buildModel(String m) =>
-          GenerativeModel(model: m, apiKey: apiKey);
-
-      final prompt =
-          """
-    The user's goal is: "$goal". 
-    Create a 4-week habit roadmap called a "Constellation".
-    Provide exactly 4 habits, one for each week, that escalate in difficulty.
-    
-    Return ONLY a JSON list. No conversational text.
-    Format:
-    [
-      {"week": 1, "habitTitle": "Short Title", "icon": "Fitness/Mind/Book/Explore", "description": "1 sentence why"},
-      ...
-    ]
-    """;
-
-      final response = await GeminiGateway.withFallback(
-        (m) => buildModel(m).generateContent([Content.text(prompt)]),
-      );
-      final String cleanJson = response.text!
-          .replaceAll('```json', '')
-          .replaceAll('```', '')
-          .trim();
-
-      return List<Map<String, dynamic>>.from(jsonDecode(cleanJson));
-    } catch (e) {
-      debugPrint("Genie Error: $e");
-      // Fallback if AI fails
-      return [
-        {
-          "week": 1,
-          "habitTitle": "Begin the Path",
-          "icon": "Explore",
-          "description": "Take your first step toward $goal.",
-        },
-      ];
-    }
-  }
 }

@@ -311,8 +311,17 @@ Do not include quotes around the text.
       debugPrint(
         "📥 GEMINI RESPONSE RECEIVED: De-serializing constellation map packet...",
       );
+      // The 3-model fallback chain (GeminiGateway.withFallback) can land
+      // on a lite model that doesn't honor responseMimeType as reliably --
+      // every other JSON-expecting call in this file strips ```json
+      // fences defensively before decoding; this one didn't, so a fenced
+      // response would throw straight into the catch below.
+      final cleanJson = responseText
+          .replaceAll('```json', '')
+          .replaceAll('```', '')
+          .trim();
       final Map<String, dynamic> decodedObject =
-          jsonDecode(responseText.trim()) as Map<String, dynamic>;
+          jsonDecode(cleanJson) as Map<String, dynamic>;
 
       // Extract the nested list out safely past the dictionary envelope wrapper
       final List<dynamic>? habitList =

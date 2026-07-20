@@ -35,6 +35,11 @@ class _ConstellationBuilderScreenState
   Future<String>? _greetingFuture;
   bool _isListening = false;
   double _soundLevel = 0.0;
+  // _isLoading only blocks *concurrent* taps -- nothing stopped mashing
+  // "INITIALIZE SCAN"/Retry back-to-back once each call finished, each one
+  // a real Gemini call.
+  DateTime? _lastGenieRunAt;
+  static const _genieCooldown = Duration(seconds: 10);
 
   @override
   void initState() {
@@ -54,6 +59,18 @@ class _ConstellationBuilderScreenState
 
   void _runGenie() async {
     if (_goalController.text.isEmpty) return;
+    if (_isLoading) return;
+    final now = DateTime.now();
+    if (_lastGenieRunAt != null &&
+        now.difference(_lastGenieRunAt!) < _genieCooldown) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Give the cosmos a moment before asking again.'),
+        ),
+      );
+      return;
+    }
+    _lastGenieRunAt = now;
 
     // 🔍 DEBUG LOG 1: Verify the function actually triggers
     debugPrint("🚀 GENIE START: Goal text is: '${_goalController.text}'");
@@ -93,12 +110,19 @@ class _ConstellationBuilderScreenState
 
         final isTimeout = e.toString().contains('TimeoutException');
 
+        // generateConstellation is the one AI method that rethrows instead
+        // of returning a themed fallback (there's no sane fake roadmap to
+        // fall back to for a fresh generation) -- but that means whatever
+        // the SDK throws, including a raw "GenerativeAIException: Response
+        // was blocked due to SAFETY", used to get interpolated straight
+        // into this SnackBar. Keep the raw error in the debug log above,
+        // show something in-character here instead.
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               isTimeout
                   ? "The cosmos is taking too long to respond. Check your internet connection!"
-                  : "Cosmic Interference: $e",
+                  : "The stars didn't align this time. Try rephrasing your goal, or try again.",
             ),
             backgroundColor: Colors.redAccent,
 

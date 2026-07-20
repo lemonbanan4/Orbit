@@ -13,6 +13,11 @@ class AIFairyProvider extends ChangeNotifier {
   bool _isThinking = false;
   String?
   _activeHabitName; // New field to store the habit name that triggered the fairy
+  // cheerForHabit fires a real Gemini call on every completed->incomplete
+  // ->completed transition, which a user can trigger indefinitely by
+  // rapidly un/re-checking a habit -- nothing upstream debounces that.
+  DateTime? _lastCheerAt;
+  static const _cheerCooldown = Duration(seconds: 8);
 
   String get currentMessage => _currentMessage;
   List<String> get suggestedReplies => _suggestedReplies;
@@ -29,7 +34,6 @@ class AIFairyProvider extends ChangeNotifier {
   }) async {
     _isCheering = true; // Set to true when cheering starts
     _activeHabitName = habitName; // Store the habit name
-    _isThinking = true;
     notifyListeners();
 
     if (playSound) {
@@ -40,11 +44,28 @@ class AIFairyProvider extends ChangeNotifier {
       }
     }
 
+    // Rapidly un/re-checking a habit can trigger this repeatedly with no
+    // gate upstream -- still celebrate (habit completion should always
+    // feel rewarding), just skip the API call and use a canned line
+    // instead of hitting Gemini on every bounce.
+    final now = DateTime.now();
+    if (_lastCheerAt != null && now.difference(_lastCheerAt!) < _cheerCooldown) {
+      _currentMessage = "You're glowing! Keep that momentum going! ✨";
+      _suggestedReplies = ["Heck yes!", "Keep it up"];
+      _isThinking = false;
+      notifyListeners();
+      return;
+    }
+    _lastCheerAt = now;
+    _isThinking = true;
+    notifyListeners();
+
     try {
       // We use the JSON interaction we built earlier
       final response = await _service.getFairyInteraction(
         habitName,
         skippedCount: skippedCount,
+        streak: streak,
       );
 
       _currentMessage = response.text;

@@ -693,6 +693,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
                   color: Colors.white,
                   size: 30,
                 ),
+                tooltip: 'Exit',
                 onPressed: _handleExit,
               ).animate().fade(duration: 2.seconds, curve: Curves.easeOut),
             ),
@@ -992,28 +993,33 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
 
   Widget _buildMoodIcon(String mood, IconData icon) {
     final isSelected = _selectedMood == mood;
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        setState(() => _selectedMood = mood);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: isSelected
-              ? OrbitTokens.teal.withValues(alpha: 0.2)
-              : Colors.white.withValues(alpha: 0.05),
-          border: Border.all(
-            color: isSelected ? OrbitTokens.teal : Colors.white24,
-            width: 1.5,
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: '$mood mood',
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          setState(() => _selectedMood = mood);
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isSelected
+                ? OrbitTokens.teal.withValues(alpha: 0.2)
+                : Colors.white.withValues(alpha: 0.05),
+            border: Border.all(
+              color: isSelected ? OrbitTokens.teal : Colors.white24,
+              width: 1.5,
+            ),
           ),
-        ),
-        child: Icon(
-          icon,
-          color: isSelected ? OrbitTokens.teal : Colors.white,
-          size: 28,
+          child: Icon(
+            icon,
+            color: isSelected ? OrbitTokens.teal : Colors.white,
+            size: 28,
+          ),
         ),
       ),
     );
