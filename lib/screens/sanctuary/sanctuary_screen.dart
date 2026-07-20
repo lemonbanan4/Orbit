@@ -901,19 +901,23 @@ class _JournalBottomSheetState extends State<_JournalBottomSheet> {
 
                         final user = FirebaseAuth.instance.currentUser;
                         if (user != null) {
-                          // Use the currently edited document ID, or generate a new one for today
-                          final String targetDocId =
-                              _editingEntryId ??
-                              DateTime.now().toIso8601String().split('T')[0];
+                          // Use the currently edited document, or a fresh
+                          // auto-ID for a new entry -- this used to fall
+                          // back to today's date string, which meant a
+                          // second unrelated entry saved the same day
+                          // silently overwrote the first (same doc ID,
+                          // merge write replaces 'content' wholesale).
+                          final journalRef = FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(user.uid)
+                              .collection('journal_entries');
+                          final targetDoc = _editingEntryId != null
+                              ? journalRef.doc(_editingEntryId)
+                              : journalRef.doc();
 
                           try {
                             // Dispatch the transmission packet straight to the database
-                            await FirebaseFirestore.instance
-                                .collection('users')
-                                .doc(user.uid)
-                                .collection('journal_entries')
-                                .doc(targetDocId)
-                                .set({
+                            await targetDoc.set({
                                   'content': entryText,
                                   'timestamp': FieldValue.serverTimestamp(),
                                   'sourceCategory': widget

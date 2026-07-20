@@ -49,6 +49,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   String _capturedUserName = '';
   final TextEditingController _nameController = TextEditingController();
+  bool _isSubmitting = false;
 
   // Store single-choice answers
   Map<int, String> userAnswers = {};
@@ -193,6 +194,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _triggerAnalysis() async {
+    // Guards against a fast double-tap firing this twice -- unlike the
+    // sheet/journal save flows, this button had no lock, so two taps could
+    // fire two overlapping survey writes and two navigations in a row.
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
     HapticFeedback.heavyImpact();
 
     // Request notification permissions right before entering the app
@@ -602,7 +608,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                 child: GlassButton(
                   text: 'CONTINUE',
-                  onPressed: _triggerAnalysis,
+                  onPressed: _isSubmitting ? null : _triggerAnalysis,
                 ),
                 // child: ElevatedButton(
                 //   onPressed: _triggerAnalysis,

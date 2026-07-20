@@ -15,6 +15,7 @@ import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import * as functions from "firebase-functions/v1";
 import {setGlobalOptions} from "firebase-functions/v2";
+import * as crypto from "crypto";
 
 admin.initializeApp();
 
@@ -1437,6 +1438,15 @@ export const manageInactiveAccounts = onSchedule(
             timeInactive < warningMs + oneDayMs
           ) {
             if (userRecord.email) {
+              // Random per-send token, not the guessable/enumerable uid --
+              // trackEmailOpen requires this to match before it'll write
+              // anything, so a forged request against an arbitrary uid
+              // can't poison that user's document.
+              const trackingToken = crypto.randomBytes(16).toString("hex");
+              await admin.firestore().collection("users")
+                .doc(userRecord.uid)
+                .set({emailTrackingToken: trackingToken}, {merge: true});
+
               await admin.firestore().collection("mail").add({
                 to: userRecord.email,
                 message: {
@@ -1461,7 +1471,8 @@ export const manageInactiveAccounts = onSchedule(
                     "<div style=\"text-align: center; margin-top: 32px;\">",
                     "<img src=\"https://europe-west1-",
                     `${process.env.GCLOUD_PROJECT}.cloudfunctions.net/`,
-                    `trackEmailOpen?uid=${userRecord.uid}" `,
+                    `trackEmailOpen?uid=${userRecord.uid}` +
+                    `&token=${trackingToken}" `,
                     "width=\"1\" height=\"1\" style=\"display:none;\" />",
                     "</div>",
                   ].join(""),
@@ -1517,15 +1528,33 @@ export const manageInactiveAccounts = onSchedule(
 
 export const trackEmailOpen = onRequest(async (req, res) => {
   const uid = req.query.uid as string;
+  const token = req.query.token as string;
 
-  if (uid) {
+  // uid is guessable/enumerable (e.g. via searchUsers), so without a
+  // per-send secret token check anyone could hit this endpoint for an
+  // arbitrary uid and write to that user's document.
+  if (uid && token) {
     try {
-      // Record that the user opened the email
-      await admin.firestore().collection("users").doc(uid).set({
-        hasReadWarningEmail: true,
-        warningEmailOpenedAt: admin.firestore.FieldValue.serverTimestamp(),
-      }, {merge: true});
-      logger.info(`Email open tracked for user: ${uid}`);
+      const userDoc = await admin.firestore().collection("users")
+        .doc(uid).get();
+      const expectedToken = userDoc.data()?.emailTrackingToken as
+        string | undefined;
+
+      const providedBuf = Buffer.from(token);
+      const expectedBuf = Buffer.from(expectedToken ?? "");
+      const tokenMatches = expectedToken !== undefined &&
+        providedBuf.length === expectedBuf.length &&
+        crypto.timingSafeEqual(providedBuf, expectedBuf);
+
+      if (tokenMatches) {
+        await admin.firestore().collection("users").doc(uid).set({
+          hasReadWarningEmail: true,
+          warningEmailOpenedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, {merge: true});
+        logger.info(`Email open tracked for user: ${uid}`);
+      } else {
+        logger.warn(`Rejected trackEmailOpen: bad token for uid ${uid}`);
+      }
     } catch (error) {
       logger.error(`Error tracking email open for user ${uid}:`, error);
     }

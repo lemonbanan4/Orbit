@@ -50,7 +50,17 @@ service cloud.firestore {
         'isGuest', 'createdAt', 'streakCount', 'completedMilestones',
         'achievements', 'name', 'photoUrl', 'fcmToken', 'friends',
         'fairy_taps', 'unlocked_fairy_badge', 'global_xp', 'current_level',
-        'wisdomStreak', 'lastWisdomDate', 'streakFreezes', 'isStreakFrozen'
+        'wisdomStreak', 'lastWisdomDate', 'streakFreezes', 'isStreakFrozen',
+        // Server-only (Admin SDK, bypasses these rules) -- kept in
+        // allowedKeys for the same reason as 'friends' above: hasOnly()
+        // checks the full *resulting* merged document, so once any of
+        // these lands on a user's doc (RevenueCat webhook, referral
+        // redemption, retention-email cron, email-open tracking pixel),
+        // every subsequent client merge-write via _saveToCloud() would
+        // otherwise be silently rejected forever.
+        'isPro', 'willRenew', 'proExpirationDate', 'retentionEmailSent',
+        'referredBy', 'hasReadWarningEmail', 'warningEmailOpenedAt',
+        'emailTrackingToken'
       ];
 
       // Prevent 1MB string payload attacks on display name — 'name' is

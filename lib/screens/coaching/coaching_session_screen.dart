@@ -552,8 +552,16 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
       final habitsDone = <String>[];
       final habitsMissed = <String>[];
       for (final habit in _routineProvider.habits.values) {
+        // Match the same "due or completed" methodology used everywhere
+        // else this aggregation happens (statistics_screen.dart's weekly
+        // chart, routine_provider.dart's weeklyProgress) -- an archived or
+        // not-scheduled-today habit shouldn't count as tracked/missed for
+        // today just because it exists; history[] already excludes it for
+        // past days (see _checkDailyReset's wasDueOrDone).
+        final dueOrDoneToday = habit.isCompleted ||
+            (!habit.isArchived && habit.isActiveOn());
         int completedCount = habit.isCompleted ? 1 : 0;
-        int trackedCount = 1;
+        int trackedCount = dueOrDoneToday ? 1 : 0;
         for (int i = 1; i < 7; i++) {
           final day = now.subtract(Duration(days: i));
           final key = day.toIso8601String().substring(0, 10);

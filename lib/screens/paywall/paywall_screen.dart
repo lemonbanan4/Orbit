@@ -125,14 +125,18 @@ class _PaywallScreenState extends State<PaywallScreen> {
       // clicking "CONTINUE" will gracefully simulate a successful purchase so you can test the app right now!
       if (kDebugMode) {
         setState(() => _isPurchasing = true);
-        await Future.delayed(const Duration(seconds: 1));
-        if (mounted) {
-          _confettiController.play();
-          await _showPremiumSuccessModal();
-
+        try {
+          await Future.delayed(const Duration(seconds: 1));
           if (mounted) {
-            await _finishOnboardingAndGoToDashboard(context);
+            _confettiController.play();
+            await _showPremiumSuccessModal();
+
+            if (mounted) {
+              await _finishOnboardingAndGoToDashboard(context);
+            }
           }
+        } finally {
+          if (mounted) setState(() => _isPurchasing = false);
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
