@@ -289,6 +289,19 @@ bool _pushNotificationsInitialized = false;
 final GoRouter _router = GoRouter(
   navigatorKey: navigatorKey, // Re-use your global navigator key!
   initialLocation: '/',
+  // '/' goes through AuthWrapper, which gates on signed-in state and
+  // onboarding completion -- but '/profile', '/journey', and '/habit'
+  // build their target screens directly with no such check. A widget
+  // tap or push-notification deep link (_handleWidgetNavigation,
+  // cold-start FCM taps) pushes straight onto one of those routes, which
+  // used to let a signed-out user land on the main app/profile screen
+  // without ever going through login. Route everyone else back through
+  // AuthWrapper first.
+  redirect: (context, state) {
+    if (state.matchedLocation == '/') return null;
+    final user = FirebaseAuth.instance.currentUser;
+    return user == null ? '/' : null;
+  },
   routes: [
     GoRoute(path: '/', builder: (context, state) => const AuthWrapper()),
     GoRoute(

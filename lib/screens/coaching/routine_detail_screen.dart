@@ -93,10 +93,15 @@ class RoutineDetailScreen extends StatefulWidget {
 class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
   final ScrollController _scrollController = ScrollController();
   final Set<String> _deletingIds = {};
+  // Reused for the drag-start click sound instead of a fresh AudioPlayer()
+  // per drag -- reordering a list rapidly used to leak a new player
+  // instance (and its native platform-channel handle) on every drag start.
+  final AudioPlayer _dragClickPlayer = AudioPlayer();
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _dragClickPlayer.dispose();
     super.dispose();
   }
 
@@ -568,7 +573,7 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                 onReorderStart: (index) {
                                   HapticFeedback.lightImpact();
                                   try {
-                                    AudioPlayer().play(
+                                    _dragClickPlayer.play(
                                       AssetSource('audio/click.mp3'),
                                     );
                                   } catch (e) {

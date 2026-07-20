@@ -317,10 +317,15 @@ class NotificationService {
   }
 
   static Future<void> scheduleReattemptReminder(
+    String habitId,
     String habitTitle,
     Duration delay,
   ) async {
-    final int notificationId = habitTitle.hashCode;
+    // Keyed on habit ID, not title -- titles have no uniqueness
+    // constraint (preset habits especially), so two identically-named
+    // habits skipped the same day used to collide on the same
+    // notification ID and silently overwrite each other's reminder.
+    final int notificationId = habitId.hashCode;
     final scheduledTime = tz.TZDateTime.now(tz.local).add(delay);
 
     const details = NotificationDetails(
@@ -352,17 +357,23 @@ class NotificationService {
   }
 
   static int _getOffsetForRoutine(String routineType) {
+    // Each block must stay clear of cancelAlarms()'s 70-ID sweep (offset..
+    // offset+69) and the up to ~67 IDs a maxed-out routine (8 alarms x 7
+    // days, plus summary IDs at +60..+66) can actually use -- these used
+    // to be only 50-100 apart, so saving Morning's alarms could silently
+    // wipe Afternoon's (and Afternoon's could wipe Work's) via the blind
+    // 70-ID cancel sweep landing inside the neighboring block.
     switch (routineType) {
       case 'Morning':
         return 100;
       case 'Afternoon':
-        return 150;
-      case 'Work':
         return 200;
-      case 'Night':
+      case 'Work':
         return 300;
-      default:
+      case 'Night':
         return 400;
+      default:
+        return 500;
     }
   }
 

@@ -1559,6 +1559,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         // built for. 3 hours gives a same-day nudge without immediately
         // re-pestering someone who just explicitly skipped.
         NotificationService.scheduleReattemptReminder(
+          habit.id,
           habit.title,
           const Duration(hours: 3),
         );

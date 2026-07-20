@@ -354,10 +354,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       try {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .delete();
+          // cleanupUserAccount (functions/src/index.ts) is an Auth
+          // onDelete trigger that already purges the user doc AND every
+          // subcollection server-side -- deleting the Firestore doc here
+          // first was redundant, and dangerous: if user.delete() then
+          // failed (e.g. requires-recent-login, common after any idle
+          // session), the doc was already gone but the Auth account (and
+          // its subcollections) survived with no cleanup ever triggered,
+          // leaving the account in a broken half-deleted state.
           await user.delete();
           if (mounted) {
             Navigator.of(context).pop(); // Go back before state changes

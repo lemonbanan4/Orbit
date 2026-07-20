@@ -74,7 +74,17 @@ Set<String> computeEarnedAchievements(RoutineProvider routineProvider) {
   if (routineProvider.longestStreak >= 30) earned.add('30_Day_Streak');
   if (routineProvider.longestStreak >= 100) earned.add('100_Day_Streak');
   if (routineProvider.totalHabitsCompleted >= 100) earned.add('Centurion');
-  if (routineProvider.currentLevel >= 10) earned.add('Level_10_Commander');
+  // currentLevel is derived from the *spendable* xp balance (currentLevel
+  // getter in routine_provider.dart), which drops when a Nebula Theme or
+  // streak freeze is purchased -- the same "spendable balance used as a
+  // lifetime total" bug already fixed for the Stats screen's "Total XP
+  // Earned" metric. xpHistory only ever grows, so sum it here instead so
+  // a legitimately-earned achievement can't be un-earned by spending.
+  final lifetimeXp = routineProvider.xpHistory.values.fold(
+    0,
+    (sum, xp) => sum + xp,
+  );
+  if (lifetimeXp >= 900) earned.add('Level_10_Commander');
   if (routineProvider.unlockedReaderBadge) earned.add('Avid_Reader');
   if (routineProvider.unlockedFairyBadge) earned.add('Fairy_Whisperer');
   if (routineProvider.habits.values.any(
