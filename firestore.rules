@@ -60,7 +60,27 @@ service cloud.firestore {
       let isDisplayNameValid = !('displayName' in data) || isValidString(data.displayName, 0, 60);
       let isNameValid = !('name' in data) || isValidString(data.name, 0, 60);
 
-      return data.keys().hasOnly(allowedKeys) && isDisplayNameValid && isNameValid;
+      // Anti-cheat: every economy/progression field here was previously
+      // unvalidated beyond its key being allowlisted -- a client could set
+      // xp/streakFreezes/current_level etc. to any value or type via a
+      // direct Firestore SDK write, fully bypassing buyStreakFreeze's and
+      // unlockNebulaTheme's server-side cost checks. These bounds are
+      // deliberately generous (this isn't meant to model exact game
+      // balance) -- they only block wrong-typed, negative, or wildly
+      // out-of-range writes.
+      let isXpValid = !('xp' in data) || (data.xp is int && data.xp >= 0 && data.xp <= 100000000);
+      let isGlobalXpValid = !('global_xp' in data) || (data.global_xp is int && data.global_xp >= 0 && data.global_xp <= 1000000);
+      let isCurrentLevelValid = !('current_level' in data) || (data.current_level is int && data.current_level >= 1 && data.current_level <= 100000);
+      let isCurrentStreakValid = !('current_streak' in data) || (data.current_streak is int && data.current_streak >= 0 && data.current_streak <= 100000);
+      let isLongestStreakValid = !('longest_streak' in data) || (data.longest_streak is int && data.longest_streak >= 0 && data.longest_streak <= 100000);
+      let isStreakFreezesValid = !('streakFreezes' in data) || (data.streakFreezes is int && data.streakFreezes >= 0 && data.streakFreezes <= 10000);
+      let isUnlockedThemesValid = !('unlocked_themes' in data) || (data.unlocked_themes is list && data.unlocked_themes.size() <= 100);
+      let isAchievementsValid = !('achievements' in data) || (data.achievements is list && data.achievements.size() <= 500);
+
+      return data.keys().hasOnly(allowedKeys) && isDisplayNameValid && isNameValid &&
+        isXpValid && isGlobalXpValid && isCurrentLevelValid && isCurrentStreakValid &&
+        isLongestStreakValid && isStreakFreezesValid && isUnlockedThemesValid &&
+        isAchievementsValid;
     }
 
     // Guests (isGuest: true, typically anonymous-auth accounts) must not be
@@ -69,6 +89,20 @@ service cloud.firestore {
     function isGuestStreakTamper() {
       return resource.data.isGuest == true &&
         request.resource.data.diff(resource.data).affectedKeys().hasAny(['streakCount']);
+    }
+
+    // 'friends' is only ever written server-side (Admin SDK, which bypasses
+    // these rules entirely) by notifyOnFriendRequestAccepted/removeFriend/
+    // cleanupUserAccount -- nothing in the Flutter app writes it directly.
+    // It stays in isValidUser's allowedKeys so existing docs that already
+    // have it can still pass normal client merge-writes (hasOnly() checks
+    // the full *resulting* merged document, not just this write's delta),
+    // but a client actively touching it here would let it forge a
+    // one-sided "friendship" with anyone and read their data via the
+    // leaderboard's users-where-in-friends query with no request/accept
+    // step at all.
+    function isFriendsTamper() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(['friends']);
     }
 
     function isValidHabit(data) {
@@ -100,7 +134,14 @@ service cloud.firestore {
 
     function isValidFairyHistoryEntry(data) {
       let allowedKeys = ['context', 'fairyMessage', 'userReply', 'timestamp'];
-      return data.keys().hasOnly(allowedKeys);
+      // Unlike every other validator in this file, this one had zero
+      // length/type bounds -- fairy_history is create-only/immutable (see
+      // below), so with no cap a client could repeatedly append near-
+      // unbounded string payloads with no way to ever clean them up.
+      return data.keys().hasOnly(allowedKeys) &&
+             isValidString(data.context, 0, 200) &&
+             isValidString(data.fairyMessage, 0, 2000) &&
+             isValidString(data.userReply, 0, 500);
     }
 
     function isValidSkippedSession(data) {
@@ -135,9 +176,15 @@ service cloud.firestore {
     match /users/{userId} {
       // Strict isolation: Users can only read and write their own primary document
       allow read, delete: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      // 'friends' is never part of a legitimate initial account-creation
+      // payload (see auth_service.dart's _ensureUserDocument) -- it's only
+      // ever added later via a Cloud Function's arrayUnion. resource
+      // doesn't exist yet on create, so isFriendsTamper()'s diff() isn't
+      // usable here; check directly instead.
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) &&
+        !('friends' in request.resource.data);
       allow update: if isOwner(userId) && isValidUser(request.resource.data) &&
-        !isGuestStreakTamper();
+        !isGuestStreakTamper() && !isFriendsTamper();
 
       match /habits/{habitId} {
         allow read, delete: if isOwner(userId);

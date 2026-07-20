@@ -54,6 +54,71 @@ describe("Orbit Firestore Security Rules", () => {
     );
   });
 
+  it("Allows a normal update on a doc that already has a friends array", async () => {
+    // Regression check: hasOnly() evaluates the full *merged* resulting
+    // document, not just this write's delta -- 'friends' must stay in
+    // isValidUser's allowedKeys or every future write for any user who's
+    // ever added a friend would be permanently rejected.
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const userDoc = db.collection("users").doc("user123");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({
+        isGuest: false,
+        friends: ["existingFriend456"],
+      });
+    });
+
+    await assertSucceeds(userDoc.update({ xp: 50 }));
+  });
+
+  it("Denies a client directly writing to their own friends array", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const userDoc = db.collection("users").doc("user123");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false });
+    });
+
+    // 'friends' may only be written server-side (Admin SDK) by
+    // notifyOnFriendRequestAccepted/removeFriend/cleanupUserAccount -- a
+    // client forging this would let it read a stranger's data via the
+    // leaderboard's users-where-in-friends query with no accept step.
+    await assertFails(userDoc.update({ friends: ["victimUid"] }));
+  });
+
+  it("Denies including friends in the initial account-creation write", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const userDoc = db.collection("users").doc("user123");
+
+    await assertFails(userDoc.set({ isGuest: false, friends: ["victimUid"] }));
+  });
+
+  it("Denies setting xp to a negative or wrong-typed value", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const userDoc = db.collection("users").doc("user123");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false, xp: 100 });
+    });
+
+    await assertFails(userDoc.update({ xp: -50 }));
+    await assertFails(userDoc.update({ xp: "999999" }));
+    await assertSucceeds(userDoc.update({ xp: 150 }));
+  });
+
+  it("Denies setting current_level below 1", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const userDoc = db.collection("users").doc("user123");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false, current_level: 1 });
+    });
+
+    await assertFails(userDoc.update({ current_level: 0 }));
+    await assertSucceeds(userDoc.update({ current_level: 2 }));
+  });
+
   it("Denies a Guest from modifying their streakCount", async () => {
     // Create an authenticated context simulating an anonymous provider
     const guestDb = testEnv.authenticatedContext("guest123", {
@@ -89,6 +154,36 @@ describe("Orbit Firestore Security Rules", () => {
       })
     );
     await assertSucceeds(notesRef.get());
+  });
+
+  it("Allows a normal fairy_history entry but denies an oversized one", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const historyRef = db
+      .collection("users")
+      .doc("user123")
+      .collection("fairy_history");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false });
+    });
+
+    await assertSucceeds(
+      historyRef.add({
+        context: "Morning Meditation",
+        fairyMessage: "You're glowing! That streak is legendary!",
+        userReply: "Heck yes!",
+        timestamp: new Date(),
+      })
+    );
+
+    await assertFails(
+      historyRef.add({
+        context: "x",
+        fairyMessage: "y".repeat(3000),
+        userReply: "z",
+        timestamp: new Date(),
+      })
+    );
   });
 
   it("Denies another user from reading someone else's coaching notes", async () => {
