@@ -1118,7 +1118,13 @@ export const searchUsers = onCall(async (request) => {
       return {
         uid: doc.id,
         displayName: data.name || "Unknown",
-        xp: data.xp || 0,
+        // 'xp' is RoutineProvider's spendable currency (decreases when a
+        // user buys streak freezes/themes) -- leaderboard_screen.dart was
+        // already fixed to rank/display 'global_xp' instead for this exact
+        // reason. This callable backs add_friend_screen.dart's search
+        // results, which show this value as "$xp XP" under each user, so
+        // it needs the same fix.
+        xp: data.global_xp || 0,
       };
     });
 
