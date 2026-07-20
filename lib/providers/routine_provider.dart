@@ -845,6 +845,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     _isDisposed = true;
     _authSubscription?.cancel();
     _midnightTimer?.cancel();
+    _saveDebounceTimer?.cancel();
     _audioPlayer.dispose();
     _ambientPlayer.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -1903,7 +1904,32 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     await _saveToCloud();
   }
 
-  Future<void> _saveToCloud() async {
+  // Despite CLAUDE.md's description, this previously fired a full ~25-field
+  // document write on *every* call with no coalescing -- rapid habit
+  // toggles/count taps each dispatched their own back-to-back Firestore
+  // write. All ~25 call sites just fire-and-forget `_saveToCloud();`
+  // (bar one `await`), so debouncing here needs no call-site changes:
+  // repeated calls within the window share the same pending Completer and
+  // resolve together once the coalesced write actually happens.
+  Timer? _saveDebounceTimer;
+  Completer<void>? _saveDebounceCompleter;
+
+  Future<void> _saveToCloud() {
+    _saveDebounceTimer?.cancel();
+    final completer = _saveDebounceCompleter ??= Completer<void>();
+    _saveDebounceTimer = Timer(const Duration(milliseconds: 800), () async {
+      _saveDebounceCompleter = null;
+      try {
+        await _saveToCloudNow();
+        if (!completer.isCompleted) completer.complete();
+      } catch (e) {
+        if (!completer.isCompleted) completer.completeError(e);
+      }
+    });
+    return completer.future;
+  }
+
+  Future<void> _saveToCloudNow() async {
     try {
       // Convert _routineAlarms to a format Firestore understands
       Map<String, dynamic> alarmsData = {};

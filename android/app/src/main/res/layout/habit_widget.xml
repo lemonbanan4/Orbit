@@ -14,4 +14,16 @@
         android:textColor="#FFFFFF"
         android:textSize="18sp"
         android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_habit_streak"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/widget_title"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="6dp"
+        android:text="0 Day Streak"
+        android:textColor="#FFA500"
+        android:textSize="13sp"
+        android:textStyle="bold" />
 </RelativeLayout>

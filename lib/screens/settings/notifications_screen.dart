@@ -75,6 +75,12 @@ class NotificationsScreen extends StatelessWidget {
                 .doc(user.uid)
                 .collection('notifications')
                 .orderBy('timestamp', descending: true)
+                // Matches the cap already applied to skipped_sessions_screen.dart
+                // and sanctuary_screen.dart's journal list -- a long-lived
+                // account accumulates notifications from many Cloud Function
+                // triggers (chat, milestones, friend requests, partner
+                // completions, streak freezes) and this had no limit at all.
+                .limit(100)
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting &&
