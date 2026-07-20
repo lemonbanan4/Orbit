@@ -102,8 +102,15 @@ class StatisticsScreen extends StatelessWidget {
   }
 }
 
-class _ConsistencyCalendar extends StatelessWidget {
+class _ConsistencyCalendar extends StatefulWidget {
   const _ConsistencyCalendar();
+
+  @override
+  State<_ConsistencyCalendar> createState() => _ConsistencyCalendarState();
+}
+
+class _ConsistencyCalendarState extends State<_ConsistencyCalendar> {
+  DateTime? _selectedDay;
 
   @override
   Widget build(BuildContext context) {
@@ -133,6 +140,16 @@ class _ConsistencyCalendar extends StatelessWidget {
             lastDay: DateTime.utc(2030, 12, 31),
             focusedDay: DateTime.now(),
             calendarFormat: CalendarFormat.month,
+            // Tapping a day used to do nothing at all -- every day's real
+            // completion/mood/intention data was already being collected
+            // and shown separately elsewhere on this screen, just never
+            // surfaced together for a specific date.
+            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+            onDaySelected: (selectedDay, focusedDay) {
+              HapticFeedback.selectionClick();
+              setState(() => _selectedDay = selectedDay);
+              _showDayDetail(context, selectedDay, routineProvider);
+            },
             headerStyle: HeaderStyle(
               formatButtonVisible: false,
               titleTextStyle: TextStyle(
@@ -157,6 +174,10 @@ class _ConsistencyCalendar extends StatelessWidget {
                 color: orbColor2.withValues(alpha: 0.5),
                 shape: BoxShape.circle,
               ),
+              selectedDecoration: BoxDecoration(
+                color: orbColor1,
+                shape: BoxShape.circle,
+              ),
               markerDecoration: BoxDecoration(
                 color: orbColor1,
                 shape: BoxShape.circle,
@@ -171,6 +192,218 @@ class _ConsistencyCalendar extends StatelessWidget {
         ).animate().fade(delay: 150.ms, duration: 400.ms).slideY(begin: 0.1),
       ],
     );
+  }
+
+  void _showDayDetail(
+    BuildContext context,
+    DateTime day,
+    RoutineProvider routineProvider,
+  ) {
+    final dateStr = day.toIso8601String().substring(0, 10);
+    final theme = Theme.of(context);
+    final textColor = theme.colorScheme.onSurface;
+    final orbColor1 =
+        theme.extension<OrbitColors>()?.orbColor1 ?? const Color(0xFF00E5FF);
+
+    final xp = routineProvider.xpHistory[dateStr] ?? 0;
+    final mood = routineProvider.moodHistory[dateStr];
+    final intention = routineProvider.intentionHistory[dateStr];
+    // habit.history only has an entry once a habit has actually been
+    // through a daily-reset rollover for that date -- a habit created
+    // after this date, or a day with no rollover yet (e.g. today, still
+    // in progress) legitimately has nothing to show here.
+    final habitEntries =
+        routineProvider.habits.values
+            .where((h) => h.history.containsKey(dateStr))
+            .toList()
+          ..sort((a, b) => a.title.compareTo(b.title));
+
+    final isToday = isSameDay(day, DateTime.now());
+    final hasAnyData =
+        xp > 0 || mood != null || intention != null || habitEntries.isNotEmpty;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.85,
+        expand: false,
+        builder: (context, scrollController) => ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: Container(
+            color: const Color(0xFF13182B),
+            child: ListView(
+              controller: scrollController,
+              padding: const EdgeInsets.all(24),
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Text(
+                  '${_monthName(day.month)} ${day.day}, ${day.year}'
+                  '${isToday ? " · Today" : ""}',
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                if (!hasAnyData)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Text(
+                      isToday
+                          ? "Today's story is still being written."
+                          : 'No data logged for this day.',
+                      style: TextStyle(color: textColor.withValues(alpha: 0.5)),
+                    ),
+                  ),
+                if (xp > 0) ...[
+                  Row(
+                    children: [
+                      Icon(Icons.bolt_rounded, color: orbColor1, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        '+$xp XP earned',
+                        style: TextStyle(
+                          color: textColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                if (intention != null) ...[
+                  Text(
+                    'INTENTION',
+                    style: TextStyle(
+                      color: textColor.withValues(alpha: 0.4),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '"$intention"',
+                    style: TextStyle(
+                      color: textColor,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                if (mood != null) ...[
+                  Text(
+                    'MOOD',
+                    style: TextStyle(
+                      color: textColor.withValues(alpha: 0.4),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    mood['mood'] ?? '',
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if ((mood['note'] ?? '').isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        mood['note']!,
+                        style: TextStyle(
+                          color: textColor.withValues(alpha: 0.6),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                ],
+                if (habitEntries.isNotEmpty) ...[
+                  Text(
+                    'HABITS',
+                    style: TextStyle(
+                      color: textColor.withValues(alpha: 0.4),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...habitEntries.map((habit) {
+                    final done = habit.history[dateStr] == true;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          Icon(
+                            done
+                                ? Icons.check_circle_rounded
+                                : Icons.circle_outlined,
+                            size: 18,
+                            color: done ? orbColor1 : Colors.white24,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              habit.title,
+                              style: TextStyle(
+                                color: done
+                                    ? textColor
+                                    : textColor.withValues(alpha: 0.5),
+                                decoration: done
+                                    ? null
+                                    : TextDecoration.lineThrough,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _monthName(int month) {
+    const names = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    return names[month - 1];
   }
 }
 
