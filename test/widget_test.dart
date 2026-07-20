@@ -106,6 +106,69 @@ void main() {
     });
   });
 
+  group('Habit.targetCount / unit / currentCount (count-based habits)', () {
+    test('defaults to a simple checkbox habit (targetCount null)', () {
+      final habit = Habit(
+        id: '1',
+        title: 'Meditate',
+        routineType: 'Morning',
+        iconCodePoint: 0,
+        color: 0,
+        completedDays: 0,
+        totalDays: 0,
+      );
+      expect(habit.targetCount, isNull);
+      expect(habit.unit, isNull);
+      expect(habit.currentCount, 0);
+    });
+
+    test('toMap omits count fields entirely for a simple habit', () {
+      final habit = Habit(
+        id: '1',
+        title: 'Meditate',
+        routineType: 'Morning',
+        iconCodePoint: 0,
+        color: 0,
+        completedDays: 0,
+        totalDays: 0,
+      );
+      final map = habit.toMap();
+      expect(map.containsKey('targetCount'), isFalse);
+      expect(map.containsKey('unit'), isFalse);
+      expect(map.containsKey('currentCount'), isFalse);
+    });
+
+    test('toMap/fromMap round-trips a count-based habit', () {
+      final habit = Habit(
+        id: '1',
+        title: 'Drink Water',
+        routineType: 'Morning',
+        iconCodePoint: 0,
+        color: 0,
+        completedDays: 0,
+        totalDays: 0,
+        targetCount: 8,
+        unit: 'glasses',
+        currentCount: 3,
+      );
+      final restored = Habit.fromMap('1', habit.toMap());
+      expect(restored.targetCount, 8);
+      expect(restored.unit, 'glasses');
+      expect(restored.currentCount, 3);
+    });
+
+    test('fromMap defaults currentCount to 0 and unit/targetCount to null '
+        'when absent', () {
+      final habit = Habit.fromMap('1', {
+        'title': 'Old habit, no count fields',
+        'routine': 'Morning',
+      });
+      expect(habit.targetCount, isNull);
+      expect(habit.unit, isNull);
+      expect(habit.currentCount, 0);
+    });
+  });
+
   group('ExportService CSV builders', () {
     test('buildHistoryCsv produces a header-only CSV with no history', () {
       final habit = Habit(

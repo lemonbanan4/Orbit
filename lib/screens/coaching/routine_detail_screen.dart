@@ -660,6 +660,9 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                             habit.category,
                                                         initialActiveDays:
                                                             habit.activeDays,
+                                                        initialTargetCount:
+                                                            habit.targetCount,
+                                                        initialUnit: habit.unit,
                                                       );
                                                     },
                                                     backgroundColor:
@@ -812,6 +815,22 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                         .withValues(
                                                           alpha: 0.05,
                                                         ),
+                                                    onLongPress:
+                                                        habit.targetCount ==
+                                                            null
+                                                        ? null
+                                                        : () {
+                                                            HapticFeedback.mediumImpact();
+                                                            context
+                                                                .read<
+                                                                  RoutineProvider
+                                                                >()
+                                                                .incrementHabitCount(
+                                                                  habit.id,
+                                                                  delta: -habit
+                                                                      .currentCount,
+                                                                );
+                                                          },
                                                     onTap: () async {
                                                       final bool wasCompleted =
                                                           habit.isCompleted;
@@ -837,10 +856,18 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                               .soundsEnabled;
 
                                                       // 2. Trigger the state change mutation
-                                                      await routineProvider
-                                                          .toggleHabit(
-                                                            habit.id,
-                                                          );
+                                                      if (habit.targetCount !=
+                                                          null) {
+                                                        await routineProvider
+                                                            .incrementHabitCount(
+                                                              habit.id,
+                                                            );
+                                                      } else {
+                                                        await routineProvider
+                                                            .toggleHabit(
+                                                              habit.id,
+                                                            );
+                                                      }
 
                                                       // toggleHabit() can
                                                       // advance the streak
@@ -881,7 +908,16 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                         return;
                                                       }
 
-                                                      if (!wasCompleted) {
+                                                      // For count-based
+                                                      // habits, a single tap
+                                                      // may not reach the
+                                                      // target yet -- only
+                                                      // celebrate once
+                                                      // isCompleted actually
+                                                      // flips to true, not
+                                                      // on every tap.
+                                                      if (!wasCompleted &&
+                                                          habit.isCompleted) {
                                                         HapticFeedback.lightImpact();
 
                                                         // Fire the cheer overlay directly into this view tree context
@@ -1048,6 +1084,15 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                                     .globalXp,
                                                           );
                                                         }
+                                                      } else if (habit
+                                                              .targetCount !=
+                                                          null) {
+                                                        // A count-based tap
+                                                        // that didn't reach
+                                                        // target yet -- still
+                                                        // give a light tap
+                                                        // confirmation.
+                                                        HapticFeedback.selectionClick();
                                                       }
                                                     },
                                                     child: Padding(
@@ -1161,8 +1206,17 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                                   milliseconds:
                                                                       200,
                                                                 ),
-                                                            width: 28,
+                                                            width:
+                                                                habit.targetCount ==
+                                                                        null ||
+                                                                    isCompleted
+                                                                ? 28
+                                                                : 40,
                                                             height: 28,
+                                                            padding:
+                                                                const EdgeInsets.symmetric(
+                                                                  horizontal: 4,
+                                                                ),
                                                             decoration: BoxDecoration(
                                                               color: isCompleted
                                                                   ? highlightColor
@@ -1185,6 +1239,8 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                                     8,
                                                                   ),
                                                             ),
+                                                            alignment: Alignment
+                                                                .center,
                                                             child: isCompleted
                                                                 ? const Icon(
                                                                     Icons
@@ -1192,6 +1248,20 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                                     color: Colors
                                                                         .black,
                                                                     size: 18,
+                                                                  )
+                                                                : habit.targetCount !=
+                                                                      null
+                                                                ? Text(
+                                                                    '${habit.currentCount}/${habit.targetCount}',
+                                                                    style: const TextStyle(
+                                                                      color: Colors
+                                                                          .white,
+                                                                      fontSize:
+                                                                          11,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold,
+                                                                    ),
                                                                   )
                                                                 : null,
                                                           ),

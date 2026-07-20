@@ -110,6 +110,108 @@ class _RoutineCardState extends State<RoutineCard> {
     return Icons.nightlight_round;
   }
 
+  // Count-based habits ("Drink 8 glasses of water") show a tap-to-
+  // increment stepper here instead of the checkbox above. Kept as its own
+  // method/code path rather than woven into the checkbox's onTap (a ~150-
+  // line handler already covering cheer/aura/XP/milestone/level-up) to
+  // avoid duplicating and risking that logic -- this mirrors only the
+  // essential parts (haptic, cheer, XP, a reward popup) on reaching target.
+  Widget _buildCountStepper(BuildContext context, Habit habit) {
+    final Color themeAccent =
+        Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
+        const Color(0xFF00E5FF);
+    final target = habit.targetCount!;
+    final isCompleted = habit.currentCount >= target;
+
+    return Semantics(
+      button: true,
+      label:
+          '${habit.title}, ${habit.currentCount} of $target ${habit.unit ?? ""}'
+          '${isCompleted ? ", completed" : ""}',
+      child: GestureDetector(
+        onTap: () async {
+          final routineProvider = context.read<RoutineProvider>();
+          final wasCompleted = habit.isCompleted;
+          final skips = habit.skippedCount;
+          await routineProvider.incrementHabitCount(habit.id);
+
+          if (!context.mounted) return;
+
+          if (!wasCompleted && habit.isCompleted) {
+            HapticFeedback.lightImpact();
+            context.read<AIFairyProvider>().cheerForHabit(
+              habit.title,
+              routineProvider.currentStreak,
+              playSound: routineProvider.soundsEnabled,
+              skippedCount: skips,
+            );
+            context.read<AtmosphereProvider>().setAura(
+              AtmosphereProvider.auraForHabitCompletion(
+                streak: routineProvider.currentStreak,
+                skippedCount: skips,
+              ),
+            );
+            final telemetry = context.read<TelemetryProvider>();
+            final didLevelUp = await telemetry.awardXp(15);
+            if (!context.mounted) return;
+            if (didLevelUp) {
+              TelemetryLevelUpDialog.show(
+                context,
+                telemetry.currentLevel,
+                habitTitle: habit.title,
+              );
+            } else {
+              RewardPopup.show(
+                context,
+                title: "Habit Completed!",
+                xpEarned: 15,
+                currentTotalXp: telemetry.globalXp,
+              );
+            }
+          } else {
+            HapticFeedback.selectionClick();
+          }
+        },
+        onLongPress: () {
+          HapticFeedback.mediumImpact();
+          context.read<RoutineProvider>().incrementHabitCount(
+            habit.id,
+            delta: -habit.currentCount,
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 40),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: isCompleted
+                  ? themeAccent
+                  : Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isCompleted
+                    ? themeAccent
+                    : Colors.white.withValues(alpha: 0.15),
+              ),
+            ),
+            alignment: Alignment.center,
+            child: isCompleted
+                ? const Icon(Icons.check_rounded, color: Colors.black, size: 18)
+                : Text(
+                    '${habit.currentCount}/$target',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // widget.habits is unfiltered (every habit in this routine, regardless
@@ -890,6 +992,10 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                               habit.category,
                                                                           initialActiveDays:
                                                                               habit.activeDays,
+                                                                          initialTargetCount:
+                                                                              habit.targetCount,
+                                                                          initialUnit:
+                                                                              habit.unit,
                                                                         );
                                                                       },
                                                                   backgroundColor:
@@ -1052,263 +1158,244 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                     MainAxisSize
                                                                         .min,
                                                                 children: [
-                                                                  GestureDetector(
-                                                                    onTap: () async {
-                                                                      final routineProvider = context
-                                                                          .read<
-                                                                            RoutineProvider
-                                                                          >();
-                                                                      final bool
-                                                                      wasCompleted =
-                                                                          habit
-                                                                              .isCompleted;
-                                                                      final int
-                                                                      skips = habit
-                                                                          .skippedCount;
-                                                                      await routineProvider
-                                                                          .toggleHabit(
-                                                                            habit.id,
-                                                                          );
-
-                                                                      // Clear active notifications if all daily habits are now completed
-                                                                      final allCompleted =
-                                                                          routineProvider
-                                                                              .habits
-                                                                              .values
-                                                                              .isNotEmpty &&
-                                                                          routineProvider.habits.values.every(
-                                                                            (
-                                                                              h,
-                                                                            ) =>
-                                                                                h.isCompleted,
-                                                                          );
-                                                                      if (allCompleted) {
-                                                                        await NotificationService.clearActiveRoutineReminders();
-                                                                      }
-
-                                                                      if (!context
-                                                                          .mounted) {
-                                                                        return;
-                                                                      }
-
-                                                                      if (!wasCompleted) {
-                                                                        HapticFeedback.lightImpact();
-                                                                        context
-                                                                            .read<
-                                                                              AIFairyProvider
-                                                                            >()
-                                                                            .cheerForHabit(
-                                                                              habit.title,
-                                                                              routineProvider.currentStreak,
-                                                                              playSound: routineProvider.soundsEnabled,
-                                                                              skippedCount: skips,
+                                                                  habit.targetCount !=
+                                                                          null
+                                                                      ? _buildCountStepper(
+                                                                          context,
+                                                                          habit,
+                                                                        )
+                                                                      : GestureDetector(
+                                                                          onTap: () async {
+                                                                            final routineProvider = context
+                                                                                .read<
+                                                                                  RoutineProvider
+                                                                                >();
+                                                                            final bool
+                                                                            wasCompleted =
+                                                                                habit.isCompleted;
+                                                                            final int
+                                                                            skips =
+                                                                                habit.skippedCount;
+                                                                            await routineProvider.toggleHabit(
+                                                                              habit.id,
                                                                             );
 
-                                                                        context
-                                                                            .read<
-                                                                              AtmosphereProvider
-                                                                            >()
-                                                                            .setAura(
-                                                                              AtmosphereProvider.auraForHabitCompletion(
-                                                                                streak: routineProvider.currentStreak,
-                                                                                skippedCount: skips,
-                                                                              ),
-                                                                            );
+                                                                            // Clear active notifications if all daily habits are now completed
+                                                                            final allCompleted =
+                                                                                routineProvider.habits.values.isNotEmpty &&
+                                                                                routineProvider.habits.values.every(
+                                                                                  (
+                                                                                    h,
+                                                                                  ) => h.isCompleted,
+                                                                                );
+                                                                            if (allCompleted) {
+                                                                              await NotificationService.clearActiveRoutineReminders();
+                                                                            }
 
-                                                                        final telemetry = context
-                                                                            .read<
-                                                                              TelemetryProvider
-                                                                            >();
-                                                                        bool
-                                                                        didLevelUp =
-                                                                            await telemetry.awardXp(
-                                                                              15,
-                                                                            );
+                                                                            if (!context.mounted) {
+                                                                              return;
+                                                                            }
 
-                                                                        if (!context
-                                                                            .mounted) {
-                                                                          return;
-                                                                        }
+                                                                            if (!wasCompleted) {
+                                                                              HapticFeedback.lightImpact();
+                                                                              context
+                                                                                  .read<
+                                                                                    AIFairyProvider
+                                                                                  >()
+                                                                                  .cheerForHabit(
+                                                                                    habit.title,
+                                                                                    routineProvider.currentStreak,
+                                                                                    playSound: routineProvider.soundsEnabled,
+                                                                                    skippedCount: skips,
+                                                                                  );
 
-                                                                        // Check for Milestone Unlocks
-                                                                        final newMilestones = telemetry.checkMilestoneUnlocks(
-                                                                          routineProvider
-                                                                              .currentStreak,
-                                                                        );
-                                                                        if (newMilestones
-                                                                            .isNotEmpty) {
-                                                                          final thresholds = [
-                                                                            3,
-                                                                            7,
-                                                                            14,
-                                                                            21,
-                                                                            30,
-                                                                            45,
-                                                                            60,
-                                                                            90,
-                                                                            120,
-                                                                            150,
-                                                                            180,
-                                                                            210,
-                                                                            250,
-                                                                            300,
-                                                                            365,
-                                                                          ];
-                                                                          final days =
-                                                                              thresholds[newMilestones.first];
-
-                                                                          ScaffoldMessenger.of(
-                                                                            context,
-                                                                          ).showSnackBar(
-                                                                            SnackBar(
-                                                                              content: Row(
-                                                                                children: [
-                                                                                  const Icon(
-                                                                                    Icons.emoji_events_rounded,
-                                                                                    color: Color(
-                                                                                      0xFFFFD700,
+                                                                              context
+                                                                                  .read<
+                                                                                    AtmosphereProvider
+                                                                                  >()
+                                                                                  .setAura(
+                                                                                    AtmosphereProvider.auraForHabitCompletion(
+                                                                                      streak: routineProvider.currentStreak,
+                                                                                      skippedCount: skips,
                                                                                     ),
-                                                                                    size: 28,
-                                                                                  ),
-                                                                                  const SizedBox(
-                                                                                    width: 12,
-                                                                                  ),
-                                                                                  Expanded(
-                                                                                    child: Column(
-                                                                                      mainAxisSize: MainAxisSize.min,
-                                                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                  );
+
+                                                                              final telemetry = context
+                                                                                  .read<
+                                                                                    TelemetryProvider
+                                                                                  >();
+                                                                              bool
+                                                                              didLevelUp = await telemetry.awardXp(
+                                                                                15,
+                                                                              );
+
+                                                                              if (!context.mounted) {
+                                                                                return;
+                                                                              }
+
+                                                                              // Check for Milestone Unlocks
+                                                                              final newMilestones = telemetry.checkMilestoneUnlocks(
+                                                                                routineProvider.currentStreak,
+                                                                              );
+                                                                              if (newMilestones.isNotEmpty) {
+                                                                                final thresholds = [
+                                                                                  3,
+                                                                                  7,
+                                                                                  14,
+                                                                                  21,
+                                                                                  30,
+                                                                                  45,
+                                                                                  60,
+                                                                                  90,
+                                                                                  120,
+                                                                                  150,
+                                                                                  180,
+                                                                                  210,
+                                                                                  250,
+                                                                                  300,
+                                                                                  365,
+                                                                                ];
+                                                                                final days = thresholds[newMilestones.first];
+
+                                                                                ScaffoldMessenger.of(
+                                                                                  context,
+                                                                                ).showSnackBar(
+                                                                                  SnackBar(
+                                                                                    content: Row(
                                                                                       children: [
-                                                                                        const Text(
-                                                                                          "MILESTONE UNLOCKED",
-                                                                                          style: TextStyle(
-                                                                                            fontWeight: FontWeight.w900,
-                                                                                            fontSize: 12,
-                                                                                            letterSpacing: 1.2,
-                                                                                            color: Color(
-                                                                                              0xFFFFD700,
-                                                                                            ),
+                                                                                        const Icon(
+                                                                                          Icons.emoji_events_rounded,
+                                                                                          color: Color(
+                                                                                            0xFFFFD700,
                                                                                           ),
+                                                                                          size: 28,
                                                                                         ),
-                                                                                        Text(
-                                                                                          "$days Day Streak Achieved!",
-                                                                                          style: const TextStyle(
-                                                                                            color: Colors.white,
-                                                                                            fontSize: 14,
-                                                                                            fontWeight: FontWeight.bold,
+                                                                                        const SizedBox(
+                                                                                          width: 12,
+                                                                                        ),
+                                                                                        Expanded(
+                                                                                          child: Column(
+                                                                                            mainAxisSize: MainAxisSize.min,
+                                                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                            children: [
+                                                                                              const Text(
+                                                                                                "MILESTONE UNLOCKED",
+                                                                                                style: TextStyle(
+                                                                                                  fontWeight: FontWeight.w900,
+                                                                                                  fontSize: 12,
+                                                                                                  letterSpacing: 1.2,
+                                                                                                  color: Color(
+                                                                                                    0xFFFFD700,
+                                                                                                  ),
+                                                                                                ),
+                                                                                              ),
+                                                                                              Text(
+                                                                                                "$days Day Streak Achieved!",
+                                                                                                style: const TextStyle(
+                                                                                                  color: Colors.white,
+                                                                                                  fontSize: 14,
+                                                                                                  fontWeight: FontWeight.bold,
+                                                                                                ),
+                                                                                              ),
+                                                                                            ],
                                                                                           ),
                                                                                         ),
                                                                                       ],
                                                                                     ),
-                                                                                  ),
-                                                                                ],
-                                                                              ),
-                                                                              backgroundColor: const Color(
-                                                                                0xFF1F1235,
-                                                                              ),
-                                                                              behavior: SnackBarBehavior.floating,
-                                                                              shape: RoundedRectangleBorder(
-                                                                                borderRadius: BorderRadius.circular(
-                                                                                  16,
-                                                                                ),
-                                                                                side: BorderSide(
-                                                                                  color:
-                                                                                      const Color(
-                                                                                        0xFFFFD700,
-                                                                                      ).withValues(
-                                                                                        alpha: 0.5,
-                                                                                      ),
-                                                                                  width: 1.5,
-                                                                                ),
-                                                                              ),
-                                                                              margin: const EdgeInsets.only(
-                                                                                bottom: 24,
-                                                                                left: 24,
-                                                                                right: 24,
-                                                                              ),
-                                                                              duration: const Duration(
-                                                                                seconds: 4,
-                                                                              ),
-                                                                            ),
-                                                                          );
-                                                                        }
-
-                                                                        if (didLevelUp) {
-                                                                          TelemetryLevelUpDialog.show(
-                                                                            context,
-                                                                            telemetry.currentLevel,
-                                                                            habitTitle:
-                                                                                habit.title,
-                                                                          );
-                                                                        } else if (context
-                                                                            .mounted) {
-                                                                          RewardPopup.show(
-                                                                            context,
-                                                                            title:
-                                                                                "Habit Completed!",
-                                                                            xpEarned:
-                                                                                15,
-                                                                            currentTotalXp:
-                                                                                telemetry.globalXp,
-                                                                          );
-                                                                        }
-                                                                      }
-                                                                    },
-                                                                    child: Semantics(
-                                                                      button: true,
-                                                                      label:
-                                                                          '${habit.title}, ${isCompleted ? "completed" : "not completed"}',
-                                                                      child: Padding(
-                                                                        // Was a bare 24x24 GestureDetector with no
-                                                                        // Semantics -- the primary "mark habit
-                                                                        // done" control on the highest-traffic
-                                                                        // screen had no VoiceOver/TalkBack label
-                                                                        // and a tap target well under the 44x44
-                                                                        // minimum.
-                                                                        padding:
-                                                                            const EdgeInsets.all(
-                                                                              8,
-                                                                            ),
-                                                                        child: AnimatedContainer(
-                                                                          duration: const Duration(
-                                                                            milliseconds:
-                                                                                200,
-                                                                          ),
-                                                                          width:
-                                                                              24,
-                                                                          height:
-                                                                              24,
-                                                                          decoration: BoxDecoration(
-                                                                            color:
-                                                                                isCompleted
-                                                                                ? themeAccent
-                                                                                : Colors.transparent,
-                                                                            border: Border.all(
-                                                                              color:
-                                                                                  isCompleted
-                                                                                  ? themeAccent
-                                                                                  : Colors.white.withValues(
-                                                                                      alpha: 0.8,
+                                                                                    backgroundColor: const Color(
+                                                                                      0xFF1F1235,
                                                                                     ),
-                                                                              width:
-                                                                                  2,
-                                                                            ),
-                                                                            borderRadius:
-                                                                                BorderRadius.circular(
-                                                                                  6,
+                                                                                    behavior: SnackBarBehavior.floating,
+                                                                                    shape: RoundedRectangleBorder(
+                                                                                      borderRadius: BorderRadius.circular(
+                                                                                        16,
+                                                                                      ),
+                                                                                      side: BorderSide(
+                                                                                        color:
+                                                                                            const Color(
+                                                                                              0xFFFFD700,
+                                                                                            ).withValues(
+                                                                                              alpha: 0.5,
+                                                                                            ),
+                                                                                        width: 1.5,
+                                                                                      ),
+                                                                                    ),
+                                                                                    margin: const EdgeInsets.only(
+                                                                                      bottom: 24,
+                                                                                      left: 24,
+                                                                                      right: 24,
+                                                                                    ),
+                                                                                    duration: const Duration(
+                                                                                      seconds: 4,
+                                                                                    ),
+                                                                                  ),
+                                                                                );
+                                                                              }
+
+                                                                              if (didLevelUp) {
+                                                                                TelemetryLevelUpDialog.show(
+                                                                                  context,
+                                                                                  telemetry.currentLevel,
+                                                                                  habitTitle: habit.title,
+                                                                                );
+                                                                              } else if (context.mounted) {
+                                                                                RewardPopup.show(
+                                                                                  context,
+                                                                                  title: "Habit Completed!",
+                                                                                  xpEarned: 15,
+                                                                                  currentTotalXp: telemetry.globalXp,
+                                                                                );
+                                                                              }
+                                                                            }
+                                                                          },
+                                                                          child: Semantics(
+                                                                            button:
+                                                                                true,
+                                                                            label:
+                                                                                '${habit.title}, ${isCompleted ? "completed" : "not completed"}',
+                                                                            child: Padding(
+                                                                              // Was a bare 24x24 GestureDetector with no
+                                                                              // Semantics -- the primary "mark habit
+                                                                              // done" control on the highest-traffic
+                                                                              // screen had no VoiceOver/TalkBack label
+                                                                              // and a tap target well under the 44x44
+                                                                              // minimum.
+                                                                              padding: const EdgeInsets.all(
+                                                                                8,
+                                                                              ),
+                                                                              child: AnimatedContainer(
+                                                                                duration: const Duration(
+                                                                                  milliseconds: 200,
                                                                                 ),
+                                                                                width: 24,
+                                                                                height: 24,
+                                                                                decoration: BoxDecoration(
+                                                                                  color: isCompleted
+                                                                                      ? themeAccent
+                                                                                      : Colors.transparent,
+                                                                                  border: Border.all(
+                                                                                    color: isCompleted
+                                                                                        ? themeAccent
+                                                                                        : Colors.white.withValues(
+                                                                                            alpha: 0.8,
+                                                                                          ),
+                                                                                    width: 2,
+                                                                                  ),
+                                                                                  borderRadius: BorderRadius.circular(
+                                                                                    6,
+                                                                                  ),
+                                                                                ),
+                                                                                child: isCompleted
+                                                                                    ? const Icon(
+                                                                                        Icons.check_rounded,
+                                                                                        color: Colors.black,
+                                                                                        size: 16,
+                                                                                      )
+                                                                                    : null,
+                                                                              ),
+                                                                            ),
                                                                           ),
-                                                                          child:
-                                                                              isCompleted
-                                                                              ? const Icon(
-                                                                                  Icons.check_rounded,
-                                                                                  color: Colors.black,
-                                                                                  size: 16,
-                                                                                )
-                                                                              : null,
                                                                         ),
-                                                                      ),
-                                                                    ),
-                                                                  ),
                                                                   const SizedBox(
                                                                     width: 4,
                                                                   ),

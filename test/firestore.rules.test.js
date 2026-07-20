@@ -344,6 +344,33 @@ describe("Orbit Firestore Security Rules", () => {
     await assertFails(habitDoc.update({ activeDays: [true, false, true] }));
   });
 
+  it("Allows valid count-based habit fields but denies out-of-range ones", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const habitDoc = db
+      .collection("users")
+      .doc("user123")
+      .collection("habits")
+      .doc("habit1");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false });
+      await context
+        .firestore()
+        .collection("users")
+        .doc("user123")
+        .collection("habits")
+        .doc("habit1")
+        .set({ title: "Drink Water", routine: "Morning", completedDays: 0, totalDays: 0 });
+    });
+
+    await assertSucceeds(
+      habitDoc.update({ targetCount: 8, unit: "glasses", currentCount: 3 })
+    );
+    await assertFails(habitDoc.update({ targetCount: 0 }));
+    await assertFails(habitDoc.update({ targetCount: -1 }));
+    await assertFails(habitDoc.update({ currentCount: -1 }));
+  });
+
   it("Denies a habit write with a field outside the allowlist", async () => {
     const db = testEnv.authenticatedContext("user123").firestore();
     const habitDoc = db

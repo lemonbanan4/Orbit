@@ -23,6 +23,17 @@ class Habit {
   // Defaults to every day, so habits created before this field existed
   // behave exactly as before.
   final List<bool> activeDays;
+  // Null = a simple checkbox habit (the original/default behavior).
+  // Non-null = a count-based habit ("Drink 8 glasses of water") with this
+  // as the daily target; [unit] labels what's being counted ("glasses").
+  // [currentCount] is today's live progress, reset to 0 alongside
+  // isCompleted at the daily rollover; isCompleted itself stays the single
+  // source of truth everywhere else (streaks, stats, Focus Journeys) --
+  // it's just driven by currentCount >= targetCount for these habits
+  // instead of a direct tap.
+  final int? targetCount;
+  final String? unit;
+  int currentCount;
 
   Habit({
     required this.id,
@@ -38,6 +49,9 @@ class Habit {
     this.time = '00:00',
     this.isGoal = false,
     this.category,
+    this.targetCount,
+    this.unit,
+    this.currentCount = 0,
     List<bool>? activeDays,
     Map<String, bool>? history,
   }) : history = history ?? {},
@@ -122,6 +136,9 @@ class Habit {
       activeDays: data['activeDays'] is List && data['activeDays'].length == 7
           ? (data['activeDays'] as List).map((v) => v == true).toList()
           : null,
+      targetCount: data['targetCount'] is int ? data['targetCount'] : null,
+      unit: data['unit']?.toString(),
+      currentCount: data['currentCount'] is int ? data['currentCount'] : 0,
     );
   }
 
@@ -142,6 +159,9 @@ class Habit {
       'history': history,
       'activeDays': activeDays,
       if (category != null) 'category': category,
+      if (targetCount != null) 'targetCount': targetCount,
+      if (unit != null) 'unit': unit,
+      if (targetCount != null) 'currentCount': currentCount,
     };
   }
 }

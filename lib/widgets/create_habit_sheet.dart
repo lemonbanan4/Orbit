@@ -21,6 +21,8 @@ class CreateHabitSheet extends StatefulWidget {
   final bool initialIsGoal;
   final String? initialCategory;
   final List<bool>? initialActiveDays;
+  final int? initialTargetCount;
+  final String? initialUnit;
 
   const CreateHabitSheet({
     super.key,
@@ -31,6 +33,8 @@ class CreateHabitSheet extends StatefulWidget {
     this.initialIsGoal = false,
     this.initialCategory,
     this.initialActiveDays,
+    this.initialTargetCount,
+    this.initialUnit,
   });
 
   static void show(
@@ -42,6 +46,8 @@ class CreateHabitSheet extends StatefulWidget {
     bool initialIsGoal = false,
     String? initialCategory,
     List<bool>? initialActiveDays,
+    int? initialTargetCount,
+    String? initialUnit,
   }) {
     showModalBottomSheet(
       context: context,
@@ -55,6 +61,8 @@ class CreateHabitSheet extends StatefulWidget {
         initialIsGoal: initialIsGoal,
         initialCategory: initialCategory,
         initialActiveDays: initialActiveDays,
+        initialTargetCount: initialTargetCount,
+        initialUnit: initialUnit,
       ),
     );
   }
@@ -72,6 +80,9 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
   String? _selectedCategory;
   bool _isScanning = false;
   late List<bool> _activeDays;
+  late bool _isCountBased;
+  late TextEditingController _targetCountController;
+  late TextEditingController _unitController;
 
   final Map<String, IconData> _routineIcons = {
     'Morning': Icons.wb_sunny_rounded,
@@ -131,11 +142,18 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
             widget.initialActiveDays!.length == 7
         ? List.of(widget.initialActiveDays!)
         : List.filled(7, true);
+    _isCountBased = widget.initialTargetCount != null;
+    _targetCountController = TextEditingController(
+      text: (widget.initialTargetCount ?? 8).toString(),
+    );
+    _unitController = TextEditingController(text: widget.initialUnit ?? '');
   }
 
   @override
   void dispose() {
     _titleController.dispose();
+    _targetCountController.dispose();
+    _unitController.dispose();
     super.dispose();
   }
 
@@ -167,6 +185,14 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
         // the correct values back into local state, masking this in the UI
         // right up until the next full reload from Firestore, at which
         // point the real progress was gone. Only set them on create.
+        final targetCount = _isCountBased
+            ? (int.tryParse(_targetCountController.text.trim()) ?? 8).clamp(
+                1,
+                9999,
+              )
+            : null;
+        final unit = _unitController.text.trim();
+
         final habitData = {
           'title': title,
           'routine': _selectedRoutine,
@@ -184,6 +210,17 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
             'color': 0xFF00E5FF,
             'isCompleted': false,
           },
+          if (targetCount != null) ...{
+            'targetCount': targetCount,
+            if (unit.isNotEmpty) 'unit': unit,
+          } else if (widget.habitId != null) ...{
+            // Switched a previously count-based habit back to simple --
+            // explicitly clear, not just omit (merge writes only ever
+            // *preserve* keys absent from the payload).
+            'targetCount': FieldValue.delete(),
+            'unit': FieldValue.delete(),
+            'currentCount': FieldValue.delete(),
+          },
         };
 
         await FirebaseFirestore.instance
@@ -200,6 +237,17 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
         if (mounted) {
           final provider = context.read<RoutineProvider>();
           final existing = provider.habits[docId];
+          // Re-derive isCompleted from currentCount vs targetCount when
+          // count-based, so switching a habit's type mid-day keeps the
+          // isCompleted invariant consistent (e.g. turning tracking on for
+          // an already-checked-off habit starts it back at not-done until
+          // the target is actually hit).
+          final localCurrentCount = targetCount != null
+              ? (existing?.currentCount ?? 0)
+              : 0;
+          final localIsCompleted = targetCount != null
+              ? localCurrentCount >= targetCount
+              : (existing?.isCompleted ?? false);
           provider.upsertHabitLocally(
             docId,
             Habit(
@@ -213,10 +261,13 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
               order:
                   existing?.order ??
                   provider.getHabitsForRoutine(_selectedRoutine).length,
-              isCompleted: existing?.isCompleted ?? false,
+              isCompleted: localIsCompleted,
               isGoal: _isGoal,
               category: _selectedCategory ?? existing?.category,
               activeDays: _activeDays,
+              targetCount: targetCount,
+              unit: unit.isNotEmpty ? unit : null,
+              currentCount: localCurrentCount,
               history: existing?.history,
             ),
           );
@@ -573,6 +624,84 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
                 );
               }),
             ),
+            const SizedBox(height: 16),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _isCountBased,
+              activeThumbColor: const Color(0xFF00E5FF),
+              title: const Text(
+                'Track a Number',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              subtitle: Text(
+                'For habits like "Drink 8 glasses of water" instead of a simple checkbox.',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+              ),
+              onChanged: (val) {
+                HapticFeedback.selectionClick();
+                setState(() => _isCountBased = val);
+              },
+            ),
+            if (_isCountBased) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _targetCountController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        labelText: 'Daily target',
+                        labelStyle: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.1),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF00E5FF),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _unitController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        labelText: 'Unit (glasses, pages...)',
+                        labelStyle: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.1),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF00E5FF),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 16),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,

@@ -1265,6 +1265,9 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
               .catchError((_) {});
         }
         habit.isCompleted = false;
+        // Reset count-based habits' daily progress too -- no-op (stays 0)
+        // for simple checkbox habits.
+        habit.currentCount = 0;
       });
 
       _checkFocusJourneyUnlocks();
@@ -1407,6 +1410,75 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_isDisposed) return;
     notifyListeners();
     _updateHomeWidget(); // Trigger home widget update on any habit toggle
+    _saveToCloud();
+  }
+
+  /// Increments (or decrements, with a negative [delta]) a count-based
+  /// habit's ("Drink 8 glasses of water") daily progress. No-op for a
+  /// simple checkbox habit (targetCount == null) -- use toggleHabit() for
+  /// those. isCompleted is derived from currentCount >= targetCount, so it
+  /// stays the single source of truth everywhere else (streaks, stats,
+  /// Focus Journeys) exactly like toggleHabit() -- this just drives it a
+  /// different way.
+  Future<void> incrementHabitCount(String habitId, {int delta = 1}) async {
+    final habit = _habits[habitId];
+    if (habit == null || habit.targetCount == null) return;
+
+    final bool wasCompleted = habit.isCompleted;
+    habit.currentCount = (habit.currentCount + delta).clamp(
+      0,
+      habit.targetCount!,
+    );
+    habit.isCompleted = habit.currentCount >= habit.targetCount!;
+
+    _db
+        .collection('users')
+        .doc(_userId)
+        .collection('habits')
+        .doc(habit.id)
+        .update({
+          'currentCount': habit.currentCount,
+          'isCompleted': habit.isCompleted,
+        })
+        .catchError((_) {});
+
+    if (habit.isCompleted && !wasCompleted) {
+      habit.skippedCount = 0;
+      _db
+          .collection('users')
+          .doc(_userId)
+          .collection('habits')
+          .doc(habit.id)
+          .update({'skippedCount': 0})
+          .catchError((_) {});
+
+      incrementTotalHabits(); // ALWAYS triggers on completion!
+
+      if (isRoutineComplete(habit.routineType)) {
+        markRoutineComplete();
+      }
+
+      if (_soundsEnabled) {
+        try {
+          await _audioPlayer.play(
+            audioplayers.AssetSource('audio/success_chime.mp3'),
+          );
+        } catch (e, s) {
+          debugPrint('Failed to play completion sound: $e');
+          FirebaseCrashlytics.instance.recordError(
+            e,
+            s,
+            reason: 'Failed to play completion sound',
+          );
+        }
+      }
+    }
+
+    _completedHabits[habitId] = habit.isCompleted;
+
+    if (_isDisposed) return;
+    notifyListeners();
+    _updateHomeWidget();
     _saveToCloud();
   }
 

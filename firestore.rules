@@ -112,15 +112,24 @@ service cloud.firestore {
       // side of the app's own model, so every addHabit() call was rejected).
       let allowedKeys = ['id', 'title', 'routine', 'iconCodePoint', 'color',
         'completedDays', 'totalDays', 'order', 'skippedCount', 'time', 'isCompleted',
-        'history', 'isGoal', 'category', 'activeDays'];
+        'history', 'isGoal', 'category', 'activeDays', 'targetCount', 'unit',
+        'currentCount'];
       // Which days of the week this habit is due (see Habit.activeDays) --
       // must be exactly 7 booleans if present at all.
       let isActiveDaysValid = !('activeDays' in data) ||
         (data.activeDays is list && data.activeDays.size() == 7);
+      // Count-based habits ("Drink 8 glasses of water") -- see
+      // Habit.targetCount/unit/currentCount.
+      let isTargetCountValid = !('targetCount' in data) ||
+        (data.targetCount is int && data.targetCount >= 1 && data.targetCount <= 9999);
+      let isUnitValid = !('unit' in data) || isValidString(data.unit, 0, 30);
+      let isCurrentCountValid = !('currentCount' in data) ||
+        (data.currentCount is int && data.currentCount >= 0 && data.currentCount <= 9999);
       return data.keys().hasOnly(allowedKeys) &&
              isValidString(data.title, 1, 100) &&
              isValidString(data.routine, 1, 50) &&
-             isActiveDaysValid;
+             isActiveDaysValid && isTargetCountValid && isUnitValid &&
+             isCurrentCountValid;
     }
 
     function isValidJournalEntry(data) {
