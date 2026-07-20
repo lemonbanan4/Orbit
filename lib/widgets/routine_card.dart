@@ -996,6 +996,10 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                               habit.targetCount,
                                                                           initialUnit:
                                                                               habit.unit,
+                                                                          initialRemindersEnabled:
+                                                                              habit.remindersEnabled,
+                                                                          initialReminderTime:
+                                                                              habit.reminderTime,
                                                                         );
                                                                       },
                                                                   backgroundColor:

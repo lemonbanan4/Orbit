@@ -395,6 +395,32 @@ describe("Orbit Firestore Security Rules", () => {
     await assertFails(habitDoc.update({ isArchived: "yes" }));
   });
 
+  it("Allows setting a habit reminder but denies a non-boolean/bad time value", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const habitDoc = db
+      .collection("users")
+      .doc("user123")
+      .collection("habits")
+      .doc("habit1");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false });
+      await context
+        .firestore()
+        .collection("users")
+        .doc("user123")
+        .collection("habits")
+        .doc("habit1")
+        .set({ title: "Read", routine: "Morning", completedDays: 0, totalDays: 0 });
+    });
+
+    await assertSucceeds(
+      habitDoc.update({ remindersEnabled: true, reminderTime: "07:30" })
+    );
+    await assertFails(habitDoc.update({ remindersEnabled: "yes" }));
+    await assertFails(habitDoc.update({ reminderTime: 730 }));
+  });
+
   it("Allows setting featured_habit_id to a valid string but denies a non-string value", async () => {
     const db = testEnv.authenticatedContext("user123").firestore();
     const userDoc = db.collection("users").doc("user123");

@@ -12,6 +12,7 @@ import '../models/habit.dart';
 import '../utils/icon_utils.dart';
 import '../theme/orbit_tokens.dart';
 import '../services/ai_coach_service.dart';
+import '../services/notification_service.dart';
 
 class CreateHabitSheet extends StatefulWidget {
   final String? habitId;
@@ -23,6 +24,8 @@ class CreateHabitSheet extends StatefulWidget {
   final List<bool>? initialActiveDays;
   final int? initialTargetCount;
   final String? initialUnit;
+  final bool initialRemindersEnabled;
+  final String? initialReminderTime;
 
   const CreateHabitSheet({
     super.key,
@@ -35,6 +38,8 @@ class CreateHabitSheet extends StatefulWidget {
     this.initialActiveDays,
     this.initialTargetCount,
     this.initialUnit,
+    this.initialRemindersEnabled = false,
+    this.initialReminderTime,
   });
 
   static void show(
@@ -48,6 +53,8 @@ class CreateHabitSheet extends StatefulWidget {
     List<bool>? initialActiveDays,
     int? initialTargetCount,
     String? initialUnit,
+    bool initialRemindersEnabled = false,
+    String? initialReminderTime,
   }) {
     showModalBottomSheet(
       context: context,
@@ -63,6 +70,8 @@ class CreateHabitSheet extends StatefulWidget {
         initialActiveDays: initialActiveDays,
         initialTargetCount: initialTargetCount,
         initialUnit: initialUnit,
+        initialRemindersEnabled: initialRemindersEnabled,
+        initialReminderTime: initialReminderTime,
       ),
     );
   }
@@ -83,6 +92,8 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
   late bool _isCountBased;
   late TextEditingController _targetCountController;
   late TextEditingController _unitController;
+  late bool _remindersEnabled;
+  late TimeOfDay _reminderTime;
 
   final Map<String, IconData> _routineIcons = {
     'Morning': Icons.wb_sunny_rounded,
@@ -147,6 +158,21 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
       text: (widget.initialTargetCount ?? 8).toString(),
     );
     _unitController = TextEditingController(text: widget.initialUnit ?? '');
+    _remindersEnabled = widget.initialRemindersEnabled;
+    _reminderTime = _parseReminderTime(widget.initialReminderTime);
+  }
+
+  static TimeOfDay _parseReminderTime(String? value) {
+    final parts = value?.split(':');
+    if (parts == null || parts.length != 2) {
+      return const TimeOfDay(hour: 8, minute: 0);
+    }
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) {
+      return const TimeOfDay(hour: 8, minute: 0);
+    }
+    return TimeOfDay(hour: hour, minute: minute);
   }
 
   @override
@@ -192,6 +218,10 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
               )
             : null;
         final unit = _unitController.text.trim();
+        final reminderTimeStr = _remindersEnabled
+            ? '${_reminderTime.hour.toString().padLeft(2, '0')}:'
+                  '${_reminderTime.minute.toString().padLeft(2, '0')}'
+            : null;
 
         final habitData = {
           'title': title,
@@ -203,6 +233,14 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
           // -- there's no "reset to a stale default" risk here since it's
           // exactly what the day picker below shows the user right now.
           'activeDays': _activeDays,
+          'remindersEnabled': _remindersEnabled,
+          if (reminderTimeStr != null)
+            'reminderTime': reminderTimeStr
+          else
+            // Explicit clear, not just omit -- merge writes only ever
+            // *preserve* keys absent from the payload (same reasoning as
+            // targetCount/unit below).
+            'reminderTime': FieldValue.delete(),
           if (_selectedCategory != null) 'category': _selectedCategory,
           if (widget.habitId == null) ...{
             'completedDays': 0,
@@ -248,9 +286,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
           final localIsCompleted = targetCount != null
               ? localCurrentCount >= targetCount
               : (existing?.isCompleted ?? false);
-          provider.upsertHabitLocally(
-            docId,
-            Habit(
+          final localHabit = Habit(
               id: docId,
               title: title,
               routineType: _selectedRoutine,
@@ -269,7 +305,16 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
               unit: unit.isNotEmpty ? unit : null,
               currentCount: localCurrentCount,
               history: existing?.history,
-            ),
+              remindersEnabled: _remindersEnabled,
+              reminderTime: reminderTimeStr,
+          );
+          // Best-effort -- a permission/scheduling failure shouldn't block
+          // saving the habit itself (matches _safeZonedSchedule's own
+          // swallow-and-log behavior for routine alarms).
+          NotificationService.scheduleHabitReminder(localHabit);
+          provider.upsertHabitLocally(
+            docId,
+            localHabit,
           );
           Navigator.pop(context);
         }
@@ -624,6 +669,71 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
                 );
               }),
             ),
+            const SizedBox(height: 16),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _remindersEnabled,
+              activeThumbColor: const Color(0xFF00E5FF),
+              title: const Text(
+                'Remind Me',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              subtitle: Text(
+                'Get a nudge for just this habit, separate from your routine alarms.',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+              ),
+              onChanged: (val) {
+                HapticFeedback.selectionClick();
+                setState(() => _remindersEnabled = val);
+              },
+            ),
+            if (_remindersEnabled) ...[
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: () async {
+                  HapticFeedback.selectionClick();
+                  final picked = await showTimePicker(
+                    context: context,
+                    initialTime: _reminderTime,
+                  );
+                  if (picked != null) {
+                    setState(() => _reminderTime = picked);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.alarm_rounded,
+                        color: Color(0xFF00E5FF),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        _reminderTime.format(context),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,

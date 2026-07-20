@@ -43,6 +43,15 @@ class Habit {
   // Journey category -- pausing forgives future misses, it doesn't erase
   // real past effort. Defaults to false so existing habits are unaffected.
   bool isArchived;
+  // Per-habit local notification, distinct from the routine-level alarms
+  // in RoutineAlarm/NotificationService.scheduleRoutineAlarms -- those
+  // only ever nudge for a whole routine ("Morning Routine"), never a
+  // specific habit. Fires on [reminderTime] on each day in [activeDays],
+  // scheduled/cancelled by NotificationService.scheduleHabitReminder /
+  // cancelHabitReminder. reminderTime is null whenever remindersEnabled
+  // is false.
+  bool remindersEnabled;
+  String? reminderTime; // "HH:MM", 24-hour
 
   Habit({
     required this.id,
@@ -62,6 +71,8 @@ class Habit {
     this.unit,
     this.currentCount = 0,
     this.isArchived = false,
+    this.remindersEnabled = false,
+    this.reminderTime,
     List<bool>? activeDays,
     Map<String, bool>? history,
   }) : history = history ?? {},
@@ -183,6 +194,8 @@ class Habit {
       unit: data['unit']?.toString(),
       currentCount: data['currentCount'] is int ? data['currentCount'] : 0,
       isArchived: data['isArchived'] == true,
+      remindersEnabled: data['remindersEnabled'] == true,
+      reminderTime: data['reminderTime']?.toString(),
     );
   }
 
@@ -203,10 +216,12 @@ class Habit {
       'history': history,
       'activeDays': activeDays,
       'isArchived': isArchived,
+      'remindersEnabled': remindersEnabled,
       if (category != null) 'category': category,
       if (targetCount != null) 'targetCount': targetCount,
       if (unit != null) 'unit': unit,
       if (targetCount != null) 'currentCount': currentCount,
+      if (reminderTime != null) 'reminderTime': reminderTime,
     };
   }
 }

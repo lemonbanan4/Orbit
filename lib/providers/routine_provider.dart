@@ -891,6 +891,15 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         .catchError((e) {
           debugPrint('Failed to sync isArchived for $habitId: $e');
         });
+    // Pausing is meant to stop the nagging too, not just the daily-checklist
+    // penalty -- and resuming should bring the reminder back exactly as it
+    // was configured (scheduleHabitReminder no-ops if remindersEnabled is
+    // false, so this is safe to call unconditionally either way).
+    if (archived) {
+      NotificationService.cancelHabitReminder(habitId);
+    } else {
+      NotificationService.scheduleHabitReminder(habit);
+    }
     notifyListeners();
   }
 
@@ -1662,6 +1671,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
       // Remove from local state
       _habits.remove(habitId);
       notifyListeners();
+      NotificationService.cancelHabitReminder(habitId);
       // Otherwise the featured-habit widget would be left permanently
       // pointing at a habit that no longer exists.
       if (habitId == _featuredHabitId) {
@@ -1690,6 +1700,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     // Add back to local state
     _habits[habit.id] = habit;
     _completedHabits[habit.id] = habit.isCompleted;
+    NotificationService.scheduleHabitReminder(habit);
 
     _recentlyRestoredHabitIds.add(habit.id);
     notifyListeners();

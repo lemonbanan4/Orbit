@@ -209,6 +209,64 @@ void main() {
     });
   });
 
+  group('Habit.remindersEnabled / reminderTime', () {
+    test('defaults to disabled with no reminder time', () {
+      final habit = Habit(
+        id: '1',
+        title: 'Meditate',
+        routineType: 'Morning',
+        iconCodePoint: 0,
+        color: 0,
+        completedDays: 0,
+        totalDays: 0,
+      );
+      expect(habit.remindersEnabled, isFalse);
+      expect(habit.reminderTime, isNull);
+    });
+
+    test('toMap/fromMap round-trips an enabled reminder', () {
+      final habit = Habit(
+        id: '1',
+        title: 'Meditate',
+        routineType: 'Morning',
+        iconCodePoint: 0,
+        color: 0,
+        completedDays: 0,
+        totalDays: 0,
+        remindersEnabled: true,
+        reminderTime: '07:30',
+      );
+      final map = habit.toMap();
+      expect(map['remindersEnabled'], isTrue);
+      expect(map['reminderTime'], '07:30');
+      final restored = Habit.fromMap('1', map);
+      expect(restored.remindersEnabled, isTrue);
+      expect(restored.reminderTime, '07:30');
+    });
+
+    test('toMap omits reminderTime entirely when reminders are off', () {
+      final habit = Habit(
+        id: '1',
+        title: 'Meditate',
+        routineType: 'Morning',
+        iconCodePoint: 0,
+        color: 0,
+        completedDays: 0,
+        totalDays: 0,
+      );
+      expect(habit.toMap().containsKey('reminderTime'), isFalse);
+    });
+
+    test('fromMap defaults to disabled when absent', () {
+      final habit = Habit.fromMap('1', {
+        'title': 'Old habit',
+        'routine': 'Morning',
+      });
+      expect(habit.remindersEnabled, isFalse);
+      expect(habit.reminderTime, isNull);
+    });
+  });
+
   group('Habit.computeCurrentStreak', () {
     String daysAgo(int n) =>
         DateTime.now().subtract(Duration(days: n)).toIso8601String().substring(0, 10);

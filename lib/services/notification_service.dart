@@ -4,6 +4,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter/material.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import '../models/routine_alarm.dart';
+import '../models/habit.dart';
 import '../main.dart'; // Import to access navigatorKey
 import '../screens/settings/notifications_screen.dart';
 import '../screens/navigation/main_navigation_screen.dart';
@@ -250,6 +251,68 @@ class NotificationService {
             );
           }
         }
+      }
+    }
+  }
+
+  // Distinct salted hash so a habit reminder's IDs never collide with
+  // scheduleReattemptReminder's plain habitId.hashCode, or with the
+  // routine-alarm ID blocks (100-599, see _getOffsetForRoutine). Pushed
+  // well clear of both into a dedicated range; a 7-day block reserved per
+  // habit (days 0-6) the same way scheduleRoutineAlarms reserves one
+  // per alarm slot.
+  static int _habitReminderBaseId(String habitId) {
+    return 700000 + ('habit_reminder_$habitId'.hashCode.abs() % 200000) * 7;
+  }
+
+  static Future<void> cancelHabitReminder(String habitId) async {
+    final baseId = _habitReminderBaseId(habitId);
+    for (int day = 0; day < 7; day++) {
+      await notificationsPlugin.cancel(id: baseId + day);
+    }
+  }
+
+  /// Schedules (or, if disabled, cancels) [habit]'s own reminder --
+  /// distinct from the routine-level alarms, this nudges for one specific
+  /// habit at [habit.reminderTime] on each day in [habit.activeDays].
+  static Future<void> scheduleHabitReminder(Habit habit) async {
+    await cancelHabitReminder(habit.id);
+    if (!habit.remindersEnabled || habit.reminderTime == null) return;
+
+    final parts = habit.reminderTime!.split(':');
+    if (parts.length != 2) return;
+    final hour = int.tryParse(parts[0]) ?? 8;
+    final minute = int.tryParse(parts[1]) ?? 0;
+    final baseId = _habitReminderBaseId(habit.id);
+
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'habit_reminder_channel_v1',
+        'Habit Reminders',
+        channelDescription: 'Reminders for individual habits',
+        groupKey: 'orbit_reminders',
+        importance: Importance.max,
+        priority: Priority.high,
+        sound: RawResourceAndroidNotificationSound('orbit_chime'),
+      ),
+      iOS: _defaultIOSDetails,
+    );
+
+    for (int day = 0; day < 7; day++) {
+      if (!habit.activeDays[day]) continue;
+      final scheduledDate = _nextInstanceOfDayTime(day + 1, hour, minute);
+      try {
+        await _safeZonedSchedule(
+          id: baseId + day,
+          title: habit.title,
+          body: "It's time: ${habit.title}",
+          scheduledDate: scheduledDate,
+          details: details,
+          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+          payload: '{"screen": "dashboard"}',
+        );
+      } catch (e) {
+        debugPrint('Could not schedule habit reminder for ${habit.id}: $e');
       }
     }
   }

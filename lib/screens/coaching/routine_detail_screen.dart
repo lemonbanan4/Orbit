@@ -670,6 +670,12 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                         initialTargetCount:
                                                             habit.targetCount,
                                                         initialUnit: habit.unit,
+                                                        initialRemindersEnabled:
+                                                            habit
+                                                                .remindersEnabled,
+                                                        initialReminderTime:
+                                                            habit
+                                                                .reminderTime,
                                                       );
                                                     },
                                                     backgroundColor:
