@@ -275,19 +275,26 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
       sessionType = 'nightly';
     }
 
-    await Navigator.push(
+    // Previously marked "consulted today" (hiding this button until
+    // tomorrow) on *any* return from the session, including backing out
+    // immediately via the exit icon before even reading the first
+    // question -- someone who opened it, changed their mind, and wanted
+    // to try again had no way to until the next day.
+    final completed = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (context) => CoachingSessionScreen(sessionType: sessionType),
       ),
     );
 
-    final prefs = await SharedPreferences.getInstance();
-    final today = DateTime.now().toIso8601String().split('T')[0];
-    await prefs.setString('last_mirror_consult_date', today);
+    if (completed == true) {
+      final prefs = await SharedPreferences.getInstance();
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      await prefs.setString('last_mirror_consult_date', today);
 
-    if (mounted) {
-      setState(() => _hasConsultedMirrorToday = true);
+      if (mounted) {
+        setState(() => _hasConsultedMirrorToday = true);
+      }
     }
   }
 

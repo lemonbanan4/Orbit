@@ -63,6 +63,7 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
   Future<String>? _messageFuture;
   String? _selectedMood;
   final AudioPlayer _hypnoticAudioPlayer = AudioPlayer();
+  bool _reachedDone = false;
 
   // --- HARDCODED TREES ---
   final Map<String, CoachingNode> _dailyTree = {
@@ -506,7 +507,11 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
   Future<void> _handleExit() async {
     await _fadeAudio(0.3, 0.0, const Duration(milliseconds: 800));
     if (mounted) {
-      Navigator.pop(context);
+      // Tell the caller whether this was a genuine completion (tapped
+      // "Finish Session" on a terminal node) vs. backing out early via the
+      // exit icon or a back-gesture, which bypasses _advanceNode entirely
+      // and reaches here with _reachedDone still false.
+      Navigator.pop(context, _reachedDone);
     }
   }
 
@@ -607,6 +612,10 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
   void _advanceNode(String nextId) {
     HapticFeedback.lightImpact();
     if (nextId == 'exit') {
+      // 'exit' is only ever reached via a "Finish Session" option, which
+      // only exists on terminal nodes (done_dynamic / legend_dynamic) --
+      // so getting here means the session actually ran to completion.
+      _reachedDone = true;
       _handleExit();
       return;
     }
@@ -621,6 +630,15 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
     final noteText = _noteController.text.trim();
 
     if (noteText.isNotEmpty) {
+      // The closing message on every tree ("done_dynamic") explicitly
+      // substitutes '[INTENTION]' with RoutineProvider.dailyIntention --
+      // this input node's own prompt is literally "Set my intention" --
+      // but nothing here ever actually set it. The note was only ever
+      // saved to coaching_notes, a write-only log nothing reads back, so
+      // "locked in" was never true and the dashboard's intention prompt
+      // never reflected what was typed here.
+      await _routineProvider.setDailyIntention(noteText);
+
       final user = FirebaseAuth.instance.currentUser;
       final moodToSave = _selectedMood; // Capture mood at time of submission
       if (user != null) {
