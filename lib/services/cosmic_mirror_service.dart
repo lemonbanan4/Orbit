@@ -90,18 +90,36 @@ class CosmicMirrorService {
     }
   }
 
-  Future<String> generateCoachingMessage(String nodeId) async {
+  Future<String> generateCoachingMessage(
+    String nodeId, {
+    int? currentStreak,
+    List<String>? interests,
+  }) async {
+    // Previously varied only by nodeId -- completely generic regardless of
+    // who's using the app. Ground it in real signal when there's any worth
+    // using; the model is explicitly told not to force it, since most
+    // nodes (breathing cues, factoids) shouldn't awkwardly shoehorn in a
+    // streak number just because one exists.
+    final streakContext = (currentStreak != null && currentStreak > 1)
+        ? '- The user\'s current streak is $currentStreak days. Weave this in ONLY if it fits the node\'s tone naturally -- do not force it into a breathing cue or a factoid.'
+        : '';
+    final interestsContext = (interests != null && interests.isNotEmpty)
+        ? '- The user\'s focus areas are: ${interests.join(", ")}. Lean into one of these when relevant to the node.'
+        : '';
+
     // This prompt is a "meta-prompt" that asks Gemini to act as a prompt generator
     // for our specific coaching nodes. It's a powerful pattern.
     final prompt =
         '''
-    You are the Cosmic Mirror, a mystical in-app narrator for a habit tracker called Orbit. 
+    You are the Cosmic Mirror, a mystical in-app narrator for a habit tracker called Orbit.
     You speak like an ancient oracle reading the stars.
 
     Based on the following coaching node ID, generate a single, deeply insightful, and inspiring message (2-3 sentences).
     Do not use generic AI intro phrasing. Make it sound ancient, prophetic, and unique every time.
 
     Node ID: "$nodeId"
+    $streakContext
+    $interestsContext
 
     Here are some hints for the tone of each node:
     - 'mental_dynamic': Focus on mental clarity, resilience, and the mind as a universe.

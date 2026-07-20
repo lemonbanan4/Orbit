@@ -64,6 +64,11 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
   String? _selectedMood;
   final AudioPlayer _hypnoticAudioPlayer = AudioPlayer();
   bool _reachedDone = false;
+  // Option buttons ("Tap to continue" etc.) used to stay tappable while
+  // the AI message for the *current* node was still loading -- a user
+  // could advance past a still-spinning "Generating wisdom..." without
+  // ever reading it, discarding that in-flight (paid) Gemini call.
+  bool _isFetchingMessage = false;
 
   // --- HARDCODED TREES ---
   final Map<String, CoachingNode> _dailyTree = {
@@ -542,8 +547,15 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
     // 'done_dynamic' keeps its own static, locally-interpolated message (see
     // build()) rather than an AI-generated one, since it substitutes the
     // user's actual typed intention via '[INTENTION]' — something the AI
-    // prompt has no way to know.
-    if (nodeId == 'done_dynamic') return;
+    // prompt has no way to know. Also clears a still-pending
+    // _isFetchingMessage from input_dynamic's own AI-generated prompt --
+    // _submitNote() can land here before that fetch resolves, and since
+    // this branch returns before ever touching the flag, done_dynamic's
+    // "Finish Session" button would otherwise stay disabled forever.
+    if (nodeId == 'done_dynamic') {
+      _isFetchingMessage = false;
+      return;
+    }
 
     final cosmicMirror = context.read<CosmicMirrorService>();
 
@@ -583,19 +595,33 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
         }
       }
       setState(() {
-        _messageFuture = cosmicMirror.generateWeeklyLegend(
-          habitsDone,
-          habitsMissed,
-        );
+        _isFetchingMessage = true;
+        _messageFuture = cosmicMirror
+            .generateWeeklyLegend(habitsDone, habitsMissed)
+            .whenComplete(() {
+              if (mounted) setState(() => _isFetchingMessage = false);
+            });
       });
       return;
     }
 
     if (nodeId.endsWith('_dynamic')) {
       // This triggers the FutureBuilder to update
-      setState(
-        () => _messageFuture = cosmicMirror.generateCoachingMessage(nodeId),
-      );
+      setState(() {
+        _isFetchingMessage = true;
+        _messageFuture = cosmicMirror
+            .generateCoachingMessage(
+              nodeId,
+              // Grounds the message in who's actually using the app instead
+              // of it varying only by which node they're on -- previously
+              // identical regardless of streak or focus areas.
+              currentStreak: _routineProvider.currentStreak,
+              interests: _routineProvider.interests,
+            )
+            .whenComplete(() {
+              if (mounted) setState(() => _isFetchingMessage = false);
+            });
+      });
     }
   }
 
@@ -611,11 +637,14 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
 
   void _advanceNode(String nextId) {
     HapticFeedback.lightImpact();
-    if (nextId == 'exit') {
-      // 'exit' is only ever reached via a "Finish Session" option, which
-      // only exists on terminal nodes (done_dynamic / legend_dynamic) --
-      // so getting here means the session actually ran to completion.
+    // Reaching the terminal reflection node is what "consulting the
+    // mirror" actually means -- someone who reads the final message and
+    // taps the X instead of the separate "Finish Session" button has
+    // still gotten full value and shouldn't have this show up again.
+    if (nextId == 'done_dynamic' || nextId == 'legend_dynamic') {
       _reachedDone = true;
+    }
+    if (nextId == 'exit') {
       _handleExit();
       return;
     }
@@ -987,7 +1016,9 @@ class _CoachingSessionScreenState extends State<CoachingSessionScreen> {
                                   borderRadius: BorderRadius.circular(30),
                                 ),
                               ),
-                              onPressed: () => _advanceNode(option.nextNodeId),
+                              onPressed: _isFetchingMessage
+                                  ? null
+                                  : () => _advanceNode(option.nextNodeId),
                               child: Text(
                                 option.text,
                                 style: const TextStyle(
