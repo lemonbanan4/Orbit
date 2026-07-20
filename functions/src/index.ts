@@ -449,21 +449,24 @@ export const cleanupUserAccount = functions
       // with no way to clear it (there's no unlink function at all, and
       // removeFriend only ever runs when the *other* side is still around
       // to call it).
-      const friendsOf = await admin.firestore().collection("users")
-        .where("friends", "array-contains", userId).get();
-      for (const doc of friendsOf.docs) {
-        await doc.ref.update({
+      const linksRef = admin.firestore().collection("links");
+      const [friendsOf, linksAsA, linksAsB] = await Promise.all([
+        admin.firestore().collection("users")
+          .where("friends", "array-contains", userId).get(),
+        linksRef.where("userA", "==", userId).get(),
+        linksRef.where("userB", "==", userId).get(),
+      ]);
+
+      const cleanupBatch = admin.firestore().batch();
+      friendsOf.docs.forEach((doc) => {
+        cleanupBatch.update(doc.ref, {
           friends: admin.firestore.FieldValue.arrayRemove(userId),
         });
-      }
-
-      const linksRef = admin.firestore().collection("links");
-      const linksAsA = await linksRef.where("userA", "==", userId).get();
-      const linksAsB = await linksRef.where("userB", "==", userId).get();
-      const linkDeletions = [...linksAsA.docs, ...linksAsB.docs];
-      for (const doc of linkDeletions) {
-        await doc.ref.delete();
-      }
+      });
+      [...linksAsA.docs, ...linksAsB.docs].forEach((doc) => {
+        cleanupBatch.delete(doc.ref);
+      });
+      await cleanupBatch.commit();
 
       // 3. Delete the main user document
       await userRef.delete();
@@ -544,13 +547,18 @@ export const sendDailySummary = onSchedule(
         // Respect user settings (defaults to true)
         if (userData.daily_summary_notifs === false) return;
 
+        // RoutineProvider._saveToCloud() writes 'habits' as
+        // Map<habitId, bool> (habitId -> isCompleted) -- comparing the
+        // habitId key against the boolean value can never be true, so
+        // completedCount was always 0 regardless of actual completions,
+        // and "Perfect Orbit Achieved!" never fired for anyone.
         const habits = userData.habits || {};
         let completedCount = 0;
         let totalCount = 0;
 
-        for (const [habitId, isCompleted] of Object.entries(habits)) {
+        for (const isCompleted of Object.values(habits)) {
           totalCount++;
-          if (habitId === isCompleted) completedCount++;
+          if (isCompleted === true) completedCount++;
         }
 
         // Only send if they had habits assigned today
@@ -1083,7 +1091,10 @@ export const searchUsers = onCall(async (request) => {
   }
 
   const query = request.data.query;
-  if (!query || typeof query !== "string" || query.trim().length === 0) {
+  if (
+    !query || typeof query !== "string" ||
+    query.trim().length === 0 || query.length > 60
+  ) {
     return {results: []};
   }
 
@@ -1209,16 +1220,33 @@ export const deleteOrphanedGuestAccounts = onSchedule(
       const batches: typeof currentBatch[] = [];
       let operationCount = 0;
 
+      // Must cover every subcollection under users/{userId} (see the
+      // `match` blocks in firestore.rules) -- this previously missed
+      // journal_entries, cache, fairy_history, and skipped_sessions, the
+      // same gap already fixed for cleanupUserAccount and the guest->
+      // permanent account migration.
+      const subcollections = [
+        "habits",
+        "notifications",
+        "friend_requests",
+        "coaching_notes",
+        "journal_entries",
+        "cache",
+        "fairy_history",
+        "skipped_sessions",
+      ];
+
       for (const doc of orphanedGuestsSnap.docs) {
-        // Delete user's subcollections first
-        const subcollections = [
-          "habits",
-          "notifications",
-          "friend_requests",
-          "coaching_notes",
-        ];
-        for (const subcollection of subcollections) {
-          const subSnap = await doc.ref.collection(subcollection).get();
+        // Read all subcollections for this doc in parallel instead of one
+        // await per subcollection -- this loop already runs once daily
+        // against every guest account 30+ days old, so runtime scaled
+        // linearly with both orphaned-guest count and subcollection count.
+        const subSnaps = await Promise.all(
+          subcollections.map((subcollection) =>
+            doc.ref.collection(subcollection).get()
+          )
+        );
+        for (const subSnap of subSnaps) {
           subSnap.docs.forEach((subDoc) => {
             currentBatch.delete(subDoc.ref);
             operationCount++;
@@ -1233,16 +1261,24 @@ export const deleteOrphanedGuestAccounts = onSchedule(
         // Delete the main user document
         currentBatch.delete(doc.ref);
         operationCount++;
-
-        // Try to delete the actual Firebase Auth account
-        await admin.auth().deleteUser(doc.id).catch((e) =>
-          logger.error(`Failed to delete auth for ${doc.id}`, e)
-        );
       }
 
       if (operationCount > 0) batches.push(currentBatch);
 
       await Promise.all(batches.map((batch) => batch.commit()));
+
+      // Delete the Firebase Auth accounts in parallel, after the Firestore
+      // data is gone (avoids the previous ordering, where an Auth account
+      // could be deleted before its Firestore batches had even started
+      // committing).
+      await Promise.all(
+        orphanedGuestsSnap.docs.map((doc) =>
+          admin.auth().deleteUser(doc.id).catch((e) =>
+            logger.error(`Failed to delete auth for ${doc.id}`, e)
+          )
+        )
+      );
+
       logger.info(
         `Deleted ${orphanedGuestsSnap.size} orphaned guest accounts.`
       );

@@ -68,15 +68,16 @@ describe("sendDailySummary", () => {
   it(
     "should send 'Perfect Orbit' summary when all habits are completed",
     async () => {
-    // Arrange: Mock Firestore to return a user with all habits completed
-    // (Based on the logic: habitId === isCompleted)
+    // Arrange: Mock Firestore to return a user with all habits completed.
+    // RoutineProvider._saveToCloud() writes 'habits' as
+    // Map<habitId, bool> -- habit1/habit2 completed (true).
       firestoreGetMock.mockResolvedValue({
         docs: [
           {
             data: () => ({
               fcmToken: "mock-token-1",
               daily_summary_notifs: true,
-              habits: {habit1: "habit1", habit2: "habit2"},
+              habits: {habit1: true, habit2: true},
             }),
           },
         ],
@@ -99,6 +100,43 @@ describe("sendDailySummary", () => {
         android: {notification: {sound: "orbit_chime"}},
         apns: {payload: {aps: {sound: "orbit_chime.wav"}}},
         token: "mock-token-1",
+      });
+    });
+
+  it(
+    "should send a partial-completion summary with the real completed count",
+    async () => {
+    // Regression test: completedCount used to compare the habitId key
+    // against the boolean value (habitId === isCompleted), which can
+    // never be true -- this always reported 0 completions regardless of
+    // real progress. habit1 done, habit2/habit3 not.
+      firestoreGetMock.mockResolvedValue({
+        docs: [
+          {
+            data: () => ({
+              fcmToken: "mock-token-3",
+              daily_summary_notifs: true,
+              habits: {habit1: true, habit2: false, habit3: false},
+            }),
+          },
+        ],
+      });
+      messagingSendMock.mockResolvedValue("message-id");
+
+      const wrapped = wrapV2(sendDailySummary as any);
+      const event = {scheduleTime: new Date().toISOString()};
+      await wrapped(event as any);
+
+      expect(messagingSendMock).toHaveBeenCalledTimes(1);
+      expect(messagingSendMock).toHaveBeenCalledWith({
+        notification: {
+          title: "Daily Orbit Summary 🌠",
+          body: "You completed 1 out of 3 habits today.\n            " +
+            "Ready to try again tomorrow?",
+        },
+        android: {notification: {sound: "orbit_chime"}},
+        apns: {payload: {aps: {sound: "orbit_chime.wav"}}},
+        token: "mock-token-3",
       });
     });
 
