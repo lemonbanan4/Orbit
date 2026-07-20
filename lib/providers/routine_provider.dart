@@ -857,11 +857,34 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   // HELPER: Get the right list based on the routine string
   List<Habit> getHabitsForRoutine(String routineType) {
     final routineHabits = _habits.values
-        .where((h) => h.routineType == routineType)
+        .where((h) => h.routineType == routineType && !h.isArchived)
         .toList();
     // Sort by the 'order' property to maintain user-defined sequence
     routineHabits.sort((a, b) => a.order.compareTo(b.order));
     return routineHabits;
+  }
+
+  /// Habits currently paused (isArchived) -- for a dedicated management
+  /// view; excluded from getHabitsForRoutine() and every completion/
+  /// progress calculation.
+  List<Habit> get archivedHabits =>
+      _habits.values.where((h) => h.isArchived).toList()
+        ..sort((a, b) => a.title.compareTo(b.title));
+
+  Future<void> setHabitArchived(String habitId, bool archived) async {
+    final habit = _habits[habitId];
+    if (habit == null) return;
+    habit.isArchived = archived;
+    _db
+        .collection('users')
+        .doc(_userId)
+        .collection('habits')
+        .doc(habitId)
+        .update({'isArchived': archived})
+        .catchError((e) {
+          debugPrint('Failed to sync isArchived for $habitId: $e');
+        });
+    notifyListeners();
   }
 
   Future<void> _loadData() async {
@@ -1142,11 +1165,15 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         // "Due" = actually scheduled for the closing day, or completed
         // anyway (voluntary extra effort always counts, never dilutes the
         // denominator with days a habit wasn't even supposed to run).
+        // Archived (paused) habits are excluded the same way a not-
+        // scheduled day is, unless they were completed anyway.
         final dueHabits = closingWeekday == null
-            ? allHabits
+            ? allHabits.where((h) => !h.isArchived).toList()
             : allHabits
                   .where(
-                    (h) => h.isCompleted || h.activeDays[closingWeekday - 1],
+                    (h) =>
+                        h.isCompleted ||
+                        (!h.isArchived && h.activeDays[closingWeekday - 1]),
                   )
                   .toList();
         final completedCount = dueHabits.where((h) => h.isCompleted).length;
@@ -1179,9 +1206,11 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
           // which could under/over-count real calendar days missed and
           // throw off both the streak-break threshold and freeze
           // eligibility below. UTC has no DST, so this is always exact.
-          final daysMissed = DateTime.utc(curr.year, curr.month, curr.day)
-              .difference(DateTime.utc(last.year, last.month, last.day))
-              .inDays;
+          final daysMissed = DateTime.utc(
+            curr.year,
+            curr.month,
+            curr.day,
+          ).difference(DateTime.utc(last.year, last.month, last.day)).inDays;
           // If more than 1 day has passed, OR they didn't complete a routine yesterday, break streak!
           final wouldBreak = daysMissed > 1 || !_hasIncreasedStreakToday;
 
@@ -1231,10 +1260,14 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         // habit that wasn't actually due on the closing day and wasn't
         // completed anyway -- it was never "missed" if it was never
         // scheduled, so it shouldn't count against totalDays/skippedCount
-        // or leave a history entry at all.
+        // or leave a history entry at all. Same for an archived (paused)
+        // habit -- pausing is meant to stop the penalty, not just hide it;
+        // a genuine completion before archiving still counts either way.
         final wasDueOrDone =
             habit.isCompleted ||
-            (closingWeekday != null && habit.activeDays[closingWeekday - 1]);
+            (!habit.isArchived &&
+                closingWeekday != null &&
+                habit.activeDays[closingWeekday - 1]);
         if (completedDayKey != null && wasDueOrDone) {
           // Self-heal the legacy habit-creation seed (totalDays used to
           // start at a vestigial 21/7 "goal" constant nothing ever

@@ -19,6 +19,7 @@ import '../../achievements_screen.dart';
 import '../../data/achievements_catalog.dart';
 import '../habits/past_journeys_screen.dart';
 import '../habits/skipped_sessions_screen.dart';
+import '../habits/archived_habits_screen.dart';
 import '../../widgets/common/achievement_badge.dart';
 import '../../widgets/common/profile_avatar.dart';
 import '../../widgets/common/level_progress_card.dart';
@@ -43,7 +44,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _scrollController.dispose();
     super.dispose();
   }
-
 
   @override
   void initState() {
@@ -86,8 +86,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final storageRef = FirebaseStorage.instance.ref().child(
-            'avatars/${user.uid}_$timestamp.jpg',
-          );
+        'avatars/${user.uid}_$timestamp.jpg',
+      );
 
       final imageBytes = await image.readAsBytes();
       await storageRef.putData(imageBytes);
@@ -125,7 +125,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
-          final isDark = context.read<RoutineProvider>().themeMode == 'Dark' ||
+          final isDark =
+              context.read<RoutineProvider>().themeMode == 'Dark' ||
               context.read<RoutineProvider>().themeMode == 'System';
           final textColor = isDark ? Colors.white : const Color(0xFF1A1F36);
           final hintColor = isDark ? Colors.white54 : Colors.black54;
@@ -184,9 +185,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: TextStyle(color: textColor),
                         decoration: InputDecoration(
                           labelText: 'Name',
-                          labelStyle: TextStyle(
-                            color: hintColor,
-                          ),
+                          labelStyle: TextStyle(color: hintColor),
                           filled: true,
                           fillColor: fillColor,
                           border: OutlineInputBorder(
@@ -202,9 +201,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: TextStyle(color: textColor),
                         decoration: InputDecoration(
                           labelText: 'Email',
-                          labelStyle: TextStyle(
-                            color: hintColor,
-                          ),
+                          labelStyle: TextStyle(color: hintColor),
                           filled: true,
                           fillColor: fillColor,
                           border: OutlineInputBorder(
@@ -220,9 +217,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: TextStyle(color: textColor),
                         decoration: InputDecoration(
                           labelText: 'Password',
-                          labelStyle: TextStyle(
-                            color: hintColor,
-                          ),
+                          labelStyle: TextStyle(color: hintColor),
                           filled: true,
                           fillColor: fillColor,
                           border: OutlineInputBorder(
@@ -237,9 +232,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor:
-                                Theme.of(context).extension<OrbitColors>()
-                                        ?.orbColor1 ??
-                                    const Color(0xFF00E5FF),
+                                Theme.of(
+                                  context,
+                                ).extension<OrbitColors>()?.orbColor1 ??
+                                const Color(0xFF00E5FF),
                             foregroundColor: Colors.black,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
@@ -257,9 +253,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   try {
                                     final credential =
                                         EmailAuthProvider.credential(
-                                      email: emailController.text.trim(),
-                                      password: passwordController.text,
-                                    );
+                                          email: emailController.text.trim(),
+                                          password: passwordController.text,
+                                        );
                                     await user.linkWithCredential(credential);
                                     await user.updateDisplayName(
                                       nameController.text.trim(),
@@ -268,10 +264,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         .collection('users')
                                         .doc(user.uid)
                                         .update({
-                                      'name': nameController.text.trim(),
-                                      'email': emailController.text.trim(),
-                                      'isGuest': FieldValue.delete(),
-                                    });
+                                          'name': nameController.text.trim(),
+                                          'email': emailController.text.trim(),
+                                          'isGuest': FieldValue.delete(),
+                                        });
                                     if (!context.mounted) return;
                                     Navigator.pop(context);
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -383,9 +379,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(
-                  child: CircularProgressIndicator(color: accent),
-                );
+                return Center(child: CircularProgressIndicator(color: accent));
               }
 
               final data = snapshot.data?.data() as Map<String, dynamic>? ?? {};
@@ -398,15 +392,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // check-in is 'current_streak' (already used correctly by
               // statistics_screen.dart and leaderboard_tile.dart).
               final streakCount =
-                  data['current_streak'] as int? ?? data['streakCount'] as int? ?? 0;
+                  data['current_streak'] as int? ??
+                  data['streakCount'] as int? ??
+                  0;
               final isProUser = data['isPro'] == true || _isPro;
               // Computed live, not read from the Firestore 'achievements'
               // array — that field was only ever initialized to [] at
               // signup and nothing in the app ever wrote to it, so this
               // section never showed for anyone.
-              final achievements =
-                  computeEarnedAchievements(context.watch<RoutineProvider>())
-                      .toList();
+              final achievements = computeEarnedAchievements(
+                context.watch<RoutineProvider>(),
+              ).toList();
 
               // 'xp' is RoutineProvider's spendable currency (streak
               // freezes, Nebula theme unlocks cost XP from it) -- Level is
@@ -449,25 +445,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       if (isProUser) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: accent.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: accent),
-                          ),
-                          child: Text(
-                            'PRO',
-                            style: TextStyle(
-                              color: accent,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
-                        )
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: accent.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: accent),
+                              ),
+                              child: Text(
+                                'PRO',
+                                style: TextStyle(
+                                  color: accent,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                            )
                             .animate(onPlay: (c) => c.repeat(reverse: true))
                             .shimmer(duration: 2.seconds, color: Colors.white),
                       ],
@@ -499,7 +495,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const StatisticsScreen()),
+                        builder: (_) => const StatisticsScreen(),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -514,7 +511,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const PastJourneysScreen()),
+                        builder: (_) => const PastJourneysScreen(),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -528,7 +526,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const SkippedSessionsScreen()),
+                        builder: (_) => const SkippedSessionsScreen(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // --- ARCHIVED HABITS BUTTON ---
+                  ProfileActionButton(
+                    title: 'Archived Habits',
+                    subtitle: 'Resume habits you paused',
+                    icon: Icons.archive_outlined,
+                    accentColor: Colors.amber,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ArchivedHabitsScreen(),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -682,15 +696,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       }
                     },
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     tileColor: tileColor,
-                    leading: const Icon(Icons.star_rate_rounded,
-                        color: Colors.amber),
-                    title: const Text('Review Orbit',
-                        style: TextStyle(
-                            color: Colors.amber, fontWeight: FontWeight.bold)),
-                    trailing:
-                        Icon(Icons.chevron_right_rounded, color: subtitleColor),
+                    leading: const Icon(
+                      Icons.star_rate_rounded,
+                      color: Colors.amber,
+                    ),
+                    title: const Text(
+                      'Review Orbit',
+                      style: TextStyle(
+                        color: Colors.amber,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.chevron_right_rounded,
+                      color: subtitleColor,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   ListTile(
@@ -698,10 +721,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       HapticFeedback.heavyImpact();
                       await context.read<AppAuthProvider>().signOut();
                       if (context.mounted) {
-                        Navigator.of(context, rootNavigator: true)
-                            .pushAndRemoveUntil(
+                        Navigator.of(
+                          context,
+                          rootNavigator: true,
+                        ).pushAndRemoveUntil(
                           MaterialPageRoute(
-                              builder: (_) => const LoginScreen()),
+                            builder: (_) => const LoginScreen(),
+                          ),
                           (route) => false,
                         );
                       }

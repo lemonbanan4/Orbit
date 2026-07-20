@@ -371,6 +371,30 @@ describe("Orbit Firestore Security Rules", () => {
     await assertFails(habitDoc.update({ currentCount: -1 }));
   });
 
+  it("Allows toggling isArchived but denies a non-boolean value", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const habitDoc = db
+      .collection("users")
+      .doc("user123")
+      .collection("habits")
+      .doc("habit1");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false });
+      await context
+        .firestore()
+        .collection("users")
+        .doc("user123")
+        .collection("habits")
+        .doc("habit1")
+        .set({ title: "Shovel Snow", routine: "Morning", completedDays: 0, totalDays: 0 });
+    });
+
+    await assertSucceeds(habitDoc.update({ isArchived: true }));
+    await assertSucceeds(habitDoc.update({ isArchived: false }));
+    await assertFails(habitDoc.update({ isArchived: "yes" }));
+  });
+
   it("Denies a habit write with a field outside the allowlist", async () => {
     const db = testEnv.authenticatedContext("user123").firestore();
     const habitDoc = db

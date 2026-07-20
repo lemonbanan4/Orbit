@@ -120,11 +120,11 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
       return;
     }
     _pendingInsightCallback = true;
-    // Unfiltered would count habits not due today against the total, so a
-    // routine with any non-daily habit could never reach 100%/trigger the
-    // celebration on a day that habit isn't scheduled.
+    // Unfiltered would count habits not due today (or paused/archived)
+    // against the total, so a routine with any non-daily or archived habit
+    // could never reach 100%/trigger the celebration.
     final docs = routineProvider.habits.values
-        .where((h) => h.isActiveOn())
+        .where((h) => !h.isArchived && h.isActiveOn())
         .toList();
     final completedCount = docs.where((h) => h.isCompleted).length;
     final progress = docs.isEmpty ? 0.0 : completedCount / docs.length;
@@ -483,8 +483,7 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
             ),
             slivers: [
               CupertinoSliverRefreshControl(
-                onRefresh: () =>
-                    context.read<RoutineProvider>().refreshData(),
+                onRefresh: () => context.read<RoutineProvider>().refreshData(),
                 builder:
                     (
                       context,
@@ -1047,10 +1046,7 @@ class _PremiumCarousel extends StatelessWidget {
                 title: "The Sanctuary",
                 subtitle: "Unroll today's wisdom.",
                 duration: "1 min",
-                gradient: const [
-                  OrbitTokens.violet,
-                  OrbitTokens.ground,
-                ],
+                gradient: const [OrbitTokens.violet, OrbitTokens.ground],
                 icon: Icons.auto_stories_rounded,
                 onTap: onOpenSanctuary,
               ),
@@ -1081,10 +1077,7 @@ class _PremiumCarousel extends StatelessWidget {
                 title: "The Nebula Forge",
                 subtitle: "Analyze your gravitational synergy.",
                 duration: "Telemetry",
-                gradient: const [
-                  Color(0xFF3D5CFF),
-                  OrbitTokens.ground,
-                ],
+                gradient: const [Color(0xFF3D5CFF), OrbitTokens.ground],
                 icon: Icons.hub_rounded,
                 onTap: () {
                   HapticFeedback.selectionClick();
@@ -1112,10 +1105,7 @@ class _PremiumCarousel extends StatelessWidget {
                 title: "Deep Sleep Audio",
                 subtitle: "Binaural beats for recovery.",
                 duration: "45 min",
-                gradient: const [
-                  OrbitTokens.teal,
-                  OrbitTokens.ground,
-                ],
+                gradient: const [OrbitTokens.teal, OrbitTokens.ground],
                 icon: Icons.nightlight_round_rounded,
                 onTap: () {
                   HapticFeedback.lightImpact();
@@ -1136,10 +1126,7 @@ class _PremiumCarousel extends StatelessWidget {
                 title: "Pro-Only Coaching",
                 subtitle: "Unlock advanced AI insights.",
                 duration: "Exclusive",
-                gradient: const [
-                  OrbitTokens.gold,
-                  OrbitTokens.ground,
-                ],
+                gradient: const [OrbitTokens.gold, OrbitTokens.ground],
                 icon: Icons.workspace_premium_rounded,
                 onTap: () {
                   HapticFeedback.lightImpact();

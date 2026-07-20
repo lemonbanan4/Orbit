@@ -640,7 +640,7 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                               ),
                                               endActionPane: ActionPane(
                                                 motion: const DrawerMotion(),
-                                                extentRatio: 0.45,
+                                                extentRatio: 0.65,
                                                 children: [
                                                   SlidableAction(
                                                     onPressed: (actionContext) {
@@ -671,6 +671,46 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                         OrbitTokens.teal,
                                                     icon: Icons.edit_outlined,
                                                     label: 'Edit',
+                                                  ),
+                                                  SlidableAction(
+                                                    onPressed: (actionContext) {
+                                                      HapticFeedback.mediumImpact();
+                                                      final routineProvider =
+                                                          context
+                                                              .read<
+                                                                RoutineProvider
+                                                              >();
+                                                      routineProvider
+                                                          .setHabitArchived(
+                                                            habit.id,
+                                                            true,
+                                                          );
+                                                      ScaffoldMessenger.of(
+                                                        context,
+                                                      ).showSnackBar(
+                                                        SnackBar(
+                                                          content: Text(
+                                                            '${habit.title} paused. Find it in Archived Habits to resume.',
+                                                          ),
+                                                          action: SnackBarAction(
+                                                            label: 'Undo',
+                                                            onPressed: () =>
+                                                                routineProvider
+                                                                    .setHabitArchived(
+                                                                      habit.id,
+                                                                      false,
+                                                                    ),
+                                                          ),
+                                                        ),
+                                                      );
+                                                    },
+                                                    backgroundColor:
+                                                        OrbitTokens.surface,
+                                                    foregroundColor:
+                                                        Colors.amber,
+                                                    icon:
+                                                        Icons.archive_outlined,
+                                                    label: 'Pause',
                                                   ),
                                                   SlidableAction(
                                                     onPressed: (actionContext) async {
@@ -887,19 +927,26 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                           routineProvider
                                                               .currentStreak;
 
-                                                      // Clear active notifications if all daily habits are now completed
+                                                      // Clear active notifications if all daily habits are now
+                                                      // completed. Was unfiltered -- a habit not due today (or
+                                                      // paused/archived) would block this from ever firing.
+                                                      final todaysHabits =
+                                                          routineProvider
+                                                              .habits
+                                                              .values
+                                                              .where(
+                                                                (h) =>
+                                                                    !h.isArchived &&
+                                                                    h.isActiveOn(),
+                                                              )
+                                                              .toList();
                                                       final allCompleted =
-                                                          routineProvider
-                                                              .habits
-                                                              .values
+                                                          todaysHabits
                                                               .isNotEmpty &&
-                                                          routineProvider
-                                                              .habits
-                                                              .values
-                                                              .every(
-                                                                (h) => h
-                                                                    .isCompleted,
-                                                              );
+                                                          todaysHabits.every(
+                                                            (h) =>
+                                                                h.isCompleted,
+                                                          );
                                                       if (allCompleted) {
                                                         await NotificationService.clearActiveRoutineReminders();
                                                       }

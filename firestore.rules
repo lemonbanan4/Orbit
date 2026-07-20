@@ -113,7 +113,7 @@ service cloud.firestore {
       let allowedKeys = ['id', 'title', 'routine', 'iconCodePoint', 'color',
         'completedDays', 'totalDays', 'order', 'skippedCount', 'time', 'isCompleted',
         'history', 'isGoal', 'category', 'activeDays', 'targetCount', 'unit',
-        'currentCount'];
+        'currentCount', 'isArchived'];
       // Which days of the week this habit is due (see Habit.activeDays) --
       // must be exactly 7 booleans if present at all.
       let isActiveDaysValid = !('activeDays' in data) ||
@@ -125,11 +125,12 @@ service cloud.firestore {
       let isUnitValid = !('unit' in data) || isValidString(data.unit, 0, 30);
       let isCurrentCountValid = !('currentCount' in data) ||
         (data.currentCount is int && data.currentCount >= 0 && data.currentCount <= 9999);
+      let isArchivedValid = !('isArchived' in data) || data.isArchived is bool;
       return data.keys().hasOnly(allowedKeys) &&
              isValidString(data.title, 1, 100) &&
              isValidString(data.routine, 1, 50) &&
              isActiveDaysValid && isTargetCountValid && isUnitValid &&
-             isCurrentCountValid;
+             isCurrentCountValid && isArchivedValid;
     }
 
     function isValidJournalEntry(data) {

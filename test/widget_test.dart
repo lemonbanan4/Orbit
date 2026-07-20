@@ -169,6 +169,46 @@ void main() {
     });
   });
 
+  group('Habit.isArchived', () {
+    test('defaults to false', () {
+      final habit = Habit(
+        id: '1',
+        title: 'Meditate',
+        routineType: 'Morning',
+        iconCodePoint: 0,
+        color: 0,
+        completedDays: 0,
+        totalDays: 0,
+      );
+      expect(habit.isArchived, isFalse);
+    });
+
+    test('toMap/fromMap round-trips isArchived', () {
+      final habit = Habit(
+        id: '1',
+        title: 'Shovel Snow',
+        routineType: 'Morning',
+        iconCodePoint: 0,
+        color: 0,
+        completedDays: 0,
+        totalDays: 0,
+        isArchived: true,
+      );
+      final map = habit.toMap();
+      expect(map['isArchived'], isTrue);
+      final restored = Habit.fromMap('1', map);
+      expect(restored.isArchived, isTrue);
+    });
+
+    test('fromMap defaults isArchived to false when absent', () {
+      final habit = Habit.fromMap('1', {
+        'title': 'Old habit',
+        'routine': 'Morning',
+      });
+      expect(habit.isArchived, isFalse);
+    });
+  });
+
   group('ExportService CSV builders', () {
     test('buildHistoryCsv produces a header-only CSV with no history', () {
       final habit = Habit(

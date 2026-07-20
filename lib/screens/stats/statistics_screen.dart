@@ -29,9 +29,7 @@ class StatisticsScreen extends StatelessWidget {
     return BaseOrbitScreen(
       title: 'Your Stats',
       body: user == null
-          ? Center(
-              child: CircularProgressIndicator(color: orbColor1),
-            )
+          ? Center(child: CircularProgressIndicator(color: orbColor1))
           : StreamBuilder<DocumentSnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('users')
@@ -52,7 +50,7 @@ class StatisticsScreen extends StatelessWidget {
                     data['longest_streak'] as int? ?? currentStreak;
                 final completedMilestones =
                     (data['unlocked_milestones'] as List<dynamic>?)?.length ??
-                        0;
+                    0;
 
                 return ListView(
                   padding: const EdgeInsets.all(24),
@@ -142,30 +140,16 @@ class _ConsistencyCalendar extends StatelessWidget {
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
-              leftChevronIcon: Icon(
-                Icons.chevron_left,
-                color: textColor,
-              ),
-              rightChevronIcon: Icon(
-                Icons.chevron_right,
-                color: textColor,
-              ),
+              leftChevronIcon: Icon(Icons.chevron_left, color: textColor),
+              rightChevronIcon: Icon(Icons.chevron_right, color: textColor),
             ),
             daysOfWeekStyle: DaysOfWeekStyle(
-              weekdayStyle: TextStyle(
-                color: textColor.withValues(alpha: 0.6),
-              ),
-              weekendStyle: TextStyle(
-                color: textColor.withValues(alpha: 0.6),
-              ),
+              weekdayStyle: TextStyle(color: textColor.withValues(alpha: 0.6)),
+              weekendStyle: TextStyle(color: textColor.withValues(alpha: 0.6)),
             ),
             calendarStyle: CalendarStyle(
-              defaultTextStyle: TextStyle(
-                color: textColor,
-              ),
-              weekendTextStyle: TextStyle(
-                color: textColor,
-              ),
+              defaultTextStyle: TextStyle(color: textColor),
+              weekendTextStyle: TextStyle(color: textColor),
               outsideTextStyle: TextStyle(
                 color: textColor.withValues(alpha: 0.3),
               ),
@@ -204,13 +188,13 @@ class _HabitInsightsCard extends StatelessWidget {
     // Only habits that have survived at least one daily reset carry a real
     // completion rate — brand-new habits (totalDays == 0) would show as a
     // false 0% or divide-by-zero.
-    final tracked = routineProvider.habits.values
-        .where((h) => h.totalDays > 0)
-        .toList()
-      ..sort(
-        (a, b) => (b.completedDays / b.totalDays)
-            .compareTo(a.completedDays / a.totalDays),
-      );
+    final tracked =
+        routineProvider.habits.values.where((h) => h.totalDays > 0).toList()
+          ..sort(
+            (a, b) => (b.completedDays / b.totalDays).compareTo(
+              a.completedDays / a.totalDays,
+            ),
+          );
 
     if (tracked.isEmpty) {
       return const SizedBox.shrink();
@@ -220,7 +204,8 @@ class _HabitInsightsCard extends StatelessWidget {
     // Only call out a struggling habit once it's had a fair number of
     // chances — otherwise one skipped day on day one reads as a failure.
     final weakestCandidate = tracked.length > 3 ? tracked.last : null;
-    final weakest = (weakestCandidate != null && weakestCandidate.totalDays >= 3)
+    final weakest =
+        (weakestCandidate != null && weakestCandidate.totalDays >= 3)
         ? weakestCandidate
         : null;
 
@@ -572,19 +557,9 @@ class _WeeklyConsistencyChart extends StatelessWidget {
                       showTitles: true,
                       getTitlesWidget: (value, meta) {
                         final date = DateTime.now().subtract(
-                          Duration(
-                            days: 6 - value.toInt(),
-                          ),
+                          Duration(days: 6 - value.toInt()),
                         );
-                        const weekdays = [
-                          'M',
-                          'T',
-                          'W',
-                          'T',
-                          'F',
-                          'S',
-                          'S',
-                        ];
+                        const weekdays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
                         return Padding(
                           padding: const EdgeInsets.only(top: 8.0),
                           child: Text(
@@ -632,13 +607,15 @@ class _WeeklyConsistencyChart extends StatelessWidget {
                         // rest of the line whenever a non-daily habit
                         // isn't scheduled.
                         final todayHabits = routineProvider.habits.values
-                            .where((h) => h.isCompleted || h.isActiveOn())
+                            .where(
+                              (h) =>
+                                  h.isCompleted ||
+                                  (!h.isArchived && h.isActiveOn()),
+                            )
                             .toList();
                         final todayProgress = todayHabits.isEmpty
                             ? 0.0
-                            : todayHabits
-                                      .where((h) => h.isCompleted)
-                                      .length /
+                            : todayHabits.where((h) => h.isCompleted).length /
                                   todayHabits.length;
                         return FlSpot(6, todayProgress);
                       }
@@ -716,12 +693,10 @@ class _XpHistoryGraph extends StatelessWidget {
                 double maxY = 100;
 
                 for (int i = 0; i < 7; i++) {
-                  final date = now.subtract(
-                    Duration(days: i),
-                  );
+                  final date = now.subtract(Duration(days: i));
                   final dateStr = date.toIso8601String().substring(0, 10);
-                  final xp =
-                      (routineProvider.xpHistory[dateStr] ?? 0).toDouble();
+                  final xp = (routineProvider.xpHistory[dateStr] ?? 0)
+                      .toDouble();
                   if (xp > maxY) maxY = xp + 50;
                 }
 
@@ -735,17 +710,11 @@ class _XpHistoryGraph extends StatelessWidget {
                         getTooltipColor: (group) =>
                             theme.dialogTheme.backgroundColor ??
                             theme.cardColor,
-                        getTooltipItem: (
-                          group,
-                          groupIndex,
-                          rod,
-                          rodIndex,
-                        ) {
-                          final formattedXp =
-                              rod.toY.toInt().toString().replaceAll(
-                                    RegExp(r'\B(?=(\d{3})+(?!\d))'),
-                                    ',',
-                                  );
+                        getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                          final formattedXp = rod.toY
+                              .toInt()
+                              .toString()
+                              .replaceAll(RegExp(r'\B(?=(\d{3})+(?!\d))'), ',');
 
                           return BarTooltipItem(
                             '$formattedXp XP\n',
@@ -764,9 +733,7 @@ class _XpHistoryGraph extends StatelessWidget {
                           showTitles: true,
                           getTitlesWidget: (value, meta) {
                             final date = now.subtract(
-                              Duration(
-                                days: 6 - value.toInt(),
-                              ),
+                              Duration(days: 6 - value.toInt()),
                             );
                             const weekdays = [
                               'M',
@@ -805,12 +772,10 @@ class _XpHistoryGraph extends StatelessWidget {
                     gridData: const FlGridData(show: false),
                     borderData: FlBorderData(show: false),
                     barGroups: List.generate(7, (index) {
-                      final date = now.subtract(
-                        Duration(days: 6 - index),
-                      );
+                      final date = now.subtract(Duration(days: 6 - index));
                       final dateStr = date.toIso8601String().substring(0, 10);
-                      final xp =
-                          (routineProvider.xpHistory[dateStr] ?? 0).toDouble();
+                      final xp = (routineProvider.xpHistory[dateStr] ?? 0)
+                          .toDouble();
 
                       return BarChartGroupData(
                         x: index,
@@ -854,15 +819,7 @@ class _BestDayCard extends StatelessWidget {
     'Saturday',
     'Sunday',
   ];
-  static const List<String> _weekdayShort = [
-    'M',
-    'T',
-    'W',
-    'T',
-    'F',
-    'S',
-    'S',
-  ];
+  static const List<String> _weekdayShort = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   @override
   Widget build(BuildContext context) {
@@ -1086,9 +1043,9 @@ class _PastMoodEntries extends StatelessWidget {
                             ),
                             onPressed: () {
                               HapticFeedback.mediumImpact();
-                              context
-                                  .read<RoutineProvider>()
-                                  .deleteMoodEntry(dateStr);
+                              context.read<RoutineProvider>().deleteMoodEntry(
+                                dateStr,
+                              );
                             },
                           ),
                         ],
@@ -1243,9 +1200,7 @@ class _PastCoachingNotes extends StatelessWidget {
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(
-                child: CircularProgressIndicator(color: orbColor1),
-              );
+              return Center(child: CircularProgressIndicator(color: orbColor1));
             }
             final docs = snapshot.data?.docs ?? [];
             if (docs.isEmpty) {
@@ -1345,4 +1300,3 @@ class _PastCoachingNotes extends StatelessWidget {
     );
   }
 }
-

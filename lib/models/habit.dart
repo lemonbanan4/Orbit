@@ -34,6 +34,10 @@ class Habit {
   final int? targetCount;
   final String? unit;
   int currentCount;
+  // Paused, not deleted -- keeps all its stats/history but drops out of
+  // the daily checklist and every completion/progress calculation until
+  // unarchived. Defaults to false so existing habits are unaffected.
+  bool isArchived;
 
   Habit({
     required this.id,
@@ -52,6 +56,7 @@ class Habit {
     this.targetCount,
     this.unit,
     this.currentCount = 0,
+    this.isArchived = false,
     List<bool>? activeDays,
     Map<String, bool>? history,
   }) : history = history ?? {},
@@ -139,6 +144,7 @@ class Habit {
       targetCount: data['targetCount'] is int ? data['targetCount'] : null,
       unit: data['unit']?.toString(),
       currentCount: data['currentCount'] is int ? data['currentCount'] : 0,
+      isArchived: data['isArchived'] == true,
     );
   }
 
@@ -158,6 +164,7 @@ class Habit {
       'isGoal': isGoal,
       'history': history,
       'activeDays': activeDays,
+      'isArchived': isArchived,
       if (category != null) 'category': category,
       if (targetCount != null) 'targetCount': targetCount,
       if (unit != null) 'unit': unit,
