@@ -1440,17 +1440,31 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> removeHabit(String habitId) async {
-    // Remove from Firestore
-    await _db
-        .collection('users')
-        .doc(_userId)
-        .collection('habits')
-        .doc(habitId)
-        .delete();
+    // onDeleteHabit (routine_card.dart) is a sync callback, so its caller
+    // can't await or catch this -- without a try/catch here, a failed
+    // delete (offline, etc.) was an unhandled Future rejection while the
+    // UI had already shown a "Habit deleted" snackbar with an Undo action,
+    // implying success regardless of whether Firestore agreed.
+    try {
+      // Remove from Firestore
+      await _db
+          .collection('users')
+          .doc(_userId)
+          .collection('habits')
+          .doc(habitId)
+          .delete();
 
-    // Remove from local state
-    _habits.remove(habitId);
-    notifyListeners();
+      // Remove from local state
+      _habits.remove(habitId);
+      notifyListeners();
+    } catch (e, stack) {
+      debugPrint('Failed to remove habit $habitId: $e');
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        stack,
+        reason: 'removeHabit failed',
+      );
+    }
   }
 
   /// Restores a previously deleted habit to both Firestore and local state
@@ -1511,7 +1525,21 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     } catch (e) {
       debugPrint("Error caching reorder locally: $e");
     }
-    await batch.commit();
+    try {
+      // onReorder (routine_card.dart) is a sync callback, so its caller
+      // can't await or catch this -- a failed commit here (offline, etc.)
+      // was an unhandled Future rejection, and the in-memory order (already
+      // applied above via notifyListeners()) silently reverts on the next
+      // cold _loadData() with no explanation to the user.
+      await batch.commit();
+    } catch (e, stack) {
+      debugPrint('Failed to persist habit reorder: $e');
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        stack,
+        reason: 'reorderHabits batch commit failed',
+      );
+    }
   }
 
   // --- ONBOARDING PERSONALIZATION ---

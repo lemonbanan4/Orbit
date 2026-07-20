@@ -1365,14 +1365,25 @@ class RoutineAlarmsSheet extends StatelessWidget {
                                 children: [
                                   GestureDetector(
                                     onTap: () async {
-                                      final parts = alarm.time.split(':');
+                                      // A malformed/empty alarm.time (partial
+                                      // write, migration artifact) used to
+                                      // throw here uncaught -- the two
+                                      // sibling time pickers in this file
+                                      // already guard the same parse.
+                                      TimeOfDay initialTime;
+                                      try {
+                                        final parts = alarm.time.split(':');
+                                        initialTime = TimeOfDay(
+                                          hour: int.parse(parts[0]),
+                                          minute: int.parse(parts[1]),
+                                        );
+                                      } catch (_) {
+                                        initialTime = TimeOfDay.now();
+                                      }
                                       final newTime =
                                           await TimePickerUtils.showPremiumTimePicker(
                                             context: context,
-                                            initialTime: TimeOfDay(
-                                              hour: int.parse(parts[0]),
-                                              minute: int.parse(parts[1]),
-                                            ),
+                                            initialTime: initialTime,
                                           );
                                       if (newTime != null && context.mounted) {
                                         provider.updateRoutineTime(

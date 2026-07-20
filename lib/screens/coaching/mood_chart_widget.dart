@@ -58,8 +58,12 @@ class _MoodChartWidgetState extends State<MoodChartWidget> {
         final moodCounts = <String, int>{};
         for (var doc in snapshot.data!.docs) {
           final data = doc.data() as Map<String, dynamic>;
-          if (data.containsKey('mood')) {
-            final mood = data['mood'] as String;
+          // statistics_screen.dart reads this same field defensively as
+          // String? -- match that here instead of a non-nullable cast, so
+          // a future writer that sets 'mood': null doesn't crash this
+          // widget while leaving the other screen unaffected.
+          final mood = data['mood'] as String?;
+          if (mood != null) {
             moodCounts[mood] = (moodCounts[mood] ?? 0) + 1;
           }
         }

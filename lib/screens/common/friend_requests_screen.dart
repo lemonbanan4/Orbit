@@ -95,13 +95,39 @@ class FriendRequestsScreen extends StatelessWidget {
                           // document, so the mutual friends-list update (and
                           // deleting this request) happens server-side in
                           // the notifyOnFriendRequestAccepted Cloud Function.
-                          await req.reference.update({'status': 'accepted'});
+                          try {
+                            await req.reference.update({'status': 'accepted'});
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Could not accept request. Please try again.',
+                                  ),
+                                ),
+                              );
+                            }
+                          }
                         },
                       ),
                       IconButton(
                         icon: const Icon(Icons.cancel_rounded,
                             color: Colors.redAccent),
-                        onPressed: () async => await req.reference.delete(),
+                        onPressed: () async {
+                          try {
+                            await req.reference.delete();
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Could not decline request. Please try again.',
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        },
                       ),
                     ],
                   ),

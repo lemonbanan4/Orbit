@@ -993,6 +993,11 @@ class _JournalBottomSheetState extends State<_JournalBottomSheet> {
                       .doc(user.uid)
                       .collection('journal_entries')
                       .orderBy('timestamp', descending: true)
+                      // journal_entries has no retention cleanup (unlike
+                      // notifications' 30-day purge) and this listener had
+                      // no cap at all -- a multi-year daily journaler would
+                      // read and hold their entire history on every visit.
+                      .limit(100)
                       .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {

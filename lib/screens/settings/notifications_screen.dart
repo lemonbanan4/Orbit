@@ -333,6 +333,16 @@ class _ScheduledAlarmsTabState extends State<_ScheduledAlarmsTab> {
                   _refreshAlarms(); // Re-fetch the remaining alarms
 
                   if (context.mounted) {
+                    // _refreshAlarms() (just called above) reassigns the
+                    // FutureBuilder's Future, which replaces this whole
+                    // list -- including this item's widget -- on the next
+                    // frame. By the time the user actually taps "Undo",
+                    // this item's context can be deactivated, so
+                    // context.read() inside onPressed used to throw
+                    // ("Looking up a deactivated widget's ancestor is
+                    // unsafe") with no try/catch, silently no-oping Undo.
+                    // Capture the provider now, while context is still good.
+                    final routineProvider = context.read<RoutineProvider>();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: const Text('Scheduled alarm cancelled'),
@@ -343,7 +353,7 @@ class _ScheduledAlarmsTabState extends State<_ScheduledAlarmsTab> {
                           textColor: accent,
                           onPressed: () async {
                             // Resync all routine and daily alarms from the provider
-                            context.read<RoutineProvider>().resyncAllAlarms();
+                            routineProvider.resyncAllAlarms();
                             await NotificationService.scheduleDailyReminder();
                             // Wait a beat for the OS to catch up before refreshing the UI
                             Future.delayed(

@@ -33,14 +33,32 @@ class _PaywallVideoBackgroundState extends State<PaywallVideoBackground> {
       // Fetch from cache instantly if it exists, otherwise pull down smoothly in background
       final file = await DefaultCacheManager().getSingleFile(url);
 
-      _controller = VideoPlayerController.file(file);
-      await _controller!.initialize();
-      await _controller!.setVolume(0.0);
-      await _controller!.setLooping(true);
-      await _controller!.play();
+      // If the user backs out of the paywall while the file is still
+      // fetching, dispose() runs (disposing a null _controller), then this
+      // continuation used to create/initialize/play a brand-new controller
+      // regardless -- nothing left to ever dispose it, leaking a native
+      // video decoder/texture per fast paywall dismissal.
+      if (!mounted) return;
+
+      final controller = VideoPlayerController.file(file);
+      _controller = controller;
+      await controller.initialize();
+
+      if (!mounted) {
+        // Disposed mid-initialize -- this is now the only chance to
+        // release it, since dispose() already ran with nothing to dispose.
+        controller.dispose();
+        return;
+      }
+
+      await controller.setVolume(0.0);
+      await controller.setLooping(true);
+      await controller.play();
 
       if (mounted) {
         setState(() => _isInitialized = true);
+      } else {
+        controller.dispose();
       }
     } catch (error) {
       debugPrint("Error initializing paywall video matrix lines: $error");

@@ -56,6 +56,10 @@ class _SkippedSessionsScreenState extends State<SkippedSessionsScreen> {
                       .doc(user.uid)
                       .collection('skipped_sessions')
                       .orderBy('timestamp', descending: true)
+                      // No retention cleanup on this collection and this
+                      // listener had no cap -- a long-time user's entire
+                      // skip history got read and held on every visit.
+                      .limit(100)
                       .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
