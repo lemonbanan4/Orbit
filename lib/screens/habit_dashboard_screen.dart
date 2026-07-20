@@ -120,7 +120,12 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
       return;
     }
     _pendingInsightCallback = true;
-    final docs = routineProvider.habits.values.toList();
+    // Unfiltered would count habits not due today against the total, so a
+    // routine with any non-daily habit could never reach 100%/trigger the
+    // celebration on a day that habit isn't scheduled.
+    final docs = routineProvider.habits.values
+        .where((h) => h.isActiveOn())
+        .toList();
     final completedCount = docs.where((h) => h.isCompleted).length;
     final progress = docs.isEmpty ? 0.0 : completedCount / docs.length;
     WidgetsBinding.instance.addPostFrameCallback((_) {

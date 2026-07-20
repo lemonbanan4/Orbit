@@ -35,13 +35,14 @@ class TodayHeader extends StatelessWidget {
         FirebaseAuth.instance.currentUser?.displayName ?? 'Commander';
     final streak = routineProvider.currentStreak;
 
-    // A routine counts as "logged" when it has habits and they're all done.
+    // A routine counts as "logged" when every habit actually due today is
+    // done. Delegates to RoutineProvider.isRoutineComplete() (which already
+    // filters to Habit.isActiveOn() and guards against an empty today-set
+    // vacuously counting as complete) instead of re-deriving the same
+    // logic against the unfiltered habit list here.
     final statuses = <String, bool>{
       for (final type in _routineTypes)
-        type: () {
-          final habits = routineProvider.getHabitsForRoutine(type);
-          return habits.isNotEmpty && habits.every((h) => h.isCompleted);
-        }(),
+        type: routineProvider.isRoutineComplete(type),
     };
     final doneCount = statuses.values.where((done) => done).length;
     final openRoutines = statuses.entries

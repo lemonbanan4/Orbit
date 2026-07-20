@@ -625,7 +625,15 @@ class _WeeklyConsistencyChart extends StatelessWidget {
                     // that) so the label and the plotted value agree.
                     spots: List.generate(7, (index) {
                       if (index == 6) {
-                        final todayHabits = routineProvider.habits.values;
+                        // Match weeklyProgress's methodology (routine_
+                        // provider.dart) -- it only counts habits actually
+                        // due that day, or completed anyway. Unfiltered
+                        // would make today's point dip relative to the
+                        // rest of the line whenever a non-daily habit
+                        // isn't scheduled.
+                        final todayHabits = routineProvider.habits.values
+                            .where((h) => h.isCompleted || h.isActiveOn())
+                            .toList();
                         final todayProgress = todayHabits.isEmpty
                             ? 0.0
                             : todayHabits

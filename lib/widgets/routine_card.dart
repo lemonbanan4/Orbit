@@ -112,8 +112,14 @@ class _RoutineCardState extends State<RoutineCard> {
 
   @override
   Widget build(BuildContext context) {
-    final int completedCount = widget.habits.where((h) => h.isCompleted).length;
-    final int totalCount = widget.habits.length;
+    // widget.habits is unfiltered (every habit in this routine, regardless
+    // of day) -- RoutineProvider.isRoutineComplete() already excludes
+    // habits not due today for streak purposes; this progress ring needs
+    // the same filter or a routine with any non-daily habit could never
+    // show 100% on a day that habit isn't scheduled.
+    final todaysHabits = widget.habits.where((h) => h.isActiveOn()).toList();
+    final int completedCount = todaysHabits.where((h) => h.isCompleted).length;
+    final int totalCount = todaysHabits.length;
     final double progress = totalCount > 0 ? completedCount / totalCount : 0.0;
     // Theme's actual brand accent (orange in dark mode, cyan in light) —
     // used for habit-level chrome that isn't tied to this routine's own

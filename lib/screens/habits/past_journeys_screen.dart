@@ -102,6 +102,54 @@ class PastJourneysScreen extends StatelessWidget {
                           tooltip: 'Restart Journey',
                           onPressed: () async {
                             HapticFeedback.lightImpact();
+                            // Unlike every other destructive action in the
+                            // app (delete habit, delete account, remove
+                            // friend), this irreversibly wiped a completed
+                            // habit's whole history with no confirmation
+                            // step at all -- just a tooltip.
+                            final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder: (dialogContext) => AlertDialog(
+                                backgroundColor: const Color(0xFF1A1F36),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  side: BorderSide(
+                                    color: Colors.amber.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                  ),
+                                ),
+                                title: const Text(
+                                  'Restart Journey?',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                content: Text(
+                                  'This resets "$title" back to day 0. '
+                                  'Its completion history cannot be recovered.',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(dialogContext, false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(dialogContext, true),
+                                    child: const Text(
+                                      'Restart',
+                                      style: TextStyle(color: Colors.amber),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirmed != true) return;
+                            if (!context.mounted) return;
+
                             final userRef = FirebaseFirestore.instance
                                 .collection('users')
                                 .doc(user.uid);

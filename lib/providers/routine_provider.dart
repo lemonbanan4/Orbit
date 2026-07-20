@@ -24,6 +24,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   StreamSubscription<User?>? _authSubscription;
   Timer? _midnightTimer;
+  String? _previousUid;
   final audioplayers.AudioPlayer _audioPlayer;
   final ja.AudioPlayer _ambientPlayer;
   bool _isDisposed = false;
@@ -787,13 +788,35 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     });
 
     // Listen for the exact moment Firebase wakes up and confirms who is logged in
-    _authSubscription = _auth.authStateChanges().listen((user) {
+    _authSubscription = _auth.authStateChanges().listen((user) async {
+      final newUid = user?.uid;
+      // SharedPreferences keys below (current_streak, xp, avatar,
+      // cached_habits_data, etc.) are NOT namespaced by uid -- without
+      // this, a second account signing in on the same device in the same
+      // app session (no restart) would briefly show, or for any field
+      // its own cloud doc doesn't set, permanently show, the previous
+      // account's streak/XP/avatar/cached habits. Only clear on an actual
+      // switch (_previousUid already set to something else), not on the
+      // very first sign-in of a fresh launch.
+      if (_previousUid != null && newUid != _previousUid) {
+        await _clearLocalStateForAccountSwitch();
+      }
+      _previousUid = newUid;
       if (user != null) {
         _loadData();
       }
     });
 
     _scheduleMidnightRollover();
+  }
+
+  Future<void> _clearLocalStateForAccountSwitch() async {
+    _habits = {};
+    _completedHabits.clear();
+    _isDataLoaded = false;
+    notifyListeners();
+    final prefs = _prefs ?? await SharedPreferences.getInstance();
+    await prefs.clear();
   }
 
   // _checkDailyReset() previously only ran on init/cloud-load and on
