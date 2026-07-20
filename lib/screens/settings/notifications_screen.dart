@@ -358,9 +358,29 @@ class _ScheduledAlarmsTabState extends State<_ScheduledAlarmsTab> {
                           label: 'Undo',
                           textColor: accent,
                           onPressed: () async {
-                            // Resync all routine and daily alarms from the provider
+                            // This list mixes every kind of pending local
+                            // notification (routine alarms, the daily
+                            // reminder, per-habit reminders) since it's
+                            // populated straight from
+                            // getPendingNotifications() -- but per-habit
+                            // reminder IDs are a one-way salted hash, so
+                            // there's no way to know which specific habit
+                            // an arbitrary swiped ID belonged to and
+                            // surgically restore just that one. Undo
+                            // instead re-syncs everything, matching the
+                            // existing "broad restore" semantics
+                            // resyncAllAlarms() already uses for routine
+                            // alarms rather than trying to cancel/restore
+                            // one exact alarm.
                             routineProvider.resyncAllAlarms();
                             await NotificationService.scheduleDailyReminder();
+                            for (final habit in routineProvider.habits.values) {
+                              if (habit.remindersEnabled) {
+                                NotificationService.scheduleHabitReminder(
+                                  habit,
+                                );
+                              }
+                            }
                             // Wait a beat for the OS to catch up before refreshing the UI
                             Future.delayed(
                               const Duration(milliseconds: 300),

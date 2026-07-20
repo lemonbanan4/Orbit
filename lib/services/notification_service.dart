@@ -388,7 +388,7 @@ class NotificationService {
     // constraint (preset habits especially), so two identically-named
     // habits skipped the same day used to collide on the same
     // notification ID and silently overwrite each other's reminder.
-    final int notificationId = habitId.hashCode;
+    final int notificationId = habitId.hashCode.abs();
     final scheduledTime = tz.TZDateTime.now(tz.local).add(delay);
 
     const details = NotificationDetails(

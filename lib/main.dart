@@ -529,8 +529,12 @@ class _OrbitAppState extends State<OrbitApp> {
       }
     });
 
-    // 5. Schedule local 9 AM reminder (will check daily)
-    await NotificationService.scheduleDailyReminder();
+    // 5. Schedule local 9 AM reminder (will check daily) -- this used to
+    // fire unconditionally regardless of the Settings > "Enable All
+    // Notifications" master toggle, which only ever gated routine alarms.
+    if (mounted && context.read<RoutineProvider>().allNotifsEnabled) {
+      await NotificationService.scheduleDailyReminder();
+    }
   }
 
   void _handleNotificationTap(RemoteMessage message) {

@@ -134,7 +134,9 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
       _updateInsight(completedCount, docs.length);
       if (progress >= 1.0 && !_hasCelebratedToday && docs.isNotEmpty) {
         setState(() => _hasCelebratedToday = true);
-        _confettiController.play();
+        // Settings > "Enable Confetti" never actually gated anything --
+        // this fired unconditionally regardless of the toggle.
+        if (routineProvider.confettiEnabled) _confettiController.play();
         HapticFeedback.heavyImpact();
       } else if (progress < 1.0 && _hasCelebratedToday) {
         setState(() => _hasCelebratedToday = false);

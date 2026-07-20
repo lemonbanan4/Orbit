@@ -310,8 +310,14 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
           );
           // Best-effort -- a permission/scheduling failure shouldn't block
           // saving the habit itself (matches _safeZonedSchedule's own
-          // swallow-and-log behavior for routine alarms).
-          NotificationService.scheduleHabitReminder(localHabit);
+          // swallow-and-log behavior for routine alarms). Gated on the
+          // Settings > "Enable All Notifications" master toggle -- when
+          // it's off, the habit's own remindersEnabled stays saved so
+          // setAllNotifsEnabled(true) can reschedule it later, but it
+          // shouldn't start firing the moment it's created.
+          if (provider.allNotifsEnabled) {
+            NotificationService.scheduleHabitReminder(localHabit);
+          }
           provider.upsertHabitLocally(
             docId,
             localHabit,

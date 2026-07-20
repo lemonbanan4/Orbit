@@ -77,7 +77,11 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
 
                       WidgetsBinding.instance.addPostFrameCallback((_) async {
                         if (mounted) {
-                          _confettiController.play();
+                          // Settings > "Enable Confetti" never actually
+                          // gated anything -- this fired unconditionally.
+                          if (routineProvider.confettiEnabled) {
+                            _confettiController.play();
+                          }
                           final prefs = await SharedPreferences.getInstance();
                           await prefs.setStringList(
                             'seen_achievements',

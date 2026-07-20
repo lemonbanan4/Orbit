@@ -6,7 +6,9 @@ import '../../widgets/common/base_orbit_screen.dart';
 import '../../widgets/common/premium_glass_card.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:confetti/confetti.dart';
+import 'package:provider/provider.dart';
 import '../../theme/orbit_colors.dart';
+import '../../providers/routine_provider.dart';
 
 class SkippedSessionsScreen extends StatefulWidget {
   const SkippedSessionsScreen({super.key});
@@ -132,7 +134,14 @@ class _SkippedSessionsScreenState extends State<SkippedSessionsScreen> {
                                       tooltip: 'I made up for it!',
                                       onPressed: () async {
                                         HapticFeedback.mediumImpact();
-                                        _confettiController.play();
+                                        // Settings > "Enable Confetti" never
+                                        // actually gated anything -- this
+                                        // fired unconditionally.
+                                        if (context
+                                            .read<RoutineProvider>()
+                                            .confettiEnabled) {
+                                          _confettiController.play();
+                                        }
                                         await Future.delayed(
                                             const Duration(milliseconds: 600));
                                         if (!mounted) return;

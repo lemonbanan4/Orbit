@@ -366,6 +366,25 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     _syncAlarms('Morning');
     _syncAlarms('Work');
     _syncAlarms('Night');
+    // This master toggle previously only ever touched routine alarms --
+    // the daily reminder and every per-habit reminder kept firing
+    // regardless of it. Sweep them too, both ways: cancel everything on
+    // disable, restore exactly what was configured on re-enable.
+    if (val) {
+      NotificationService.scheduleDailyReminder();
+      for (final habit in _habits.values) {
+        if (habit.remindersEnabled) {
+          NotificationService.scheduleHabitReminder(habit);
+        }
+      }
+    } else {
+      NotificationService.cancelAlarm(999); // scheduleDailyReminder's fixed id
+      for (final habit in _habits.values) {
+        if (habit.remindersEnabled) {
+          NotificationService.cancelHabitReminder(habit.id);
+        }
+      }
+    }
   }
 
   void setDailySummaryNotifs(bool val) {
@@ -737,19 +756,25 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _syncAlarms(String routineType, {bool save = true}) {
-    // Clear existing alarms first to avoid ghost/duplicate notifications
-    NotificationService.cancelAlarms(routineType);
-
     final shouldSchedule =
         _allNotifsEnabled &&
         !(routineType == 'Morning' && !_morningNotifs) &&
         !(routineType == 'Night' && !_nightNotifs);
 
     if (shouldSchedule) {
+      // scheduleRoutineAlarms already does its own cancelAlarms() before
+      // scheduling -- calling it again here too (both un-awaited, racing
+      // each other) risked this second, slower sweep finishing *after*
+      // scheduleRoutineAlarms had already placed the fresh alarms,
+      // silently wiping out a just-added/edited one.
       NotificationService.scheduleRoutineAlarms(
         routineType,
         _routineAlarms[routineType] ?? [],
       );
+    } else {
+      // Nothing will call cancelAlarms() on our behalf in this branch, so
+      // it's still needed here.
+      NotificationService.cancelAlarms(routineType);
     }
     // Always persist, regardless of which branch above fired — a toggle
     // turned off should sync to the cloud the same as one turned on.
@@ -1581,12 +1606,15 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         // deep-link routing) already existed in NotificationService with
         // zero callers anywhere — this is the actual skip action it was
         // built for. 3 hours gives a same-day nudge without immediately
-        // re-pestering someone who just explicitly skipped.
-        NotificationService.scheduleReattemptReminder(
-          habit.id,
-          habit.title,
-          const Duration(hours: 3),
-        );
+        // re-pestering someone who just explicitly skipped. Gated on the
+        // master toggle -- this used to fire regardless of it.
+        if (_allNotifsEnabled) {
+          NotificationService.scheduleReattemptReminder(
+            habit.id,
+            habit.title,
+            const Duration(hours: 3),
+          );
+        }
         skippedHabits.add(habit);
       }
     }
