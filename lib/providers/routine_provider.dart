@@ -994,11 +994,15 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
       debugPrint('Error loading cached habits: $e');
     }
 
-    // Load weekly progress
+    // Load weekly progress. tryParse + whereType, not parse -- this runs
+    // during app init and sits outside the cached-habits try/catch above,
+    // so a single malformed/corrupt cached entry used to throw and break
+    // the whole load for that user on every launch.
     final history =
         _prefs
             ?.getStringList('weekly_progress_history')
-            ?.map(double.parse)
+            ?.map(double.tryParse)
+            .whereType<double>()
             .toList() ??
         [];
     if (history.length < 7) {

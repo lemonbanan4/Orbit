@@ -31,7 +31,12 @@ class TelemetryProvider extends ChangeNotifier {
     _currentLevel = prefs.getInt('current_level') ?? 1;
 
     final savedMilestones = prefs.getStringList('unlocked_milestones') ?? [];
-    _unlockedMilestones = savedMilestones.map((e) => int.parse(e)).toList();
+    // tryParse + whereType, not parse -- a single malformed entry used to
+    // throw here with no surrounding try/catch, which meant _isDataLoaded
+    // never got set to true and this provider stayed permanently stuck in
+    // its unloaded state (breaking the Journey/level UI).
+    _unlockedMilestones =
+        savedMilestones.map(int.tryParse).whereType<int>().toList();
 
     _isDataLoaded = true;
     notifyListeners();
