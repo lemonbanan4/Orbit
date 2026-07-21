@@ -190,7 +190,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   bool _isValidName(String name) {
-    return RegExp(r"^[a-zA-Z\s]+$").hasMatch(name);
+    // Letters-only (a-zA-Z) rejected any hyphenated name (Mary-Jane),
+    // apostrophe (O'Brien), or non-ASCII name (José, François, Björn) --
+    // \p{L} matches any Unicode letter, so this now covers real names
+    // worldwide instead of just plain ASCII.
+    return RegExp(r"^[\p{L}\s\-']+$", unicode: true).hasMatch(name);
   }
 
   Future<void> _handleEmailSignIn() async {

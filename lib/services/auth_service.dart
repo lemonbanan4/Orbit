@@ -112,9 +112,19 @@ class AuthService {
         // Auth user's displayName, so set it explicitly (same as email
         // sign-up already does) — otherwise currentUser.displayName stays
         // null and callers fall back to a generic placeholder name.
-        if (googleUser.displayName != null &&
-            _auth.currentUser!.displayName != googleUser.displayName) {
-          await _auth.currentUser!.updateDisplayName(googleUser.displayName);
+        // Best-effort: must not block _ensureUserDocument below (see the
+        // same fix in createUserWithEmailAndPassword) -- a transient
+        // failure here shouldn't leave an authenticated user with no
+        // Firestore doc.
+        try {
+          if (googleUser.displayName != null &&
+              _auth.currentUser!.displayName != googleUser.displayName) {
+            await _auth.currentUser!.updateDisplayName(
+              googleUser.displayName,
+            );
+          }
+        } catch (e) {
+          debugPrint('Non-fatal error setting Google display name: $e');
         }
         await _ensureUserDocument(
           _auth.currentUser!,
@@ -148,18 +158,26 @@ class AuthService {
       email: email,
       password: password,
     );
-    // After creating the user, update their profile with the provided name and reload
-    await userCredential.user?.updateDisplayName(name);
-    await userCredential.user?.sendEmailVerification();
-    await userCredential.user?.reload();
-    if (userCredential.user != null) {
-      await _ensureUserDocument(
-        userCredential.user!,
-        isGuest: false,
-        name: name,
-        email: email,
-      );
+    final user = userCredential.user;
+    if (user == null) return;
+
+    // Best-effort -- these three used to run before _ensureUserDocument,
+    // so a transient failure in any of them (sendEmailVerification in
+    // particular: Firebase actively rate-limits it) left a real Auth
+    // account with no Firestore doc at all. The UI shows that as a
+    // generic "sign up failed" error, but the account genuinely exists
+    // now -- retrying "Create Orbit" then fails with email-already-in-use
+    // with no working doc ever getting created. Creating the doc is the
+    // one step that must not be skipped; the rest can silently degrade.
+    try {
+      await user.updateDisplayName(name);
+      await user.sendEmailVerification();
+      await user.reload();
+    } catch (e) {
+      debugPrint('Non-fatal error finishing account setup: $e');
     }
+
+    await _ensureUserDocument(user, isGuest: false, name: name, email: email);
   }
 
   Future<void> sendPasswordResetEmail(String email) async {
@@ -223,8 +241,13 @@ class AuthService {
         final givenName = appleCredential.givenName ?? '';
         final familyName = appleCredential.familyName ?? '';
         final name = '$givenName $familyName'.trim();
-        if (name.isNotEmpty && _auth.currentUser!.displayName != name) {
-          await _auth.currentUser!.updateDisplayName(name);
+        // Best-effort: must not block _ensureUserDocument below.
+        try {
+          if (name.isNotEmpty && _auth.currentUser!.displayName != name) {
+            await _auth.currentUser!.updateDisplayName(name);
+          }
+        } catch (e) {
+          debugPrint('Non-fatal error setting Apple display name: $e');
         }
         await _ensureUserDocument(
           _auth.currentUser!,
@@ -257,7 +280,12 @@ class AuthService {
     await _signInOrLink(credential);
 
     if (_auth.currentUser != null) {
-      await _auth.currentUser!.updateDisplayName(name);
+      // Best-effort: must not block _ensureUserDocument below.
+      try {
+        await _auth.currentUser!.updateDisplayName(name);
+      } catch (e) {
+        debugPrint('Non-fatal error setting display name on link: $e');
+      }
       await _ensureUserDocument(
         _auth.currentUser!,
         isGuest: false,
@@ -269,11 +297,16 @@ class AuthService {
 
   Future<void> signInAsGuest() async {
     UserCredential userCred = await _auth.signInAnonymously();
-    await userCred.user?.updateDisplayName("Guest");
-    await userCred.user?.reload();
-    if (userCred.user != null) {
-      await _ensureUserDocument(userCred.user!, isGuest: true);
+    final user = userCred.user;
+    if (user == null) return;
+    // Best-effort: must not block _ensureUserDocument below.
+    try {
+      await user.updateDisplayName("Guest");
+      await user.reload();
+    } catch (e) {
+      debugPrint('Non-fatal error finishing guest setup: $e');
     }
+    await _ensureUserDocument(user, isGuest: true);
   }
 
   Future<void> signOut() async {
