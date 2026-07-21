@@ -256,7 +256,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (isNewUser != null && context.mounted) {
       if (isNewUser) {
-        Navigator.push(
+        // pushReplacement, not push -- LoginScreen must not survive
+        // underneath on the nav stack. Every step from here on
+        // (onboarding -> future letter -> contract -> paywall) already
+        // uses pushReplacement, and the paywall's own close button pops
+        // back to whatever it can find if anything is poppable. Pushing
+        // (not replacing) left this exact LoginScreen instance sitting
+        // there, stale _isSignUp state and all -- so dismissing the
+        // paywall after a fresh signup revealed it instead of reaching
+        // the dashboard, and trying to "log in" from it could silently
+        // re-trigger sign-up against the now-existing email instead.
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => OnboardingScreen(initialName: name),
@@ -443,7 +453,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         if (isNewUser == true && context.mounted) {
                           final displayName =
                               FirebaseAuth.instance.currentUser?.displayName;
-                          Navigator.push(
+                          // pushReplacement -- see the matching comment on
+                          // the email sign-up path above.
+                          Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
@@ -475,7 +487,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         if (isNewUser == true && context.mounted) {
                           final displayName =
                               FirebaseAuth.instance.currentUser?.displayName;
-                          Navigator.push(
+                          // pushReplacement -- see the matching comment on
+                          // the email sign-up path above.
+                          Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
