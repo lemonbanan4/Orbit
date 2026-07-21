@@ -40,8 +40,9 @@ service cloud.firestore {
     function isValidUser(data) {
       let allowedKeys = [
         'routine_rewards', 'routine_alarms', 'habits', 'current_streak', 
-        'streak_increased_today', 'longest_streak', 'total_habits_assigned', 
-        'xp', 'avatar', 'mood_history', 'xp_history', 'displayName', 
+        'streak_increased_today', 'longest_streak', 'total_habits_assigned',
+        'total_habits_completed',
+        'xp', 'avatar', 'mood_history', 'xp_history', 'displayName',
         'intention_history', 'unlocked_journey_chapters', 'unlocked_milestones', 
         'audio_track', 'ambient_volume', 'last_updated', 'bookmarked_quotes', 
         'unlocked_reader_badge', 'unlocked_themes', 'active_nebula_theme',
@@ -90,14 +91,15 @@ service cloud.firestore {
       let isCurrentLevelValid = !('current_level' in data) || (data.current_level is int && data.current_level >= 1 && data.current_level <= 100000);
       let isCurrentStreakValid = !('current_streak' in data) || (data.current_streak is int && data.current_streak >= 0 && data.current_streak <= 100000);
       let isLongestStreakValid = !('longest_streak' in data) || (data.longest_streak is int && data.longest_streak >= 0 && data.longest_streak <= 100000);
+      let isTotalCompletedValid = !('total_habits_completed' in data) || (data.total_habits_completed is int && data.total_habits_completed >= 0 && data.total_habits_completed <= 100000000);
       let isStreakFreezesValid = !('streakFreezes' in data) || (data.streakFreezes is int && data.streakFreezes >= 0 && data.streakFreezes <= 10000);
       let isUnlockedThemesValid = !('unlocked_themes' in data) || (data.unlocked_themes is list && data.unlocked_themes.size() <= 100);
       let isAchievementsValid = !('achievements' in data) || (data.achievements is list && data.achievements.size() <= 500);
 
       return data.keys().hasOnly(allowedKeys) && isMiscFieldsValid &&
         isXpValid && isGlobalXpValid && isCurrentLevelValid && isCurrentStreakValid &&
-        isLongestStreakValid && isStreakFreezesValid && isUnlockedThemesValid &&
-        isAchievementsValid;
+        isLongestStreakValid && isTotalCompletedValid && isStreakFreezesValid &&
+        isUnlockedThemesValid && isAchievementsValid;
     }
 
     // Guests (isGuest: true, typically anonymous-auth accounts) must not be

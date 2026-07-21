@@ -279,6 +279,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       ),
                                     );
                                   } catch (e) {
+                                    // The success path above guards on
+                                    // context.mounted, but this catch didn't
+                                    // -- link errors (email-already-in-use,
+                                    // network) are common, and if the user
+                                    // swiped the sheet away mid-request,
+                                    // ScaffoldMessenger.of(context) /
+                                    // setModalState fired on a disposed
+                                    // context and crashed.
+                                    if (!context.mounted) return;
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text('Failed to sign up: $e'),

@@ -1532,9 +1532,54 @@ class _PastCoachingNotes extends StatelessWidget {
                             Icons.delete_outline_rounded,
                             color: Colors.redAccent,
                           ),
-                          onPressed: () {
+                          // Was a single unconfirmed, fire-and-forget tap
+                          // that permanently deleted a reflection with no
+                          // confirm dialog (every other delete in the app
+                          // has one) and no error feedback -- an offline/
+                          // permission failure became a silent unhandled
+                          // rejection. Now confirmed, awaited, and reported.
+                          onPressed: () async {
                             HapticFeedback.mediumImpact();
-                            doc.reference.delete();
+                            final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder: (dialogContext) => AlertDialog(
+                                title: const Text('Delete reflection?'),
+                                content: const Text('This cannot be undone.'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(dialogContext, false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(dialogContext, true),
+                                    child: const Text(
+                                      'Delete',
+                                      style: TextStyle(
+                                        color: Colors.redAccent,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirmed != true) return;
+                            try {
+                              await doc.reference.delete();
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Could not delete. Please try again.',
+                                    ),
+                                    backgroundColor: Colors.redAccent,
+                                  ),
+                                );
+                              }
+                            }
                           },
                         ),
                       ],

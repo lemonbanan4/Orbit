@@ -233,11 +233,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       ..sort((a, b) {
                         final aData = a.data() as Map<String, dynamic>;
                         final bData = b.data() as Map<String, dynamic>;
-                        final aLevel = aData['current_level'] as int? ?? 1;
-                        final bLevel = bData['current_level'] as int? ?? 1;
+                        final aLevel = (aData['current_level'] as num?)?.toInt() ?? 1;
+                        final bLevel = (bData['current_level'] as num?)?.toInt() ?? 1;
                         if (aLevel != bLevel) return bLevel.compareTo(aLevel);
-                        final aXp = aData['global_xp'] as int? ?? 0;
-                        final bXp = bData['global_xp'] as int? ?? 0;
+                        final aXp = (aData['global_xp'] as num?)?.toInt() ?? 0;
+                        final bXp = (bData['global_xp'] as num?)?.toInt() ?? 0;
                         return bXp.compareTo(aXp);
                       });
 
@@ -255,8 +255,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         final isMe = docs[index].id == currentUserId;
 
                         final name = data['name'] ?? 'Explorer';
-                        final xp = data['global_xp'] as int? ?? 0;
-                        final level = data['current_level'] as int? ?? 1;
+                        final xp = (data['global_xp'] as num?)?.toInt() ?? 0;
+                        final level = (data['current_level'] as num?)?.toInt() ?? 1;
                         final photoUrl = data['photoUrl'] as String?;
 
                         final rankColor = _getRankColor(rank);
@@ -327,7 +327,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         if (!isMe) {
                           card = GestureDetector(
                             onLongPress: () =>
-                                _confirmRemoveFriend(docs[index].id, name as String),
+                                _confirmRemoveFriend(docs[index].id, name.toString()),
                             child: card,
                           );
                         }

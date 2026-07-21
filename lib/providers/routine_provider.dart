@@ -435,12 +435,17 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   // STATS & STREAKS
-  int _currentStreak = 2; // Real variable! Defaults to 2 for new installs
+  // All start at 0 -- these used to default to fake "demo" values (streak
+  // 2, longest 7, completed 24, assigned 30) that made a brand-new user's
+  // very first dashboard advertise fabricated progress: a "2 day streak"
+  // they never earned, a 7-day longest, and an 80% (24/30) lifetime
+  // completion rate before completing anything, plus a pre-unlocked first
+  // Journey milestone. lifetimeCompletionRate already guards assigned==0.
+  int _currentStreak = 0;
   bool _hasIncreasedStreakToday = false;
-  int _longestStreak = 7;
-  int _totalHabitsCompleted = 24;
-  int _totalHabitsAssigned =
-      30; // Baseline to avoid 0 division on fresh installs
+  int _longestStreak = 0;
+  int _totalHabitsCompleted = 0;
+  int _totalHabitsAssigned = 0;
   int _xp = 0;
   Map<String, int> _xpHistory = {};
 
@@ -654,6 +659,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     _xpHistory[today] = (_xpHistory[today] ?? 0) + 10;
 
     _prefs?.setInt('xp', _xp);
+    _prefs?.setInt('total_habits_completed', _totalHabitsCompleted);
     FirebaseCrashlytics.instance.setCustomKey('user_level', currentLevel);
     FirebaseCrashlytics.instance.setCustomKey('user_xp', _xp);
     FirebaseCrashlytics.instance.setCustomKey('current_streak', _currentStreak);
@@ -939,14 +945,19 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     _dailySummaryNotifs = _prefs?.getBool('daily_summary_notifs') ?? true;
     _morningNotifs = _prefs?.getBool('m_notifs') ?? true;
     _nightNotifs = _prefs?.getBool('n_notifs') ?? true;
-    _currentStreak = _prefs?.getInt('current_streak') ?? 2;
+    _currentStreak = _prefs?.getInt('current_streak') ?? 0;
     _themeMode = _prefs?.getString('theme') ?? 'System';
     _selectedAudioTrack = _prefs?.getString('audio_track') ?? 'Space Hum';
     _ambientVolume = _prefs?.getDouble('ambient_volume') ?? 0.5;
     _hasIncreasedStreakToday =
         _prefs?.getBool('streak_increased_today') ?? false;
-    _longestStreak = _prefs?.getInt('longest_streak') ?? 7;
-    _totalHabitsAssigned = _prefs?.getInt('total_habits_assigned') ?? 30;
+    _longestStreak = _prefs?.getInt('longest_streak') ?? 0;
+    _totalHabitsAssigned = _prefs?.getInt('total_habits_assigned') ?? 0;
+    // Previously never persisted at all -- it reset to its in-memory
+    // default on every cold start, so lifetime completion rate was really
+    // per-session and the Centurion achievement (>= 100 lifetime) could
+    // never actually accrue. Now loaded/saved like its sibling stats.
+    _totalHabitsCompleted = _prefs?.getInt('total_habits_completed') ?? 0;
     _xp = _prefs?.getInt('xp') ?? 0;
     _streakFreezes = _prefs?.getInt('streak_freezes') ?? 0;
     _isStreakFrozen = _prefs?.getBool('is_streak_frozen') ?? false;
@@ -1066,6 +1077,9 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
         if (cloudData.containsKey('total_habits_assigned')) {
           _totalHabitsAssigned = cloudData['total_habits_assigned'];
+        }
+        if (cloudData.containsKey('total_habits_completed')) {
+          _totalHabitsCompleted = cloudData['total_habits_completed'];
         }
         if (cloudData.containsKey('xp')) {
           _xp = cloudData['xp'];
@@ -1883,7 +1897,8 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     _currentStreak = 0;
     _longestStreak = 0;
     _totalHabitsCompleted = 0;
-    _totalHabitsAssigned = 30;
+    _totalHabitsAssigned = 0;
+    _prefs?.setInt('total_habits_completed', 0);
     _unlockedJourneyChapters.clear();
     _moodHistory.clear();
     _intentionHistory.clear();
@@ -1986,6 +2001,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         'isStreakFrozen': _isStreakFrozen,
         'longest_streak': _longestStreak,
         'total_habits_assigned': _totalHabitsAssigned,
+        'total_habits_completed': _totalHabitsCompleted,
         'xp': _xp,
         'xp_history': _xpHistory,
         'avatar': _selectedAvatar,

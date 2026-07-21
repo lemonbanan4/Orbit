@@ -107,6 +107,19 @@ describe("Orbit Firestore Security Rules", () => {
     await assertSucceeds(userDoc.update({ xp: 150 }));
   });
 
+  it("Allows total_habits_completed as a bounded int, denies negative/wrong-typed", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const userDoc = db.collection("users").doc("user123");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false });
+    });
+
+    await assertSucceeds(userDoc.update({ total_habits_completed: 42 }));
+    await assertFails(userDoc.update({ total_habits_completed: -1 }));
+    await assertFails(userDoc.update({ total_habits_completed: "100" }));
+  });
+
   it("Denies setting current_level below 1", async () => {
     const db = testEnv.authenticatedContext("user123").firestore();
     const userDoc = db.collection("users").doc("user123");
