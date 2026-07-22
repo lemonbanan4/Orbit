@@ -438,6 +438,16 @@ class AuthService {
     String? email,
     String? photoUrl,
   }) async {
+    // firestore.rules caps name at 60 chars. This is the single funnel for
+    // every signup path (email/password, Google, Apple, guest) including
+    // OAuth display names the client-side name regex never validates -- an
+    // unclamped long name here throws on write, leaving a real Auth account
+    // with no Firestore doc and no retry path (retry just hits
+    // email-already-in-use).
+    if (name != null && name.length > 60) {
+      name = name.substring(0, 60);
+    }
+
     final userRef = FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid);

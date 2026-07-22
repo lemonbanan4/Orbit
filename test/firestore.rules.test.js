@@ -219,6 +219,41 @@ describe("Orbit Firestore Security Rules", () => {
     await assertFails(bobNotesRef.get());
   });
 
+  it("Allows toggling a notification's isArchived but denies creating one or editing other fields", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const notifDoc = db
+      .collection("users")
+      .doc("user123")
+      .collection("notifications")
+      .doc("notif1");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false });
+      await context
+        .firestore()
+        .collection("users")
+        .doc("user123")
+        .collection("notifications")
+        .doc("notif1")
+        .set({ title: "Welcome to Orbit!", body: "Let's go.", isArchived: false });
+    });
+
+    // Notifications are only ever created server-side via the Admin SDK,
+    // which bypasses rules entirely -- the client should never be able to
+    // create one directly, only mark an existing one archived.
+    await assertFails(
+      db
+        .collection("users")
+        .doc("user123")
+        .collection("notifications")
+        .doc("notif2")
+        .set({ title: "Fake", body: "Injected", isArchived: false })
+    );
+    await assertSucceeds(notifDoc.update({ isArchived: true }));
+    await assertFails(notifDoc.update({ isArchived: "yes" }));
+    await assertFails(notifDoc.update({ title: "Hijacked" }));
+  });
+
   it("Allows a user to log a skipped session with a habit title", async () => {
     const db = testEnv.authenticatedContext("user123").firestore();
     const sessionsRef = db

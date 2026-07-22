@@ -76,7 +76,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // --- AMBIENT AUDIO ---
   bool _isPlayingAmbient = false;
-  bool _isFading = false;
+  int _fadeGeneration = 0;
   bool get isPlayingAmbient => _isPlayingAmbient;
 
   final Set<String> _recentlyRestoredHabitIds = {};
@@ -143,39 +143,43 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
+  // A shared bool here used to let two overlapping fades (e.g. from rapid
+  // toggle taps) both pass their own "keep looping" check and race on
+  // _ambientPlayer.setVolume(), leaving volume stuck at whatever the loser
+  // wrote last. Each fade now claims a generation token and only the fade
+  // that still holds the latest one is allowed to keep looping or snap to
+  // its target value -- a superseded fade just stops silently.
   Future<void> _fadeOut() async {
-    _isFading = true;
+    final token = ++_fadeGeneration;
     double vol = _ambientPlayer.volume;
-    while (vol > 0.05 && _isFading) {
+    while (vol > 0.05 && _fadeGeneration == token) {
       vol -= 0.05;
       await _ambientPlayer.setVolume(vol);
       await Future.delayed(const Duration(milliseconds: 50));
     }
-    if (_isFading) {
+    if (_fadeGeneration == token) {
       await _ambientPlayer.pause();
-      _isFading = false;
     }
   }
 
   Future<void> _fadeIn() async {
-    _isFading = true;
+    final token = ++_fadeGeneration;
     await _ambientPlayer.setVolume(0);
     await _ambientPlayer.play();
     double vol = 0;
-    while (vol < _ambientVolume && _isFading) {
+    while (vol < _ambientVolume && _fadeGeneration == token) {
       vol += 0.05;
       if (vol > _ambientVolume) vol = _ambientVolume;
       await _ambientPlayer.setVolume(vol);
       await Future.delayed(const Duration(milliseconds: 50));
     }
-    if (_isFading) {
+    if (_fadeGeneration == token) {
       await _ambientPlayer.setVolume(_ambientVolume);
-      _isFading = false;
     }
   }
 
   Future<void> toggleAmbientAudio() async {
-    _isFading = false; // Cancel any ongoing fade
+    _fadeGeneration++; // Cancel any ongoing fade
     try {
       if (_isPlayingAmbient) {
         await _fadeOut();
@@ -197,14 +201,14 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> stopAmbientAudio() async {
-    _isFading = false;
+    _fadeGeneration++;
     if (_isPlayingAmbient) {
       await _fadeOut();
     }
   }
 
   Future<void> setAmbientTrack(String path) async {
-    _isFading = false;
+    _fadeGeneration++;
     _selectedAudioTrack = path;
     _prefs?.setString('audio_track', path);
     _saveToCloud();
@@ -363,6 +367,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     _allNotifsEnabled = val;
     _prefs?.setBool('all_notifs', val);
     notifyListeners();
+    _saveToCloud();
     _syncAlarms('Morning');
     _syncAlarms('Work');
     _syncAlarms('Night');
@@ -398,6 +403,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     _morningNotifs = val;
     _prefs?.setBool('m_notifs', val);
     notifyListeners();
+    _saveToCloud();
     _syncAlarms('Morning');
   }
 
@@ -412,6 +418,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     _nightNotifs = val;
     _prefs?.setBool('n_notifs', val);
     notifyListeners();
+    _saveToCloud();
     _syncAlarms('Night');
   }
 

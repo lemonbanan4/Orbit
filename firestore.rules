@@ -261,8 +261,17 @@ service cloud.firestore {
       }
 
       match /notifications/{notificationId} {
-        // Fallback for notifications queue
-        allow read, write: if isOwner(userId);
+        // Notifications are created server-side only (Cloud Functions via
+        // the Admin SDK, which bypasses these rules) -- the client never
+        // creates one, it only reads, marks isArchived, and bulk-deletes on
+        // reset. This used to allow bare `write`, so any signed-in user
+        // could `set()`/`add()` arbitrarily-shaped, unbounded docs straight
+        // into their own notifications subcollection via the SDK directly
+        // (not through the app UI), unlike every other subcollection here.
+        allow read, delete: if isOwner(userId);
+        allow update: if isOwner(userId) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isArchived']) &&
+          request.resource.data.isArchived is bool;
       }
 
       match /friend_requests/{requestId} {

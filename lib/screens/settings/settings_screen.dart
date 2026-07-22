@@ -63,7 +63,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final intentionsCsv =
         ExportService.buildIntentionsCsv(routineProvider.intentionHistory);
 
-    final hasHabitData = habitCsv.trim() != 'Habit,Routine,Date,Completed';
+    final hasHabitData =
+        habitCsv.trim() != 'Habit,Routine,Date,Completed,Target,Unit,Archived';
     final hasMoodData = moodCsv.trim() != 'Date,Mood,Note';
     final hasIntentionData = intentionsCsv.trim() != 'Date,Intention';
 

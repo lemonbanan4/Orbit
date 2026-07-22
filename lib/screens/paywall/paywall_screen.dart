@@ -202,7 +202,18 @@ class _PaywallScreenState extends State<PaywallScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() => _isPurchasing = false);
+      // Also resets _isVerifying: if Purchases.getCustomerInfo() throws
+      // inside _pollForEntitlement, control skips the line-172 reset above
+      // and lands in the catch blocks, which never touched _isVerifying --
+      // leaving it stuck true forever and the Close button (gated on
+      // _isPurchasing || _isVerifying) permanently disabled. Same trapped-
+      // paywall failure mode as the Guideline 2.1(b) rejection, different path.
+      if (mounted) {
+        setState(() {
+          _isPurchasing = false;
+          _isVerifying = false;
+        });
+      }
     }
   }
 
@@ -749,7 +760,8 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       GradientPillButton(
                             text: buttonText,
                             isLoading: _isPurchasing,
-                            onPressed: _isLoadingPrice || _isPurchasing
+                            onPressed:
+                                _isLoadingPrice || _isPurchasing || _isRestoring
                                 ? null
                                 : _performPurchase,
                           )
