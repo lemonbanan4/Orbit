@@ -793,9 +793,17 @@ class _PaywallScreenState extends State<PaywallScreen> {
                           child: Text(
                             renewalDisclosure,
                             textAlign: TextAlign.center,
+                            // Was inkFaint/11 -- the lowest-contrast color
+                            // and smallest size in the whole design system,
+                            // on top of a video background. This is the text
+                            // that states trial length + post-trial price,
+                            // which App Review flagged twice as not clear.
+                            // Bumped to inkDim/12.5 with more weight so it
+                            // actually reads as a disclosure, not filler.
                             style: TextStyle(
-                              color: OrbitTokens.inkFaint,
-                              fontSize: 11,
+                              color: OrbitTokens.inkDim,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500,
                               height: 1.4,
                             ),
                           ),

@@ -102,11 +102,18 @@ class PackageCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 6),
+                          // "Includes 7-Day Free Trial" read as a bonus
+                          // feature, not a billing timeline -- it never
+                          // connected the trial to what gets charged after
+                          // it ends, which is exactly what Apple Guideline
+                          // 3.1.2(c) requires be unambiguous at the point of
+                          // purchase. Now states the transition directly.
                           Text(
-                            "Includes 7-Day Free Trial",
+                            "7 days free, then $priceString$period",
                             style: TextStyle(
                               color: OrbitTokens.inkDim,
                               fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
