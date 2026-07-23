@@ -21,14 +21,6 @@ class PackageCard extends StatelessWidget {
     final String priceString = package.storeProduct.priceString;
     final String period = isAnnual ? "/yr" : "/mo";
 
-    // 🧠 PRICE ANCHORING: Calculate a rough "original" price to cross out
-    // You can hardcode this to "950 kr" if you prefer, but this dynamically
-    // doubles whatever currency/price Google/Apple returns.
-    final double rawPrice = package.storeProduct.price;
-    final String currencyCode = package.storeProduct.currencyCode;
-    final String originalPriceAnchor =
-        "${(rawPrice * 2).toStringAsFixed(0)} $currencyCode";
-
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: GestureDetector(
@@ -91,32 +83,19 @@ class PackageCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Padding(
                       padding: const EdgeInsets.only(left: 36),
-                      child: Row(
-                        children: [
-                          Text(
-                            originalPriceAnchor,
-                            style: TextStyle(
-                              color: OrbitTokens.inkFaint,
-                              fontSize: 11.5,
-                              decoration: TextDecoration.lineThrough,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          // "Includes 7-Day Free Trial" read as a bonus
-                          // feature, not a billing timeline -- it never
-                          // connected the trial to what gets charged after
-                          // it ends, which is exactly what Apple Guideline
-                          // 3.1.2(c) requires be unambiguous at the point of
-                          // purchase. Now states the transition directly.
-                          Text(
-                            "7 days free, then $priceString$period",
-                            style: TextStyle(
-                              color: OrbitTokens.inkDim,
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                      // Used to also show a crossed-out "was" price hardcoded
+                      // at 2x the real price with no factual basis -- a fake
+                      // discount claim, which is exactly the kind of thing
+                      // Google's Unacceptable Business Practices policy
+                      // (misleading pricing) flags accounts for. Real price
+                      // + real trial terms only, nothing invented.
+                      child: Text(
+                        "7 days free, then $priceString$period",
+                        style: TextStyle(
+                          color: OrbitTokens.inkDim,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
