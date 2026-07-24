@@ -14,6 +14,7 @@ import 'dart:convert';
 import '../services/notification_service.dart';
 import '../models/routine_alarm.dart';
 import '../models/habit.dart';
+import '../models/daily_mission.dart';
 import '../theme/nebula_themes.dart';
 import '../utils/dev_overrides.dart';
 
@@ -477,6 +478,46 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   int get currentLevel => (_xp ~/ 100) + 1; // Level up every 100 XP
   double get levelProgress => (_xp % 100) / 100.0; // Progress to the next level
   bool get justLeveledUp => _justLeveledUp;
+
+  // --- DAILY MISSIONS -------------------------------------------------------
+  // Same-day goals that grant bonus XP once claimed. Progress is derived live
+  // from how many (non-archived) habits are completed today -- a value that
+  // already resets at the daily rollover -- so there's nothing per-mission to
+  // reset except which ones have been claimed today.
+  Set<String> _claimedMissions = {};
+
+  /// How many non-archived habits are checked off today. `isCompleted` is reset
+  /// alongside the daily rollover, so this is naturally a "today" count.
+  int get habitsCompletedToday =>
+      _habits.values.where((h) => !h.isArchived && h.isCompleted).length;
+
+  List<DailyMission> get dailyMissions => kDailyMissions;
+
+  /// Progress toward a mission, clamped to its target (for the progress bar).
+  int missionProgress(DailyMission m) =>
+      habitsCompletedToday.clamp(0, m.target);
+
+  bool isMissionComplete(DailyMission m) => habitsCompletedToday >= m.target;
+  bool isMissionClaimed(DailyMission m) => _claimedMissions.contains(m.id);
+
+  /// Missions that are done but whose reward hasn't been collected yet.
+  int get claimableMissionCount => kDailyMissions
+      .where((m) => isMissionComplete(m) && !isMissionClaimed(m))
+      .length;
+
+  /// Collect a completed mission's reward. Guarded so XP is granted at most
+  /// once per mission per day; the claimed set is cleared at the daily reset.
+  Future<void> claimMission(DailyMission m) async {
+    if (!isMissionComplete(m) || isMissionClaimed(m)) return;
+    _claimedMissions.add(m.id);
+    _xp += m.rewardXp;
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    _xpHistory[today] = (_xpHistory[today] ?? 0) + m.rewardXp;
+    _prefs?.setInt('xp', _xp);
+    _prefs?.setStringList('claimed_missions', _claimedMissions.toList());
+    notifyListeners();
+    _saveToCloud();
+  }
   double get lifetimeCompletionRate => _totalHabitsAssigned == 0
       ? 0.0
       : ((_totalHabitsCompleted / _totalHabitsAssigned) * 100).clamp(
@@ -966,6 +1007,8 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     // never actually accrue. Now loaded/saved like its sibling stats.
     _totalHabitsCompleted = _prefs?.getInt('total_habits_completed') ?? 0;
     _xp = _prefs?.getInt('xp') ?? 0;
+    _claimedMissions =
+        (_prefs?.getStringList('claimed_missions') ?? []).toSet();
     _streakFreezes = _prefs?.getInt('streak_freezes') ?? 0;
     _isStreakFrozen = _prefs?.getBool('is_streak_frozen') ?? false;
     _selectedAvatar = _prefs?.getString('avatar') ?? 'rocket';
@@ -1227,6 +1270,13 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
       final int? closingWeekday = completedDayKey != null
           ? DateTime.tryParse(completedDayKey)?.weekday
           : null;
+
+      // New day -> daily missions renew: forget which ones were claimed.
+      // habitsCompletedToday resets on its own as isCompleted flags clear below.
+      if (_claimedMissions.isNotEmpty) {
+        _claimedMissions.clear();
+        _prefs?.setStringList('claimed_missions', const []);
+      }
 
       // --- NEW: Calculate and save yesterday's progress ---
       if (_lastResetDate != null) {
