@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/orbit_colors.dart';
+import '../../data/cosmic_ranks.dart';
 
 class LevelProgressCard extends StatelessWidget {
   final int level;
@@ -20,6 +21,8 @@ class LevelProgressCard extends StatelessWidget {
     final accent =
         Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
         const Color(0xFF00E5FF);
+    final rank = cosmicRankForLevel(level);
+    final nextRank = nextCosmicRank(level);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -43,6 +46,7 @@ class LevelProgressCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Icon(
                     Icons.stars_rounded,
@@ -50,13 +54,28 @@ class LevelProgressCard extends StatelessWidget {
                     size: 24,
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    'Level $level',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        rank.title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Level $level',
+                        style: TextStyle(
+                          color: accent,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -81,7 +100,9 @@ class LevelProgressCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Complete habits to earn XP and level up!',
+            nextRank == null
+                ? 'Highest rank reached — you are a ${rank.title} 🌌'
+                : 'Reach Level ${nextRank.minLevel} to become a ${nextRank.title}',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.5),
               fontSize: 12,
