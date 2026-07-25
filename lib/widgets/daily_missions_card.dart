@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 
 import '../models/daily_mission.dart';
 import '../providers/routine_provider.dart';
+import '../providers/telemetry_provider.dart';
 import '../theme/orbit_tokens.dart';
+import 'telemetry_levelup_dialog.dart';
 
 /// Dashboard card showing today's three daily missions with live progress and
 /// a Claim button for each completed-but-unclaimed reward. All state lives in
@@ -74,15 +76,28 @@ class DailyMissionsCard extends StatelessWidget {
                   progress: provider.missionProgress(m),
                   complete: provider.isMissionComplete(m),
                   claimed: provider.isMissionClaimed(m),
-                  onClaim: () {
+                  onClaim: () async {
                     HapticFeedback.mediumImpact();
-                    provider.claimMission(m);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${m.title} claimed — +${m.rewardXp} XP'),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
+                    // claimMission guards the once-per-day rule; only award the
+                    // visible-level XP (and celebrate) if this call claimed it.
+                    if (!provider.claimMission(m)) return;
+                    final telemetry = context.read<TelemetryProvider>();
+                    final didLevelUp = await telemetry.awardXp(m.rewardXp);
+                    if (!context.mounted) return;
+                    if (didLevelUp) {
+                      TelemetryLevelUpDialog.show(
+                        context,
+                        telemetry.currentLevel,
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content:
+                              Text('${m.title} claimed — +${m.rewardXp} XP'),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
                   },
                 ),
               ),

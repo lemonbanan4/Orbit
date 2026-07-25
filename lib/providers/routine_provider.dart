@@ -505,18 +505,19 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
       .where((m) => isMissionComplete(m) && !isMissionClaimed(m))
       .length;
 
-  /// Collect a completed mission's reward. Guarded so XP is granted at most
-  /// once per mission per day; the claimed set is cleared at the daily reset.
-  Future<void> claimMission(DailyMission m) async {
-    if (!isMissionComplete(m) || isMissionClaimed(m)) return;
+  /// Marks a completed mission as claimed, guarded so it can happen at most
+  /// once per mission per day (the claimed set is cleared at the daily reset).
+  /// Returns true only when THIS call is what claimed it, so the caller can
+  /// then award the reward through TelemetryProvider.awardXp -- the visible
+  /// level bar -- and surface the level-up celebration. Routing the reward
+  /// through Telemetry (not the spendable _xp pool) is deliberate: otherwise
+  /// the XP would never move the level the user actually sees.
+  bool claimMission(DailyMission m) {
+    if (!isMissionComplete(m) || isMissionClaimed(m)) return false;
     _claimedMissions.add(m.id);
-    _xp += m.rewardXp;
-    final today = DateTime.now().toIso8601String().substring(0, 10);
-    _xpHistory[today] = (_xpHistory[today] ?? 0) + m.rewardXp;
-    _prefs?.setInt('xp', _xp);
     _prefs?.setStringList('claimed_missions', _claimedMissions.toList());
     notifyListeners();
-    _saveToCloud();
+    return true;
   }
   double get lifetimeCompletionRate => _totalHabitsAssigned == 0
       ? 0.0
