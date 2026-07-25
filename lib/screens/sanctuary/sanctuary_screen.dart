@@ -169,7 +169,10 @@ class _SanctuaryScreenState extends State<SanctuaryScreen> {
 
       String wisdomText = "The stars are quiet today. Check back later.";
       final data = doc.data();
-      if (doc.exists && data != null && data['scrolls'] != null) {
+      if (doc.exists &&
+          data != null &&
+          data['scrolls'] is List &&
+          (data['scrolls'] as List).isNotEmpty) {
         List<dynamic> scrolls = data['scrolls'];
         scrolls.shuffle();
         wisdomText = scrolls.first.toString();
