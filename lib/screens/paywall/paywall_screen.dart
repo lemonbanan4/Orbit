@@ -512,11 +512,19 @@ class _PaywallScreenState extends State<PaywallScreen> {
     // Apple Guideline 3.1.2 requires auto-renewal terms to be disclosed
     // in-app, not just in the App Store description.
     String renewalDisclosure = "";
+    // A short, high-contrast version shown directly ABOVE the buy button so the
+    // trial length + post-trial price + auto-renewal are unmissable at the point
+    // of purchase (Guideline 3.1.2(c), flagged more than once when this only
+    // lived in low-contrast fine print below the button).
+    String priceSummary = "";
     if (!_isLoadingPrice) {
       if (_selectedPackage != null) {
         final priceString = _selectedPackage!.storeProduct.priceString;
         if (_selectedPackage!.packageType == PackageType.annual) {
           buttonText = "START 7-DAY FREE TRIAL"; // Make it clear!
+          priceSummary =
+              "7 days free, then $priceString/year. Auto-renews until "
+              "cancelled.";
           // Apple Guideline 3.1.2(c): state title, length, and price of the
           // subscription in-app, not just in the App Store listing.
           renewalDisclosure =
@@ -527,6 +535,8 @@ class _PaywallScreenState extends State<PaywallScreen> {
               "you purchase a subscription.";
         } else {
           buttonText = "SUBSCRIBE MONTHLY";
+          priceSummary =
+              "$priceString/month. Auto-renews until cancelled.";
           renewalDisclosure =
               "Orbit Pro (Monthly): $priceString/month. Subscription "
               "automatically renews unless canceled at least 24 hours "
@@ -755,6 +765,25 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       ),
 
                       const SizedBox(height: 6),
+
+                      // High-contrast trial/price/renewal summary directly
+                      // above the CTA -- guarantees the reviewer (and user)
+                      // sees the terms at the point of purchase, not just in
+                      // fine print below. (Guideline 3.1.2(c).)
+                      if (priceSummary.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            priceSummary,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: OrbitTokens.ink,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              height: 1.3,
+                            ),
+                          ),
+                        ),
 
                       // THE REVENUECAT BUY BUTTON
                       GradientPillButton(
