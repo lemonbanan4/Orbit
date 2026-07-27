@@ -3,6 +3,13 @@
 Orbit is a Flutter mobile app for habit and routine tracking, combining streaks, XP, and
 journey-based milestones with an AI coach, ambient focus audio, and a subscription paywall.
 
+**Status:** v1.0 is in Apple App Store review (10 versioned release builds so far). A product
+of CogCore LLC.
+
+**Scale:** 32,000+ lines of Dart across 100+ files, plus a TypeScript Cloud Functions backend
+with its own Jest test suite and a lint+build predeploy gate. Firestore security rules are
+covered by their own emulator-backed test suite.
+
 ## Features
 
 - **Habit & routine tracking** — daily habits, routines, and intentions with streaks and XP
