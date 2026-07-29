@@ -6,6 +6,7 @@ import '../data/cosmic_ranks.dart';
 import '../providers/routine_provider.dart';
 import '../providers/telemetry_provider.dart';
 import '../theme/orbit_tokens.dart';
+import 'common/stellar_planet.dart';
 
 /// A "Mission Progress" dashboard hero — a circular level-progress ring around a
 /// glowing planet, with three live metric tiles beneath. All values are real
@@ -76,7 +77,10 @@ class MissionProgressCard extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const _PlanetOrb(size: 74),
+                      const StellarPlanet(
+                        variant: StellarPlanetVariant.core,
+                        size: 88,
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         'LEVEL $level',
@@ -174,34 +178,6 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RingPainter old) => old.progress != progress;
-}
-
-/// A glowing Jupiter-like orb for the ring center.
-class _PlanetOrb extends StatelessWidget {
-  final double size;
-  const _PlanetOrb({required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const RadialGradient(
-          center: Alignment(-0.35, -0.35),
-          colors: [Color(0xFFFFE0A8), Color(0xFFE79A5B), Color(0xFF7C4A2C)],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: OrbitTokens.gold.withValues(alpha: 0.45),
-            blurRadius: 26,
-            spreadRadius: 1,
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _MetricTile extends StatelessWidget {
