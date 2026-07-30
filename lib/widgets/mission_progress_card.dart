@@ -71,8 +71,14 @@ class MissionProgressCard extends StatelessWidget {
             child: SizedBox(
               width: 210,
               height: 210,
-              child: CustomPaint(
-                painter: _RingPainter(progress: progress),
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: progress),
+                duration: const Duration(milliseconds: 900),
+                curve: Curves.easeOutCubic,
+                builder: (context, animatedProgress, child) => CustomPaint(
+                  painter: _RingPainter(progress: animatedProgress),
+                  child: child,
+                ),
                 child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
