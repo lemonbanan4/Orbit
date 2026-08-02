@@ -12,6 +12,7 @@ import '../../widgets/common/premium_glass_card.dart';
 import '../../widgets/common/base_orbit_screen.dart';
 import '../../widgets/common/user_metrics_grid.dart';
 import '../../widgets/mission_progress_card.dart';
+import '../../widgets/alchemy_insights_card.dart';
 import '../../theme/orbit_colors.dart'; // For accessing our custom theme colors
 import '../coaching/mood_chart_widget.dart';
 
@@ -78,6 +79,8 @@ class StatisticsScreen extends StatelessWidget {
                         (total, xp) => total + xp,
                       ),
                     ),
+                    const SizedBox(height: 40),
+                    const AlchemyInsightsCard(),
                     const SizedBox(height: 40),
                     const _HabitInsightsCard(),
                     const SizedBox(height: 40),
