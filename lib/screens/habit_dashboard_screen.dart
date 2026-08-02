@@ -16,6 +16,7 @@ import '../providers/auth_provider.dart';
 import '../services/ai_coach_service.dart';
 import '../widgets/create_habit_sheet.dart';
 import '../widgets/daily_missions_card.dart';
+import '../widgets/comeback_banner.dart';
 import '../screens/paywall/paywall_screen.dart';
 import '../widgets/common/base_orbit_screen.dart';
 import '../theme/orbit_colors.dart';
@@ -522,6 +523,12 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
                         .fade(duration: 600.ms)
                         .slideY(begin: 0.05, end: 0),
                     const SizedBox(height: 24),
+                    // Forgiveness: warm comeback prompt after a broken streak.
+                    // Self-hides (zero footprint) when none is pending.
+                    const ComebackBanner()
+                        .animate()
+                        .fade(duration: 600.ms)
+                        .slideY(begin: 0.05, end: 0),
                     const DailyMissionsCard()
                         .animate()
                         .fade(duration: 600.ms)

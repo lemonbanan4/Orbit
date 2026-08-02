@@ -12,7 +12,10 @@ re-engagement, viral share loops).
 | 6 | **Shareable recap cards** | ✅ done | WeeklyRecapCard (800x800, StellarPlanet + week bars) + "Share my week" button on Stats, via ShareService. |
 | 4 | **Smart re-engagement nudges** | ✅ done | Rolling local-notification ladder (day 2/4/7 at 11am, IDs 8001–8003) that slides forward on every "user active" signal (app boot + habit toggle) and only fires after real silence. Copy is streak-adaptive & forgiving. Respects the master notifications toggle. |
 | 1 | **Adaptive AI Missions & Suggestions** | ✅ done | Daily-mission targets now scale to habits genuinely due today (always achievable + meaningful vs. fixed 1/3/5); mission ids/reset preserved. Plus a data-grounded "Suggestions" insight line (real synergy pair, else tailored load) so the personalization is visible. |
-| 3 | **Forgiveness & recovery** | ⬜ todo | Reframe missed days as signals, not failures; comeback flow + streak insurance. Retention. Touches streak logic — build carefully. |
+| 3 | **Forgiveness & recovery** | ✅ done | A broken streak now records the lost length and greets the user with a warm, guilt-free ComebackBanner ("Your 12-day streak paused — every legend has a comeback") on the dashboard, instead of a silent zero. Clears on rebuild or dismiss. Additive only — does NOT change when/whether streaks break. Streak-freeze "insurance" already shipped. |
+
+## Status: v1.2 COMPLETE ✅ — all 5 features built, analyzer clean.
+Ships stacked into v1.1.0 (build 16); not live to users until that update is submitted.
 
 ## Build order (ROI + risk)
 1. #5 Alchemy Insights — self-contained UI over existing data.

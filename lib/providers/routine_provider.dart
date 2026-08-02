@@ -482,7 +482,20 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool _isStreakFrozen = false;
   bool _isBuyingFreeze = false;
 
+  // Forgiveness & recovery (v1.2): when a streak actually breaks we remember
+  // how long it was so the app can greet the user with a warm "comeback"
+  // prompt instead of a silent, punishing zero. Cleared the moment they
+  // rebuild (or dismiss it). Purely additive -- does NOT change when or
+  // whether a streak breaks.
+  int _lostStreak = 0;
+  bool _hasPendingComeback = false;
+
   int get currentStreak => _currentStreak;
+  int get lostStreak => _lostStreak;
+
+  /// True when the user's streak broke while they were away and they haven't
+  /// yet rebuilt or dismissed the comeback prompt. Drives the ComebackBanner.
+  bool get hasPendingComeback => _hasPendingComeback;
   int get longestStreak => _longestStreak;
   int get totalHabitsCompleted => _totalHabitsCompleted;
   int get totalHabitsAssigned => _totalHabitsAssigned;
@@ -1096,6 +1109,8 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         (_prefs?.getStringList('claimed_missions') ?? []).toSet();
     _streakFreezes = _prefs?.getInt('streak_freezes') ?? 0;
     _isStreakFrozen = _prefs?.getBool('is_streak_frozen') ?? false;
+    _lostStreak = _prefs?.getInt('lost_streak') ?? 0;
+    _hasPendingComeback = _prefs?.getBool('has_pending_comeback') ?? false;
     _selectedAvatar = _prefs?.getString('avatar') ?? 'rocket';
     _featuredHabitId = _prefs?.getString('featured_habit_id');
     _bookmarkedQuotes = _prefs?.getStringList('bookmarked_quotes') ?? [];
@@ -1431,6 +1446,14 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
             // notifies the user their streak was saved.
             _saveToCloud();
           } else if (wouldBreak) {
+            // Forgiveness (v1.2): before zeroing, remember a real streak so
+            // we can offer a warm comeback instead of a silent goose-egg.
+            if (_currentStreak > 0) {
+              _lostStreak = _currentStreak;
+              _hasPendingComeback = true;
+              _prefs?.setInt('lost_streak', _lostStreak);
+              _prefs?.setBool('has_pending_comeback', true);
+            }
             _currentStreak = 0;
             _prefs?.setInt('current_streak', 0);
             FirebaseCrashlytics.instance.setCustomKey('current_streak', 0);
@@ -1553,6 +1576,12 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         _isStreakFrozen = false;
         _prefs?.setBool('is_streak_frozen', false);
       }
+      // Forgiveness (v1.2): relighting the streak *is* the comeback -- retire
+      // the prompt so it doesn't linger after they've bounced back.
+      if (_hasPendingComeback) {
+        _hasPendingComeback = false;
+        _prefs?.setBool('has_pending_comeback', false);
+      }
       FirebaseCrashlytics.instance.setCustomKey(
         'current_streak',
         _currentStreak,
@@ -1562,6 +1591,15 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
       _saveToCloud();
     }
     return isNewLongest;
+  }
+
+  /// Dismisses the comeback prompt without needing to rebuild the streak
+  /// (the banner's own close button). Forgiveness, not nagging.
+  void dismissComeback() {
+    if (!_hasPendingComeback) return;
+    _hasPendingComeback = false;
+    _prefs?.setBool('has_pending_comeback', false);
+    notifyListeners();
   }
 
   /// Spends [streakFreezeCost] XP (the buyStreakFreeze callable's own
