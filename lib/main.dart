@@ -533,7 +533,14 @@ class _OrbitAppState extends State<OrbitApp> {
     // fire unconditionally regardless of the Settings > "Enable All
     // Notifications" master toggle, which only ever gated routine alarms.
     if (mounted && context.read<RoutineProvider>().allNotifsEnabled) {
+      // Capture before the awaits so we don't read context across async gaps.
+      final currentStreak = context.read<RoutineProvider>().currentStreak;
       await NotificationService.scheduleDailyReminder();
+      // Opening the app is a "user is active" signal -- slide the lapsed-user
+      // re-engagement nudge ladder forward so it only fires after real silence.
+      await NotificationService.scheduleReEngagementNudges(
+        currentStreak: currentStreak,
+      );
     }
   }
 

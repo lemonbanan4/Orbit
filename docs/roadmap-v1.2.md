@@ -10,7 +10,7 @@ re-engagement, viral share loops).
 |---|---------|--------|-------|
 | 5 | **Alchemy Insights** | ✅ done | AlchemyInsightsCard on Stats — surfaces real habit-synergy data with strength bars + empty state. |
 | 6 | **Shareable recap cards** | ✅ done | WeeklyRecapCard (800x800, StellarPlanet + week bars) + "Share my week" button on Stats, via ShareService. |
-| 4 | **Smart re-engagement nudges** | ⬜ todo | Adaptive notifications that pull lapsed users back ("Cosmica misses you — your Voyager streak is waiting"). |
+| 4 | **Smart re-engagement nudges** | ✅ done | Rolling local-notification ladder (day 2/4/7 at 11am, IDs 8001–8003) that slides forward on every "user active" signal (app boot + habit toggle) and only fires after real silence. Copy is streak-adaptive & forgiving. Respects the master notifications toggle. |
 | 1 | **Adaptive AI Missions & Suggestions** | ⬜ todo | Personalize Daily Missions + habit suggestions from real completion patterns (alchemy synergy + AI coach). The 2026 headline trend. |
 | 3 | **Forgiveness & recovery** | ⬜ todo | Reframe missed days as signals, not failures; comeback flow + streak insurance. Retention. Touches streak logic — build carefully. |
 

@@ -359,6 +359,94 @@ class NotificationService {
     }
   }
 
+  // --- Smart re-engagement nudges (v1.2) -----------------------------------
+  // A rolling ladder of gentle "come back" notifications for lapsed users.
+  // The whole ladder is re-scheduled (slid forward from *now*) every time the
+  // user is active, so an engaged user never actually sees them -- they only
+  // fire for someone who's genuinely been away for [_reEngageDayOffsets] days.
+  // Fixed IDs, well clear of routine (100..570), the daily reminder (999) and
+  // per-habit reminders (700000+), so they never collide with those sweeps.
+  static const List<int> _reEngagementIds = [8001, 8002, 8003];
+  static const List<int> _reEngageDayOffsets = [2, 4, 7];
+
+  static Future<void> cancelReEngagementNudges() async {
+    for (final id in _reEngagementIds) {
+      await notificationsPlugin.cancel(id: id);
+    }
+  }
+
+  /// (Re)schedules the lapsed-user nudge ladder starting from now. Call this
+  /// whenever the user is active (app boot, habit completed) so it keeps
+  /// sliding forward. Copy is adaptive: an at-risk streak is named on the
+  /// first, gentlest nudge, and the tone stays forgiving as it escalates.
+  static Future<void> scheduleReEngagementNudges({int currentStreak = 0}) async {
+    await cancelReEngagementNudges();
+
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'reengagement_channel_v1',
+        'Come Back Reminders',
+        channelDescription: 'Gentle nudges when you have been away a while',
+        groupKey: 'orbit_reminders',
+        importance: Importance.high,
+        priority: Priority.high,
+        sound: RawResourceAndroidNotificationSound('orbit_chime'),
+      ),
+      iOS: _defaultIOSDetails,
+    );
+
+    final stages = _reEngagementCopy(currentStreak);
+    final now = tz.TZDateTime.now(tz.local);
+
+    for (int i = 0; i < _reEngagementIds.length; i++) {
+      // 11:00 AM, [offset] days out -- a friendly, non-intrusive hour.
+      tz.TZDateTime when = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        11,
+        0,
+      ).add(Duration(days: _reEngageDayOffsets[i]));
+      // Guard against a same-day-past-11am edge landing before now.
+      if (when.isBefore(now)) {
+        when = now.add(Duration(days: _reEngageDayOffsets[i]));
+      }
+
+      await _safeZonedSchedule(
+        id: _reEngagementIds[i],
+        title: stages[i].$1,
+        body: stages[i].$2,
+        scheduledDate: when,
+        details: details,
+        payload: '{"screen": "dashboard"}',
+      );
+    }
+  }
+
+  /// Three escalating (title, body) pairs. The first names an at-risk streak
+  /// when there is one; the last is deliberately pressure-free ("fresh start").
+  static List<(String, String)> _reEngagementCopy(int streak) {
+    final firstBody = streak > 1
+        ? 'Cosmica is keeping your orbit warm. Your $streak-day streak is '
+            'still glowing — one habit keeps it alive. 🌌'
+        : 'Cosmica is keeping your orbit warm. One small step today gets you '
+            'back in motion. 🌌';
+    return [
+      ('Your orbit misses you 🌌', firstBody),
+      (
+        'The stars are drifting 🌠',
+        "It's been a few days. Your universe is right where you left it — "
+            'pick up in a single tap.',
+      ),
+      (
+        'Ready for a fresh orbit? 🚀',
+        'No pressure and no guilt — just come reset and start a clean launch. '
+            "We've saved your spot among the stars.",
+      ),
+    ];
+  }
+
   static tz.TZDateTime _nextInstanceOfDayTime(int day, int hour, int minute) {
     final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
     tz.TZDateTime scheduledDate = tz.TZDateTime(

@@ -383,6 +383,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
           NotificationService.scheduleHabitReminder(habit);
         }
       }
+      _refreshReEngagementNudges();
     } else {
       NotificationService.cancelAlarm(999); // scheduleDailyReminder's fixed id
       for (final habit in _habits.values) {
@@ -390,7 +391,21 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
           NotificationService.cancelHabitReminder(habit.id);
         }
       }
+      NotificationService.cancelReEngagementNudges();
     }
+  }
+
+  /// Slides the lapsed-user nudge ladder forward from now, so it only ever
+  /// fires for someone who's actually been away. Called on every "user is
+  /// active" signal (app boot, habit toggle). Respects the master toggle.
+  void _refreshReEngagementNudges() {
+    if (!_allNotifsEnabled) {
+      NotificationService.cancelReEngagementNudges();
+      return;
+    }
+    NotificationService.scheduleReEngagementNudges(
+      currentStreak: _currentStreak,
+    );
   }
 
   void setDailySummaryNotifs(bool val) {
@@ -1565,6 +1580,9 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     _completedHabits[habitId] = habit.isCompleted;
 
     if (_isDisposed) return;
+    // Any habit interaction is a "user is active" signal -- slide the
+    // lapsed-user nudge ladder forward so it only fires if they go quiet.
+    _refreshReEngagementNudges();
     notifyListeners();
     _updateHomeWidget(); // Trigger home widget update on any habit toggle
     if (habitId == _featuredHabitId) _updateFeaturedHabitWidget();
