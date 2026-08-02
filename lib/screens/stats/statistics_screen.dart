@@ -13,6 +13,10 @@ import '../../widgets/common/base_orbit_screen.dart';
 import '../../widgets/common/user_metrics_grid.dart';
 import '../../widgets/mission_progress_card.dart';
 import '../../widgets/alchemy_insights_card.dart';
+import '../../widgets/weekly_recap_card.dart';
+import '../../services/share_service.dart';
+import '../../providers/telemetry_provider.dart';
+import '../../theme/orbit_tokens.dart';
 import '../../theme/orbit_colors.dart'; // For accessing our custom theme colors
 import '../coaching/mood_chart_widget.dart';
 
@@ -60,6 +64,8 @@ class StatisticsScreen extends StatelessWidget {
                   children: [
                     // --- MISSION PROGRESS (dashboard hero) ---
                     const MissionProgressCard(),
+                    const SizedBox(height: 16),
+                    const _ShareWeekButton(),
                     const SizedBox(height: 40),
                     // --- TOP METRICS ---
                     UserMetricsGrid(
@@ -411,6 +417,82 @@ class _ConsistencyCalendarState extends State<_ConsistencyCalendar> {
       'December',
     ];
     return names[month - 1];
+  }
+}
+
+class _ShareWeekButton extends StatelessWidget {
+  const _ShareWeekButton();
+
+  Future<void> _share(BuildContext context) async {
+    HapticFeedback.lightImpact();
+    final routine = context.read<RoutineProvider>();
+    final telemetry = context.read<TelemetryProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    final bars = routine.weeklyProgress;
+    final consistency = bars.isEmpty
+        ? 0
+        : ((bars.reduce((a, b) => a + b) / bars.length) * 100).round();
+
+    final file = await ShareService.captureOffscreenWidget(
+      WeeklyRecapCard(
+        streak: routine.currentStreak,
+        level: telemetry.currentLevel,
+        weeklyConsistencyPct: consistency,
+        weekBars: bars,
+      ),
+      'orbit_week',
+    );
+    if (!context.mounted) return;
+    if (file == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Could not generate share image.')),
+      );
+      return;
+    }
+    ShareService.showShareBottomSheet(
+      context: context,
+      imageFile: file,
+      shareText:
+          "My week in Orbit \u{1F30C} ${routine.currentStreak}-day streak and "
+          "climbing. Build habits like a game — orbitroutine.com",
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _share(context),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              OrbitTokens.teal.withValues(alpha: 0.18),
+              OrbitTokens.violet.withValues(alpha: 0.14),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: OrbitTokens.teal.withValues(alpha: 0.4)),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.ios_share_rounded, color: OrbitTokens.teal, size: 20),
+            SizedBox(width: 10),
+            Text(
+              'Share my week',
+              style: TextStyle(
+                color: OrbitTokens.ink,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

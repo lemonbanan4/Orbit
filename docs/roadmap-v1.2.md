@@ -8,11 +8,11 @@ re-engagement, viral share loops).
 
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
-| 5 | **Alchemy Insights** | 🔨 in progress | Surface the real habit-synergy data (AlchemyTelemetryService) that today only lives in Nebula Forge — as an Insights card on Stats. Lowest risk, uses existing data. |
+| 5 | **Alchemy Insights** | ✅ done | AlchemyInsightsCard on Stats — surfaces real habit-synergy data with strength bars + empty state. |
+| 6 | **Shareable recap cards** | ✅ done | WeeklyRecapCard (800x800, StellarPlanet + week bars) + "Share my week" button on Stats, via ShareService. |
+| 4 | **Smart re-engagement nudges** | ⬜ todo | Adaptive notifications that pull lapsed users back ("Cosmica misses you — your Voyager streak is waiting"). |
 | 1 | **Adaptive AI Missions & Suggestions** | ⬜ todo | Personalize Daily Missions + habit suggestions from real completion patterns (alchemy synergy + AI coach). The 2026 headline trend. |
 | 3 | **Forgiveness & recovery** | ⬜ todo | Reframe missed days as signals, not failures; comeback flow + streak insurance. Retention. Touches streak logic — build carefully. |
-| 4 | **Smart re-engagement nudges** | ⬜ todo | Adaptive notifications that pull lapsed users back ("Cosmica misses you — your Voyager streak is waiting"). |
-| 6 | **Shareable recap cards** | ⬜ todo | Extend share_service (widget→PNG) into "Week in Review" / rank-up cards → free viral marketing. |
 
 ## Build order (ROI + risk)
 1. #5 Alchemy Insights — self-contained UI over existing data.
