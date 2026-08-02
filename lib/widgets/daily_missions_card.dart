@@ -69,7 +69,16 @@ class DailyMissionsCard extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
+              // Adaptive "Suggestions" line -- makes the personalization visible.
+              Text(
+                provider.adaptiveMissionInsight,
+                style: const TextStyle(
+                  color: OrbitTokens.inkDim,
+                  fontSize: 12,
+                  height: 1.3,
+                ),
+              ),
               ...missions.map(
                 (m) => _MissionRow(
                   mission: m,

@@ -15,6 +15,8 @@ import '../services/notification_service.dart';
 import '../models/routine_alarm.dart';
 import '../models/habit.dart';
 import '../models/daily_mission.dart';
+import '../services/alchemy_telemetry_service.dart'
+    show AlchemyTelemetryService;
 import '../theme/nebula_themes.dart';
 import '../utils/dev_overrides.dart';
 
@@ -506,7 +508,72 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   int get habitsCompletedToday =>
       _habits.values.where((h) => !h.isArchived && h.isCompleted).length;
 
-  List<DailyMission> get dailyMissions => kDailyMissions;
+  /// Non-archived habits actually scheduled for today (respects activeDays).
+  int get _habitsDueToday =>
+      _habits.values.where((h) => !h.isArchived && h.isActiveOn()).length;
+
+  /// Adaptive daily missions (v1.2). Instead of a fixed 1/3/5 ladder -- which
+  /// is impossible for someone with 2 habits and trivial for someone with 12 --
+  /// the targets are scaled to how many habits are genuinely due today, so the
+  /// goals are always both achievable and meaningful. Mission *identities*
+  /// (ids first_light/momentum/full_orbit) are preserved and mapped by tier so
+  /// the claimed-set and daily-reset logic keep working untouched. Falls back
+  /// to the classic ladder when we have no schedule signal yet (due == 0).
+  List<DailyMission> get dailyMissions {
+    final due = _habitsDueToday;
+    if (due <= 0) return kDailyMissions;
+
+    // A warm-up (1), a momentum tier (~half), and "finish everything due".
+    // Deduped + sorted, and no target ever exceeds what's actually due.
+    final targets = <int>{1};
+    final momentum = (due / 2).ceil();
+    if (momentum > 1) targets.add(momentum);
+    if (due > 1) targets.add(due);
+    final sorted = targets.toList()..sort();
+
+    const meta = [
+      ('first_light', 'First Light', Icons.wb_twilight_rounded, 15),
+      ('momentum', 'Finding Momentum', Icons.bolt_rounded, 25),
+      ('full_orbit', 'Full Orbit', Icons.brightness_7_rounded, 40),
+    ];
+
+    return List.generate(sorted.length, (i) {
+      final t = sorted[i];
+      final m = meta[i < meta.length ? i : meta.length - 1];
+      return DailyMission(
+        id: m.$1,
+        title: m.$2,
+        description: t >= due
+            ? 'Complete all $t habits due today'
+            : 'Complete $t ${t == 1 ? "habit" : "habits"} today',
+        icon: m.$3,
+        target: t,
+        rewardXp: m.$4,
+      );
+    });
+  }
+
+  /// A short, data-grounded line that makes the missions feel tuned to the
+  /// user (the "Suggestions" half of Adaptive AI Missions). Prefers a real
+  /// habit-synergy nudge from the user's own completion history; otherwise
+  /// describes today's tailored load. Never invents data.
+  String get adaptiveMissionInsight {
+    final active =
+        _habits.values.where((h) => !h.isArchived).toList(growable: false);
+    final synergies = AlchemyTelemetryService.computeSynergyMatrix(active)
+        .where((s) => s.synergyPercentage >= 60)
+        .toList()
+      ..sort((a, b) => b.synergyPercentage.compareTo(a.synergyPercentage));
+    if (synergies.isNotEmpty) {
+      final s = synergies.first;
+      return '💫 “${s.habitA}” pairs well with “${s.habitB}” — try both today.';
+    }
+    final due = _habitsDueToday;
+    if (due > 0) {
+      return '🎯 Tuned to your $due habit${due == 1 ? "" : "s"} due today.';
+    }
+    return '🎯 Tuned to your routine.';
+  }
 
   /// Progress toward a mission, clamped to its target (for the progress bar).
   int missionProgress(DailyMission m) =>
@@ -516,7 +583,9 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool isMissionClaimed(DailyMission m) => _claimedMissions.contains(m.id);
 
   /// Missions that are done but whose reward hasn't been collected yet.
-  int get claimableMissionCount => kDailyMissions
+  /// Uses the adaptive list (not the static ladder) so the "N ready" badge
+  /// matches what's actually shown.
+  int get claimableMissionCount => dailyMissions
       .where((m) => isMissionComplete(m) && !isMissionClaimed(m))
       .length;
 
