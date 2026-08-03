@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'common/premium_glass_card.dart';
+import 'common/primary_button.dart';
 import 'common/icon_picker_dialog.dart';
 import '../providers/routine_provider.dart';
 import '../models/habit.dart';
@@ -848,37 +849,13 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
                 },
               ),
               const SizedBox(height: 16),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00E5FF),
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                onPressed: _isLoading
-                    ? null
-                    : () {
-                        HapticFeedback.lightImpact();
-                        _createHabit();
-                      },
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.black,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text(
-                        'IGNITE',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2,
-                        ),
-                      ),
+              PrimaryButton(
+                text: 'IGNITE',
+                isLoading: _isLoading,
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  _createHabit();
+                },
               ),
             ],
           ),
