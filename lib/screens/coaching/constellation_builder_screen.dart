@@ -15,6 +15,7 @@ import '../../theme/glass_button.dart';
 import '../../widgets/common/animated_frosty_button.dart';
 import '../../theme/orbit_tokens.dart';
 import '../../widgets/common/stellar_planet.dart';
+import '../../widgets/common/cosmica_fairy.dart';
 import '../../providers/routine_provider.dart';
 import '../../models/habit.dart';
 
@@ -459,12 +460,10 @@ class _ConstellationBuilderScreenState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-                  width: 180,
-                  height:
-                      180, // Optimized asset sizing leaves room for soft keyboards
-                  child: Image.asset('assets/images/fairy_avatar.png'),
-                )
+            // Cosmica: animated Rive rig when a real .riv is present, else the
+            // static fairy. The breathing scale stays as ambient motion under
+            // either. 180px leaves room for soft keyboards.
+            const CosmicaFairy(size: 180)
                 .animate(onPlay: (c) => c.repeat(reverse: true))
                 .scaleXY(begin: 0.95, end: 1.05, duration: 2.seconds),
 

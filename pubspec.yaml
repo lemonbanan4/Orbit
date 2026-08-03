@@ -79,6 +79,7 @@ dependencies:
   flutter_slidable: ^4.0.3
   go_router: ^17.3.0
   flutter_native_splash: ^2.4.7
+  rive: ^0.13.20
 
 
 dev_dependencies:
@@ -107,6 +108,7 @@ flutter:
     - assets/audio/
     - assets/interests/
     - assets/icons/
+    - assets/rive/
     - assets/images/
     - assets/images/planet_mind.png
     - assets/images/planet_fitness.png
