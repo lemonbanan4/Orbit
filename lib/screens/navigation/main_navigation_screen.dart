@@ -232,55 +232,56 @@ class _CenterOrbState extends State<_CenterOrb>
       if (mounted) _onCount(count);
     });
 
-    return SizedBox(
-      height: 24,
-      child: Center(
-        child: AnimatedBuilder(
-          animation: _pulse,
-          builder: (context, _) {
-            final t = math.sin(_pulse.value * math.pi); // 0 -> 1 -> 0 bump
-            final scale = 1 + 0.24 * t;
-            final glow = 0.30 + 0.55 * t;
-            return Transform.scale(
-              scale: scale,
-              child: Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      OrbitTokens.teal,
-                      OrbitTokens.violet,
-                      OrbitTokens.gold,
-                    ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: OrbitTokens.violet.withValues(alpha: glow),
-                      blurRadius: 10 + 12 * t,
-                      spreadRadius: 1 + 2 * t,
-                    ),
-                  ],
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (context, _) {
+        final t = math.sin(_pulse.value * math.pi); // 0 -> 1 -> 0 bump
+        final scale = 1 + 0.16 * t;
+        final glow = 0.42 + 0.45 * t;
+        return Transform.scale(
+          scale: scale,
+          child: Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  OrbitTokens.teal,
+                  OrbitTokens.violet,
+                  OrbitTokens.gold,
+                ],
+              ),
+              border: Border.all(color: Colors.white24, width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: OrbitTokens.violet.withValues(alpha: glow),
+                  blurRadius: 16 + 14 * t,
+                  spreadRadius: 1 + 2 * t,
                 ),
-                child: Center(
-                  child: Text(
-                    widget.glyph,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      height: 1.0,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                BoxShadow(
+                  color: OrbitTokens.teal.withValues(alpha: 0.22 + 0.3 * t),
+                  blurRadius: 12,
+                  spreadRadius: -3,
+                ),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                widget.glyph,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  height: 1.0,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-            );
-          },
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -293,8 +294,10 @@ class _OrbitNavDestination {
   const _OrbitNavDestination(this.glyph, this.label);
 }
 
-/// A minimal, one-accent bottom nav: no filled indicator pill, just an icon
-/// opacity shift plus a small glow dot marking the active tab.
+/// Orbit's bottom nav: a subtly gradient bar with a raised, glowing gradient
+/// "orb" for Cosmos that floats above it. The orb pulses (scale + glow bloom)
+/// every time a habit is completed (see [_CenterOrb]), so the nav comes alive
+/// on interaction. The four flanking tabs stay as minimal glyph + label.
 class _OrbitNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onSelect;
@@ -314,81 +317,135 @@ class _OrbitNavBar extends StatelessWidget {
     required this.destinations,
   });
 
+  static const double _barHeight = 62;
+  static const double _stackHeight = 86; // bar + headroom for the raised orb
+  static const double _orbSize = 50;
+
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        border: Border(top: BorderSide(color: hairline)),
+    final topTint = Color.lerp(backgroundColor, Colors.white, 0.04)!;
+    return SafeArea(
+      top: false,
+      child: SizedBox(
+        height: _stackHeight,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.bottomCenter,
+          children: [
+            // The bar (subtle top-lit gradient + hairline).
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                height: _barHeight,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [topTint, backgroundColor],
+                  ),
+                  border: Border(top: BorderSide(color: hairline)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: List.generate(destinations.length, (index) {
+                    return index == 2 ? _centerLabelCell() : _tabCell(index);
+                  }),
+                ),
+              ),
+            ),
+            // Raised, glowing gradient orb for Cosmos, overlapping the bar top.
+            Positioned(
+              bottom: _barHeight - _orbSize / 2 - 4,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => onSelect(2),
+                child: _CenterOrb(glyph: destinations[2].glyph),
+              ),
+            ),
+          ],
+        ),
       ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 58,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(destinations.length, (index) {
-              final destination = destinations[index];
-              final isActive = index == currentIndex;
-              final color = isActive ? accent : unselectedColor;
-              return Expanded(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => onSelect(index),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 4,
-                        height: 4,
-                        margin: const EdgeInsets.only(bottom: 6),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isActive ? accent : Colors.transparent,
-                          boxShadow: isActive
-                              ? [
-                                  BoxShadow(
-                                    color: accent.withValues(alpha: 0.6),
-                                    blurRadius: 6,
-                                  ),
-                                ]
-                              : null,
-                        ),
-                      ),
-                      // The center tab (Cosmos) is a gradient orb that pulses
-                      // whenever a habit is completed; the others are glyphs.
-                      index == 2
-                          ? _CenterOrb(glyph: destination.glyph)
-                          : SizedBox(
-                              height: 24,
-                              child: Center(
-                                child: Text(
-                                  destination.glyph,
-                                  style: TextStyle(
-                                    color: color,
-                                    fontSize: isActive ? 19 : 18,
-                                    height: 1.0,
-                                  ),
-                                ),
-                              ),
-                            ),
-                      const SizedBox(height: 3),
-                      Text(
-                        destination.label,
-                        style: TextStyle(
-                          color: color,
-                          fontSize: 10.5,
-                          fontWeight:
-                              isActive ? FontWeight.w700 : FontWeight.w500,
-                        ),
-                      ),
-                    ],
+    );
+  }
+
+  Widget _tabCell(int index) {
+    final destination = destinations[index];
+    final isActive = index == currentIndex;
+    final color = isActive ? accent : unselectedColor;
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onSelect(index),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 4,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 6),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isActive ? accent : Colors.transparent,
+                boxShadow: isActive
+                    ? [BoxShadow(color: accent.withValues(alpha: 0.6), blurRadius: 6)]
+                    : null,
+              ),
+            ),
+            SizedBox(
+              height: 24,
+              child: Center(
+                child: Text(
+                  destination.glyph,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: isActive ? 19 : 18,
+                    height: 1.0,
                   ),
                 ),
-              );
-            }),
-          ),
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              destination.label,
+              style: TextStyle(
+                color: color,
+                fontSize: 10.5,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Center cell holds only the label (the raised orb floats above it), spaced
+  // to keep the label baseline aligned with the flanking tabs.
+  Widget _centerLabelCell() {
+    final isActive = currentIndex == 2;
+    final color = isActive ? accent : unselectedColor;
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onSelect(2),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 10), // matches the active-dot + margin
+            const SizedBox(height: 24), // matches the glyph slot
+            const SizedBox(height: 3),
+            Text(
+              destinations[2].label,
+              style: TextStyle(
+                color: color,
+                fontSize: 10.5,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
     );
