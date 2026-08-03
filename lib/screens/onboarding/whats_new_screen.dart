@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../widgets/common/feature_row.dart';
+import '../../widgets/common/primary_button.dart';
 import '../navigation/main_navigation_screen.dart';
 import '../../theme/orbit_tokens.dart';
 
@@ -80,21 +81,9 @@ class WhatsNewScreen extends StatelessWidget {
                       'Invite a friend with your code and you both get 30 days of Orbit Pro.',
                   delay: 800),
               const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: OrbitTokens.teal,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                  ),
-                  onPressed: () => _continue(context),
-                  child: const Text('Continue to App',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                ),
+              PrimaryButton(
+                text: 'Continue to App',
+                onPressed: () => _continue(context),
               )
                   .animate()
                   .fade(delay: 1000.ms)

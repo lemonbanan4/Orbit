@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'contract_screen.dart';
 import '../../theme/orbit_tokens.dart';
+import '../../widgets/common/primary_button.dart';
 
 class FutureLetterScreen extends StatefulWidget {
   final String userName;
@@ -46,33 +47,19 @@ class _FutureLetterScreenState extends State<FutureLetterScreen> {
                   .fadeIn(delay: 500.ms, duration: 800.ms)
                   .slideY(begin: 0.2),
               const Spacer(flex: 2),
-              Center(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: OrbitTokens.teal,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
+              PrimaryButton(
+                text: 'Begin Journey',
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          ContractScreen(userName: widget.userName),
                     ),
-                  ),
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            ContractScreen(userName: widget.userName),
-                      ),
-                    );
-                  },
-                  child: const Text(
-                    'Begin Journey',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ).animate().fadeIn(delay: 1000.ms, duration: 800.ms),
-              ),
+                  );
+                },
+              ).animate().fadeIn(delay: 1000.ms, duration: 800.ms),
               const Spacer(),
             ],
           ),
