@@ -287,26 +287,26 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
               ? localCurrentCount >= targetCount
               : (existing?.isCompleted ?? false);
           final localHabit = Habit(
-              id: docId,
-              title: title,
-              routineType: _selectedRoutine,
-              iconCodePoint: _selectedIcon,
-              color: 0xFF00E5FF,
-              completedDays: existing?.completedDays ?? 0,
-              totalDays: existing?.totalDays ?? 0,
-              order:
-                  existing?.order ??
-                  provider.getHabitsForRoutine(_selectedRoutine).length,
-              isCompleted: localIsCompleted,
-              isGoal: _isGoal,
-              category: _selectedCategory ?? existing?.category,
-              activeDays: _activeDays,
-              targetCount: targetCount,
-              unit: unit.isNotEmpty ? unit : null,
-              currentCount: localCurrentCount,
-              history: existing?.history,
-              remindersEnabled: _remindersEnabled,
-              reminderTime: reminderTimeStr,
+            id: docId,
+            title: title,
+            routineType: _selectedRoutine,
+            iconCodePoint: _selectedIcon,
+            color: 0xFF00E5FF,
+            completedDays: existing?.completedDays ?? 0,
+            totalDays: existing?.totalDays ?? 0,
+            order:
+                existing?.order ??
+                provider.getHabitsForRoutine(_selectedRoutine).length,
+            isCompleted: localIsCompleted,
+            isGoal: _isGoal,
+            category: _selectedCategory ?? existing?.category,
+            activeDays: _activeDays,
+            targetCount: targetCount,
+            unit: unit.isNotEmpty ? unit : null,
+            currentCount: localCurrentCount,
+            history: existing?.history,
+            remindersEnabled: _remindersEnabled,
+            reminderTime: reminderTimeStr,
           );
           // Best-effort -- a permission/scheduling failure shouldn't block
           // saving the habit itself (matches _safeZonedSchedule's own
@@ -318,10 +318,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
           if (provider.allNotifsEnabled) {
             NotificationService.scheduleHabitReminder(localHabit);
           }
-          provider.upsertHabitLocally(
-            docId,
-            localHabit,
-          );
+          provider.upsertHabitLocally(docId, localHabit);
           Navigator.pop(context);
         }
       }
@@ -397,482 +394,494 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
       ),
       child: PremiumGlassCard(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 24),
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2),
+        // Scrollable so the full form (plus the IGNITE button) never overflows
+        // when the keyboard is up on shorter devices -- previously the fixed
+        // Column ran ~30px past the sheet's height, tripping a RenderFlex
+        // overflow right on the primary action button.
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 24),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-            Center(
-              child: Text(
-                widget.habitId == null ? 'Launch New Habit' : 'Edit Habit',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
+              Center(
+                child: Text(
+                  widget.habitId == null ? 'Launch New Habit' : 'Edit Habit',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 32),
-            TextField(
-              controller: _titleController,
-              autofocus: true,
-              style: const TextStyle(color: Colors.white, fontSize: 18),
-              decoration: InputDecoration(
-                hintText: 'e.g. Drink 1L Water',
-                hintStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.3),
-                ),
-                prefixIcon: Icon(
-                  Icons.star_rounded,
-                  color: Colors.white.withValues(alpha: 0.5),
-                ),
-                suffixIcon: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: _isScanning
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
+              const SizedBox(height: 32),
+              TextField(
+                controller: _titleController,
+                autofocus: true,
+                style: const TextStyle(color: Colors.white, fontSize: 18),
+                decoration: InputDecoration(
+                  hintText: 'e.g. Drink 1L Water',
+                  hintStyle: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.3),
+                  ),
+                  prefixIcon: Icon(
+                    Icons.star_rounded,
+                    color: Colors.white.withValues(alpha: 0.5),
+                  ),
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: _isScanning
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Color(0xFF7000FF),
+                                ),
+                              )
+                            : const Icon(
+                                Icons.document_scanner_rounded,
                                 color: Color(0xFF7000FF),
                               ),
-                            )
-                          : const Icon(
-                              Icons.document_scanner_rounded,
-                              color: Color(0xFF7000FF),
-                            ),
-                      tooltip: 'Scan with AI Lens',
-                      onPressed: _isScanning ? null : _scanWithAiLens,
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        getIconFromCodePoint(_selectedIcon),
-                        color: const Color(0xFF00E5FF),
+                        tooltip: 'Scan with AI Lens',
+                        onPressed: _isScanning ? null : _scanWithAiLens,
                       ),
-                      onPressed: () async {
-                        HapticFeedback.lightImpact();
-                        final pickedIcon = await IconPickerDialog.show(
-                          context,
-                          _selectedIcon,
-                        );
-                        if (pickedIcon != null) {
-                          setState(() => _selectedIcon = pickedIcon);
-                        }
-                      },
-                    ),
-                  ],
-                ),
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.05),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              "Assign to Routine",
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: _routineIcons.entries.map((entry) {
-                final isSelected = _selectedRoutine == entry.key;
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      setState(() => _selectedRoutine = entry.key);
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFF00E5FF).withValues(alpha: 0.2)
-                            : Colors.white.withValues(alpha: 0.05),
-                        border: Border.all(
-                          color: isSelected
-                              ? const Color(0xFF00E5FF)
-                              : Colors.transparent,
-                          width: 1.5,
+                      IconButton(
+                        icon: Icon(
+                          getIconFromCodePoint(_selectedIcon),
+                          color: const Color(0xFF00E5FF),
                         ),
-                        borderRadius: BorderRadius.circular(12),
+                        onPressed: () async {
+                          HapticFeedback.lightImpact();
+                          final pickedIcon = await IconPickerDialog.show(
+                            context,
+                            _selectedIcon,
+                          );
+                          if (pickedIcon != null) {
+                            setState(() => _selectedIcon = pickedIcon);
+                          }
+                        },
                       ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            entry.value,
+                    ],
+                  ),
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.05),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                "Assign to Routine",
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: _routineIcons.entries.map((entry) {
+                  final isSelected = _selectedRoutine == entry.key;
+                  return Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() => _selectedRoutine = entry.key);
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFF00E5FF).withValues(alpha: 0.2)
+                              : Colors.white.withValues(alpha: 0.05),
+                          border: Border.all(
                             color: isSelected
                                 ? const Color(0xFF00E5FF)
-                                : Colors.white54,
-                            size: 24,
+                                : Colors.transparent,
+                            width: 1.5,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            entry.key,
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.white54,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              widget.habitId == null
-                  ? "Focus Journey (optional)"
-                  : "Focus Journey (set at creation)",
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Opacity(
-              opacity: widget.habitId == null ? 1.0 : 0.5,
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _categoryOptions.map((option) {
-                  final isSelected = _selectedCategory == option.value;
-                  return GestureDetector(
-                    // categoryCompletions() sums a habit's *entire* history
-                    // of completedDays under whatever category it's
-                    // currently tagged with -- re-tagging an already
-                    // long-running habit retroactively moved its whole
-                    // completion count into the new category, which could
-                    // instantly max out (25 completions unlocks all 5
-                    // chapters + 150 XP) a Focus Journey the user never
-                    // actually did any work in. Category is create-time only.
-                    onTap: widget.habitId != null
-                        ? null
-                        : () {
-                            HapticFeedback.selectionClick();
-                            setState(() {
-                              _selectedCategory = isSelected
-                                  ? null
-                                  : option.value;
-                            });
-                          },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? option.color.withValues(alpha: 0.2)
-                            : Colors.white.withValues(alpha: 0.05),
-                        border: Border.all(
-                          color: isSelected ? option.color : Colors.transparent,
-                          width: 1.5,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            option.icon,
-                            color: isSelected ? option.color : Colors.white54,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            option.label,
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.white54,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                        child: Column(
+                          children: [
+                            Icon(
+                              entry.value,
+                              color: isSelected
+                                  ? const Color(0xFF00E5FF)
+                                  : Colors.white54,
+                              size: 24,
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 4),
+                            Text(
+                              entry.key,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : Colors.white54,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );
                 }).toList(),
               ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              "Repeats",
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(7, (dayIndex) {
-                final isActive = _activeDays[dayIndex];
-                return GestureDetector(
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    // A habit due on zero days makes no sense (it would
-                    // never be tallied and could never advance a streak) --
-                    // keep at least one day active, same guard used
-                    // elsewhere in the app for alarm day toggles.
-                    final activeCount = _activeDays.where((d) => d).length;
-                    if (isActive && activeCount <= 1) return;
-                    setState(() => _activeDays[dayIndex] = !isActive);
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? const Color(0xFF00E5FF)
-                          : Colors.white.withValues(alpha: 0.05),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isActive
-                            ? const Color(0xFF00E5FF)
-                            : Colors.white.withValues(alpha: 0.1),
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      _weekdayLabels[dayIndex],
-                      style: TextStyle(
-                        color: isActive ? Colors.black : Colors.white54,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ),
-            const SizedBox(height: 16),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              value: _remindersEnabled,
-              activeThumbColor: const Color(0xFF00E5FF),
-              title: const Text(
-                'Remind Me',
+              const SizedBox(height: 24),
+              Text(
+                widget.habitId == null
+                    ? "Focus Journey (optional)"
+                    : "Focus Journey (set at creation)",
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              subtitle: Text(
-                'Get a nudge for just this habit, separate from your routine alarms.',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
-              ),
-              onChanged: (val) {
-                HapticFeedback.selectionClick();
-                setState(() => _remindersEnabled = val);
-              },
-            ),
-            if (_remindersEnabled) ...[
               const SizedBox(height: 12),
-              GestureDetector(
-                onTap: () async {
-                  HapticFeedback.selectionClick();
-                  final picked = await showTimePicker(
-                    context: context,
-                    initialTime: _reminderTime,
-                  );
-                  if (picked != null) {
-                    setState(() => _reminderTime = picked);
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.alarm_rounded,
-                        color: Color(0xFF00E5FF),
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        _reminderTime.format(context),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+              Opacity(
+                opacity: widget.habitId == null ? 1.0 : 0.5,
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _categoryOptions.map((option) {
+                    final isSelected = _selectedCategory == option.value;
+                    return GestureDetector(
+                      // categoryCompletions() sums a habit's *entire* history
+                      // of completedDays under whatever category it's
+                      // currently tagged with -- re-tagging an already
+                      // long-running habit retroactively moved its whole
+                      // completion count into the new category, which could
+                      // instantly max out (25 completions unlocks all 5
+                      // chapters + 150 XP) a Focus Journey the user never
+                      // actually did any work in. Category is create-time only.
+                      onTap: widget.habitId != null
+                          ? null
+                          : () {
+                              HapticFeedback.selectionClick();
+                              setState(() {
+                                _selectedCategory = isSelected
+                                    ? null
+                                    : option.value;
+                              });
+                            },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? option.color.withValues(alpha: 0.2)
+                              : Colors.white.withValues(alpha: 0.05),
+                          border: Border.all(
+                            color: isSelected
+                                ? option.color
+                                : Colors.transparent,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              option.icon,
+                              color: isSelected ? option.color : Colors.white54,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              option.label,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : Colors.white54,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    );
+                  }).toList(),
                 ),
               ),
-            ],
-            const SizedBox(height: 16),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              value: _isCountBased,
-              activeThumbColor: const Color(0xFF00E5FF),
-              title: const Text(
-                'Track a Number',
+              const SizedBox(height: 24),
+              Text(
+                "Repeats",
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              subtitle: Text(
-                'For habits like "Drink 8 glasses of water" instead of a simple checkbox.',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
-              ),
-              onChanged: (val) {
-                HapticFeedback.selectionClick();
-                setState(() => _isCountBased = val);
-              },
-            ),
-            if (_isCountBased) ...[
               const SizedBox(height: 12),
               Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _targetCountController,
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        labelText: 'Daily target',
-                        labelStyle: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: List.generate(7, (dayIndex) {
+                  final isActive = _activeDays[dayIndex];
+                  return GestureDetector(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      // A habit due on zero days makes no sense (it would
+                      // never be tallied and could never advance a streak) --
+                      // keep at least one day active, same guard used
+                      // elsewhere in the app for alarm day toggles.
+                      final activeCount = _activeDays.where((d) => d).length;
+                      if (isActive && activeCount <= 1) return;
+                      setState(() => _activeDays[dayIndex] = !isActive);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? const Color(0xFF00E5FF)
+                            : Colors.white.withValues(alpha: 0.05),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isActive
+                              ? const Color(0xFF00E5FF)
+                              : Colors.white.withValues(alpha: 0.1),
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        _weekdayLabels[dayIndex],
+                        style: TextStyle(
+                          color: isActive ? Colors.black : Colors.white54,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 16),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _remindersEnabled,
+                activeThumbColor: const Color(0xFF00E5FF),
+                title: const Text(
+                  'Remind Me',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text(
+                  'Get a nudge for just this habit, separate from your routine alarms.',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                ),
+                onChanged: (val) {
+                  HapticFeedback.selectionClick();
+                  setState(() => _remindersEnabled = val);
+                },
+              ),
+              if (_remindersEnabled) ...[
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: () async {
+                    HapticFeedback.selectionClick();
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: _reminderTime,
+                    );
+                    if (picked != null) {
+                      setState(() => _reminderTime = picked);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.alarm_rounded,
+                          color: Color(0xFF00E5FF),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          _reminderTime.format(context),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF00E5FF),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _isCountBased,
+                activeThumbColor: const Color(0xFF00E5FF),
+                title: const Text(
+                  'Track a Number',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text(
+                  'For habits like "Drink 8 glasses of water" instead of a simple checkbox.',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                ),
+                onChanged: (val) {
+                  HapticFeedback.selectionClick();
+                  setState(() => _isCountBased = val);
+                },
+              ),
+              if (_isCountBased) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _targetCountController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: 'Daily target',
+                          labelStyle: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.1),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF00E5FF),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _unitController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        labelText: 'Unit (glasses, pages...)',
-                        labelStyle: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.1),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _unitController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: 'Unit (glasses, pages...)',
+                          labelStyle: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5),
                           ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF00E5FF),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.1),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF00E5FF),
+                            ),
                           ),
                         ),
                       ),
                     ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 16),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _isGoal,
+                activeThumbColor: const Color(0xFF00E5FF),
+                title: const Text(
+                  'Mark as Goal',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
+                ),
+                subtitle: Text(
+                  'Goal habits show a badge to help them stand out.',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                ),
+                onChanged: (val) {
+                  HapticFeedback.selectionClick();
+                  setState(() => _isGoal = val);
+                },
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00E5FF),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                onPressed: _isLoading
+                    ? null
+                    : () {
+                        HapticFeedback.lightImpact();
+                        _createHabit();
+                      },
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.black,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'IGNITE',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2,
+                        ),
+                      ),
               ),
             ],
-            const SizedBox(height: 16),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              value: _isGoal,
-              activeThumbColor: const Color(0xFF00E5FF),
-              title: const Text(
-                'Mark as Goal',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              subtitle: Text(
-                'Goal habits show a badge to help them stand out.',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
-              ),
-              onChanged: (val) {
-                HapticFeedback.selectionClick();
-                setState(() => _isGoal = val);
-              },
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00E5FF),
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              onPressed: _isLoading
-                  ? null
-                  : () {
-                      HapticFeedback.lightImpact();
-                      _createHabit();
-                    },
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.black,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : const Text(
-                      'IGNITE',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 2,
-                      ),
-                    ),
-            ),
-          ],
+          ),
         ),
       ),
     ).animate().slideY(
