@@ -7,6 +7,13 @@ import 'package:rive/rive.dart' hide Image;
 /// code change. Until then, [CosmicaFairy] transparently shows the static image.
 const String kCosmicaRiveAsset = 'assets/rive/cosmica.riv';
 
+/// Master switch for the animated rig. OFF until the runtime is upgraded to
+/// rive 0.14 (rive_native) -- the pinned 0.13 runtime can't render .riv files
+/// exported from the current Rive editor (it throws on newer fill types and
+/// renders blank). While false, CosmicaFairy always shows the static fairy, so
+/// the app stays clean. Flip to true once we're on the 0.14 runtime.
+const bool kCosmicaRiveEnabled = false;
+
 /// Orbit's mascot, Cosmica. Plays the Rive animation at [riveAsset] when a valid
 /// `.riv` is bundled, and gracefully falls back to the static [fallbackImage]
 /// otherwise -- so the UI is never blank or broken while the animation file is
@@ -54,6 +61,7 @@ class _CosmicaFairyState extends State<CosmicaFairy> {
   late final Future<RiveFile?> _fileFuture = _load();
 
   Future<RiveFile?> _load() async {
+    if (!kCosmicaRiveEnabled) return null; // gated off: use static fallback
     try {
       return await RiveFile.asset(widget.riveAsset);
     } catch (_) {
