@@ -926,6 +926,11 @@ class _RoutineCardState extends State<RoutineCard> {
                                                     widget.habits[index];
                                                 final bool isCompleted =
                                                     habit.isCompleted;
+                                                // This habit's own streak
+                                                // (derived from history) --
+                                                // shown as a subtitle badge.
+                                                final int habitStreak =
+                                                    habit.computeCurrentStreak();
                                                 final Color highlightColor =
                                                     themeAccent;
                                                 final bool isDeleting =
@@ -1187,10 +1192,9 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                 softWrap: true,
                                                               ),
                                                               subtitle:
-                                                                  habit
+                                                                  !habit
                                                                       .isActiveOn()
-                                                                  ? null
-                                                                  : const Text(
+                                                                  ? const Text(
                                                                       'Not scheduled today',
                                                                       style: TextStyle(
                                                                         color: Colors
@@ -1200,7 +1204,22 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                         fontStyle:
                                                                             FontStyle.italic,
                                                                       ),
-                                                                    ),
+                                                                    )
+                                                                  : (habitStreak >=
+                                                                            2
+                                                                        ? Text(
+                                                                            '🔥 $habitStreak day streak',
+                                                                            style: const TextStyle(
+                                                                              color: Color(
+                                                                                0xFFF2C879,
+                                                                              ),
+                                                                              fontSize:
+                                                                                  11,
+                                                                              fontWeight:
+                                                                                  FontWeight.w600,
+                                                                            ),
+                                                                          )
+                                                                        : null),
                                                               trailing: Row(
                                                                 mainAxisSize:
                                                                     MainAxisSize
