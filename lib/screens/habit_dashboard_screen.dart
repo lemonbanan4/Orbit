@@ -332,6 +332,29 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
         ),
       ),
       actions: [
+        // Add-habit lives here now (replacing the old floating button): a
+        // compact "+" that opens the same starter picker.
+        IconButton(
+          icon: Icon(Icons.add_circle_outline_rounded, color: orbColor1),
+          tooltip: 'New habit',
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            showModalBottomSheet(
+              context: context,
+              backgroundColor: Colors.transparent,
+              isScrollControlled: true,
+              builder: (context) => PresetHabitSelector(
+                onHabitSelected: (title, icon, color) {
+                  CreateHabitSheet.show(
+                    context,
+                    initialTitle: title,
+                    initialIcon: icon.codePoint,
+                  );
+                },
+              ),
+            );
+          },
+        ),
         IconButton(
           icon: Icon(Icons.group_add_rounded, color: orbColor1),
           onPressed: () {
@@ -379,44 +402,8 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
       //     ],
       //   ),
       // ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 2.0),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(width: 12),
-            FloatingActionButton.extended(
-              heroTag: 'new_habit',
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                showModalBottomSheet(
-                  context: context,
-                  backgroundColor: Colors.transparent,
-                  isScrollControlled: true,
-                  builder: (context) => PresetHabitSelector(
-                    onHabitSelected: (title, icon, color) {
-                      CreateHabitSheet.show(
-                        context,
-                        initialTitle: title,
-                        initialIcon: icon.codePoint,
-                      );
-                    },
-                  ),
-                );
-              },
-              backgroundColor: (isDark ? Colors.black : Colors.white)
-                  .withValues(alpha: 0.7),
-              foregroundColor: orbColor1,
-              icon: const Icon(Icons.add_rounded, size: 24),
-              label: const Text(
-                'New Habit',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              elevation: 8,
-            ),
-          ],
-        ),
-      ),
+      // Floating "New Habit" button removed — habit creation now lives in the
+      // header "+" and on each routine card, so the dashboard stays clean.
 
       // body: Stack(
       //   children: [

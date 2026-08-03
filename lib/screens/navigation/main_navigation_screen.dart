@@ -294,6 +294,48 @@ class _OrbitNavDestination {
   const _OrbitNavDestination(this.glyph, this.label);
 }
 
+/// Paints the nav bar as a gradient panel with a circular notch carved out of
+/// its top-center edge (the "U" that cradles the Cosmos orb), plus a hairline
+/// that follows the notch curve. Uses [CircularNotchedRectangle] -- the same
+/// shape Material's BottomAppBar uses to dock a FAB.
+class _NotchedBarPainter extends CustomPainter {
+  final double notchRadius;
+  final Gradient gradient;
+  final Color hairline;
+
+  const _NotchedBarPainter({
+    required this.notchRadius,
+    required this.gradient,
+    required this.hairline,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final host = Offset.zero & size;
+    // Guest circle sits on the top edge (centre y = 0) so the notch cuts down
+    // into the bar and cradles the orb's lower half.
+    final guest = Rect.fromCircle(
+      center: Offset(size.width / 2, 0),
+      radius: notchRadius,
+    );
+    final path = const CircularNotchedRectangle().getOuterPath(host, guest);
+    canvas.drawPath(path, Paint()..shader = gradient.createShader(host));
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = hairline,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_NotchedBarPainter old) =>
+      old.notchRadius != notchRadius ||
+      old.gradient != gradient ||
+      old.hairline != hairline;
+}
+
 /// Orbit's bottom nav: a subtly gradient bar with a raised, glowing gradient
 /// "orb" for Cosmos that floats above it. The orb pulses (scale + glow bloom)
 /// every time a habit is completed (see [_CenterOrb]), so the nav comes alive
@@ -332,32 +374,36 @@ class _OrbitNavBar extends StatelessWidget {
           clipBehavior: Clip.none,
           alignment: Alignment.bottomCenter,
           children: [
-            // The bar (subtle top-lit gradient + hairline).
+            // The bar, with a circular "U" notch cradling the center orb.
             Positioned(
               left: 0,
               right: 0,
               bottom: 0,
-              child: Container(
-                height: _barHeight,
-                decoration: BoxDecoration(
+              child: CustomPaint(
+                painter: _NotchedBarPainter(
+                  notchRadius: _orbSize / 2 + 7,
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [topTint, backgroundColor],
                   ),
-                  border: Border(top: BorderSide(color: hairline)),
+                  hairline: hairline,
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: List.generate(destinations.length, (index) {
-                    return index == 2 ? _centerLabelCell() : _tabCell(index);
-                  }),
+                child: SizedBox(
+                  height: _barHeight,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: List.generate(destinations.length, (index) {
+                      return index == 2 ? _centerLabelCell() : _tabCell(index);
+                    }),
+                  ),
                 ),
               ),
             ),
-            // Raised, glowing gradient orb for Cosmos, overlapping the bar top.
+            // Glowing gradient orb nestled in the notch (centered on the bar top
+            // so its lower half sits in the cradle, upper half floats above).
             Positioned(
-              bottom: _barHeight - _orbSize / 2 - 4,
+              bottom: _barHeight - _orbSize / 2,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => onSelect(2),
@@ -422,8 +468,8 @@ class _OrbitNavBar extends StatelessWidget {
     );
   }
 
-  // Center cell holds only the label (the raised orb floats above it), spaced
-  // to keep the label baseline aligned with the flanking tabs.
+  // Center cell holds only the label (the orb sits in the notch above it),
+  // spaced to keep the label baseline aligned with the flanking tabs.
   Widget _centerLabelCell() {
     final isActive = currentIndex == 2;
     final color = isActive ? accent : unselectedColor;
