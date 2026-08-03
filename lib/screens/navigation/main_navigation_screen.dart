@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'profile_screen.dart';
 import '../social/leaderboard_screen.dart';
@@ -187,6 +188,103 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 }
 
+/// The center nav "orb" — a teal→violet→gold gradient disc holding the Cosmos
+/// glyph. It gives a one-shot pulse (scale + glow bloom) every time the user's
+/// completed-habits-today count ticks up, so finishing a habit anywhere in the
+/// app makes the orb come alive. Fully driven by real state
+/// (RoutineProvider.habitsCompletedToday) — no fake animation.
+class _CenterOrb extends StatefulWidget {
+  final String glyph;
+  const _CenterOrb({required this.glyph});
+
+  @override
+  State<_CenterOrb> createState() => _CenterOrbState();
+}
+
+class _CenterOrbState extends State<_CenterOrb>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 620),
+  );
+  int? _lastCount;
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  void _onCount(int count) {
+    // Pulse only on a genuine increase (a habit was just completed), never on
+    // the first read or on decrements (un-checking a habit).
+    if (_lastCount != null && count > _lastCount!) {
+      _pulse.forward(from: 0);
+    }
+    _lastCount = count;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final count =
+        context.select<RoutineProvider, int>((p) => p.habitsCompletedToday);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _onCount(count);
+    });
+
+    return SizedBox(
+      height: 24,
+      child: Center(
+        child: AnimatedBuilder(
+          animation: _pulse,
+          builder: (context, _) {
+            final t = math.sin(_pulse.value * math.pi); // 0 -> 1 -> 0 bump
+            final scale = 1 + 0.24 * t;
+            final glow = 0.30 + 0.55 * t;
+            return Transform.scale(
+              scale: scale,
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      OrbitTokens.teal,
+                      OrbitTokens.violet,
+                      OrbitTokens.gold,
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: OrbitTokens.violet.withValues(alpha: glow),
+                      blurRadius: 10 + 12 * t,
+                      spreadRadius: 1 + 2 * t,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    widget.glyph,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      height: 1.0,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
 class _OrbitNavDestination {
   /// Geometric glyph from the redesign pitch (◐ ◈ ✦ ▤ ◯) rendered as
   /// text — deliberately not Material icons.
@@ -258,19 +356,23 @@ class _OrbitNavBar extends StatelessWidget {
                               : null,
                         ),
                       ),
-                      SizedBox(
-                        height: 24,
-                        child: Center(
-                          child: Text(
-                            destination.glyph,
-                            style: TextStyle(
-                              color: color,
-                              fontSize: isActive ? 19 : 18,
-                              height: 1.0,
+                      // The center tab (Cosmos) is a gradient orb that pulses
+                      // whenever a habit is completed; the others are glyphs.
+                      index == 2
+                          ? _CenterOrb(glyph: destination.glyph)
+                          : SizedBox(
+                              height: 24,
+                              child: Center(
+                                child: Text(
+                                  destination.glyph,
+                                  style: TextStyle(
+                                    color: color,
+                                    fontSize: isActive ? 19 : 18,
+                                    height: 1.0,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ),
                       const SizedBox(height: 3),
                       Text(
                         destination.label,
