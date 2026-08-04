@@ -131,6 +131,23 @@ class _RoutineCardState extends State<RoutineCard> {
       );
     }
     final rows = <Widget>[];
+    // Weekly ("N times/week") habits show their weekly progress instead of a
+    // daily streak (a per-day streak is meaningless for them).
+    if (habit.isWeekly) {
+      final done = habit.weeklyCompletions();
+      final target = habit.weeklyTarget!;
+      final met = done >= target;
+      rows.add(
+        Text(
+          met ? '✓ $done/$target this week — done!' : '📅 $done/$target this week',
+          style: TextStyle(
+            color: met ? const Color(0xFF33E6D8) : Colors.white.withValues(alpha: 0.6),
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
     final note = habit.note?.trim() ?? '';
     if (note.isNotEmpty) {
       rows.add(
@@ -146,7 +163,7 @@ class _RoutineCardState extends State<RoutineCard> {
         ),
       );
     }
-    if (streak >= 2) {
+    if (!habit.isWeekly && streak >= 2) {
       rows.add(
         Text(
           '🔥 $streak day streak',
@@ -1058,6 +1075,8 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                               habit.reminderTime,
                                                                           initialNote:
                                                                               habit.note,
+                                                                          initialWeeklyTarget:
+                                                                              habit.weeklyTarget,
                                                                         );
                                                                       },
                                                                   backgroundColor:

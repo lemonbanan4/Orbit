@@ -28,6 +28,7 @@ class CreateHabitSheet extends StatefulWidget {
   final bool initialRemindersEnabled;
   final String? initialReminderTime;
   final String? initialNote;
+  final int? initialWeeklyTarget;
 
   const CreateHabitSheet({
     super.key,
@@ -43,6 +44,7 @@ class CreateHabitSheet extends StatefulWidget {
     this.initialRemindersEnabled = false,
     this.initialReminderTime,
     this.initialNote,
+    this.initialWeeklyTarget,
   });
 
   static void show(
@@ -59,6 +61,7 @@ class CreateHabitSheet extends StatefulWidget {
     bool initialRemindersEnabled = false,
     String? initialReminderTime,
     String? initialNote,
+    int? initialWeeklyTarget,
   }) {
     showModalBottomSheet(
       context: context,
@@ -100,6 +103,8 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
   late bool _remindersEnabled;
   late TimeOfDay _reminderTime;
   late TextEditingController _noteController;
+  late bool _isWeekly;
+  late int _weeklyTarget;
 
   final Map<String, IconData> _routineIcons = {
     'Morning': Icons.wb_sunny_rounded,
@@ -165,6 +170,8 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
     );
     _unitController = TextEditingController(text: widget.initialUnit ?? '');
     _noteController = TextEditingController(text: widget.initialNote ?? '');
+    _isWeekly = widget.initialWeeklyTarget != null;
+    _weeklyTarget = widget.initialWeeklyTarget ?? 3;
     _remindersEnabled = widget.initialRemindersEnabled;
     _reminderTime = _parseReminderTime(widget.initialReminderTime);
   }
@@ -189,6 +196,60 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
     _unitController.dispose();
     _noteController.dispose();
     super.dispose();
+  }
+
+  Widget _repeatModeChip(String label, bool selected, VoidCallback onTap) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected
+                ? const Color(0xFF00E5FF).withValues(alpha: 0.15)
+                : Colors.white.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected
+                  ? const Color(0xFF00E5FF)
+                  : Colors.white.withValues(alpha: 0.12),
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? const Color(0xFF00E5FF) : Colors.white54,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _weeklyStepButton(IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+        child: Icon(icon, color: Colors.white, size: 20),
+      ),
+    );
   }
 
   Future<void> _createHabit() async {
@@ -241,7 +302,8 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
           // the *current* desired schedule on every save (create or edit)
           // -- there's no "reset to a stale default" risk here since it's
           // exactly what the day picker below shows the user right now.
-          'activeDays': _activeDays,
+          // Weekly ("N times/week") habits are available to log every day.
+          'activeDays': _isWeekly ? List.filled(7, true) : _activeDays,
           'remindersEnabled': _remindersEnabled,
           if (reminderTimeStr != null)
             'reminderTime': reminderTimeStr
@@ -254,6 +316,11 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
           // Optional motivation note -- explicit clear on empty (merge writes
           // only preserve absent keys), same pattern as reminderTime above.
           if (note.isNotEmpty) 'note': note else 'note': FieldValue.delete(),
+          // Flexible weekly scheduling -- explicit clear when switched off.
+          if (_isWeekly)
+            'weeklyTarget': _weeklyTarget
+          else
+            'weeklyTarget': FieldValue.delete(),
           if (widget.habitId == null) ...{
             'completedDays': 0,
             'totalDays': 0,
@@ -312,7 +379,8 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
             isCompleted: localIsCompleted,
             isGoal: _isGoal,
             category: _selectedCategory ?? existing?.category,
-            activeDays: _activeDays,
+            activeDays: _isWeekly ? List.filled(7, true) : _activeDays,
+            weeklyTarget: _isWeekly ? _weeklyTarget : null,
             targetCount: targetCount,
             unit: unit.isNotEmpty ? unit : null,
             currentCount: localCurrentCount,
@@ -653,49 +721,100 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
                 ),
               ),
               const SizedBox(height: 12),
+              // Mode toggle: specific weekdays vs. a flexible "N times / week".
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(7, (dayIndex) {
-                  final isActive = _activeDays[dayIndex];
-                  return GestureDetector(
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      // A habit due on zero days makes no sense (it would
-                      // never be tallied and could never advance a streak) --
-                      // keep at least one day active, same guard used
-                      // elsewhere in the app for alarm day toggles.
-                      final activeCount = _activeDays.where((d) => d).length;
-                      if (isActive && activeCount <= 1) return;
-                      setState(() => _activeDays[dayIndex] = !isActive);
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: isActive
-                            ? const Color(0xFF00E5FF)
-                            : Colors.white.withValues(alpha: 0.05),
-                        shape: BoxShape.circle,
-                        border: Border.all(
+                children: [
+                  _repeatModeChip('Specific days', !_isWeekly,
+                      () => setState(() => _isWeekly = false)),
+                  const SizedBox(width: 8),
+                  _repeatModeChip('Times / week', _isWeekly,
+                      () => setState(() => _isWeekly = true)),
+                ],
+              ),
+              const SizedBox(height: 14),
+              if (!_isWeekly)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: List.generate(7, (dayIndex) {
+                    final isActive = _activeDays[dayIndex];
+                    return GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        // A habit due on zero days makes no sense (it would
+                        // never be tallied and could never advance a streak) --
+                        // keep at least one day active, same guard used
+                        // elsewhere in the app for alarm day toggles.
+                        final activeCount = _activeDays.where((d) => d).length;
+                        if (isActive && activeCount <= 1) return;
+                        setState(() => _activeDays[dayIndex] = !isActive);
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
                           color: isActive
                               ? const Color(0xFF00E5FF)
-                              : Colors.white.withValues(alpha: 0.1),
+                              : Colors.white.withValues(alpha: 0.05),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isActive
+                                ? const Color(0xFF00E5FF)
+                                : Colors.white.withValues(alpha: 0.1),
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          _weekdayLabels[dayIndex],
+                          style: TextStyle(
+                            color: isActive ? Colors.black : Colors.white54,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
-                      alignment: Alignment.center,
+                    );
+                  }),
+                )
+              else
+                Row(
+                  children: [
+                    _weeklyStepButton(Icons.remove_rounded, () {
+                      if (_weeklyTarget > 1) {
+                        setState(() => _weeklyTarget--);
+                      }
+                    }),
+                    Expanded(
                       child: Text(
-                        _weekdayLabels[dayIndex],
-                        style: TextStyle(
-                          color: isActive ? Colors.black : Colors.white54,
+                        '$_weeklyTarget× per week',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          fontSize: 13,
                         ),
                       ),
                     ),
-                  );
-                }),
-              ),
+                    _weeklyStepButton(Icons.add_rounded, () {
+                      if (_weeklyTarget < 7) {
+                        setState(() => _weeklyTarget++);
+                      }
+                    }),
+                  ],
+                ),
+              if (_isWeekly)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Complete it any $_weeklyTarget days each week — rest days '
+                    "won't break your streak.",
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.4),
+                      fontSize: 11.5,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
               const SizedBox(height: 16),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,

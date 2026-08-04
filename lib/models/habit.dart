@@ -56,6 +56,15 @@ class Habit {
   // the habit tile and round-tripped through the create/edit sheet. Null when
   // unset; capped at 500 chars to match firestore.rules' isValidHabit.
   final String? note;
+  // Flexible "N times per week" scheduling. Null = the classic day-based
+  // model (activeDays governs when it's due). Non-null (1..7) = the habit is
+  // satisfied for the week once completed this many times on ANY days -- it's
+  // available to log every day and, crucially, is EXCLUDED from the daily
+  // routine-completion / miss / streak machinery, so off-days never break the
+  // app-wide streak. Progress is tracked separately via [weeklyCompletions].
+  final int? weeklyTarget;
+
+  bool get isWeekly => weeklyTarget != null;
 
   Habit({
     required this.id,
@@ -78,6 +87,7 @@ class Habit {
     this.remindersEnabled = false,
     this.reminderTime,
     this.note,
+    this.weeklyTarget,
     List<bool>? activeDays,
     Map<String, bool>? history,
   }) : history = history ?? {},
@@ -202,6 +212,7 @@ class Habit {
       remindersEnabled: data['remindersEnabled'] == true,
       reminderTime: data['reminderTime']?.toString(),
       note: data['note']?.toString(),
+      weeklyTarget: data['weeklyTarget'] is int ? data['weeklyTarget'] : null,
     );
   }
 
@@ -229,6 +240,33 @@ class Habit {
       if (targetCount != null) 'currentCount': currentCount,
       if (reminderTime != null) 'reminderTime': reminderTime,
       if (note != null && note!.isNotEmpty) 'note': note,
+      if (weeklyTarget != null) 'weeklyTarget': weeklyTarget,
     };
   }
+
+  /// How many times this (weekly) habit has been completed in the current
+  /// Monday–Sunday week: past days come from [history], today from the live
+  /// [isCompleted] flag (which hasn't been folded into history until the next
+  /// daily reset). Meaningless for day-based habits; used only for the
+  /// "N/target this week" indicator and [isWeeklyMet].
+  int weeklyCompletions() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final monday = today.subtract(Duration(days: today.weekday - 1));
+    int count = 0;
+    for (int i = 0; i < 7; i++) {
+      final day = monday.add(Duration(days: i));
+      if (day.isAfter(today)) break;
+      if (day == today) {
+        if (isCompleted) count++;
+      } else {
+        final key = day.toIso8601String().substring(0, 10);
+        if (history[key] == true) count++;
+      }
+    }
+    return count;
+  }
+
+  /// True once a weekly habit has hit its target for the current week.
+  bool get isWeeklyMet => isWeekly && weeklyCompletions() >= weeklyTarget!;
 }

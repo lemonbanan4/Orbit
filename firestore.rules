@@ -132,7 +132,8 @@ service cloud.firestore {
       let allowedKeys = ['id', 'title', 'routine', 'iconCodePoint', 'color',
         'completedDays', 'totalDays', 'order', 'skippedCount', 'time', 'isCompleted',
         'history', 'isGoal', 'category', 'activeDays', 'targetCount', 'unit',
-        'currentCount', 'isArchived', 'remindersEnabled', 'reminderTime', 'note'];
+        'currentCount', 'isArchived', 'remindersEnabled', 'reminderTime', 'note',
+        'weeklyTarget'];
       // Which days of the week this habit is due (see Habit.activeDays) --
       // must be exactly 7 booleans if present at all.
       let isActiveDaysValid = !('activeDays' in data) ||
@@ -150,12 +151,15 @@ service cloud.firestore {
         (!('reminderTime' in data) || isValidString(data.reminderTime, 3, 5));
       // Optional per-habit motivation note (see Habit.note).
       let isNoteValid = !('note' in data) || isValidString(data.note, 0, 500);
+      // Flexible "N times per week" scheduling (see Habit.weeklyTarget): 1..7.
+      let isWeeklyTargetValid = !('weeklyTarget' in data) ||
+        (data.weeklyTarget is int && data.weeklyTarget >= 1 && data.weeklyTarget <= 7);
       return data.keys().hasOnly(allowedKeys) &&
              isValidString(data.title, 1, 100) &&
              isValidString(data.routine, 1, 50) &&
              isActiveDaysValid && isTargetCountValid && isUnitValid &&
              isCurrentCountValid && isArchivedValid && isRemindersValid &&
-             isNoteValid;
+             isNoteValid && isWeeklyTargetValid;
     }
 
     function isValidJournalEntry(data) {

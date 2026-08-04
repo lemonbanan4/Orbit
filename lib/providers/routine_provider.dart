@@ -522,8 +522,11 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
       _habits.values.where((h) => !h.isArchived && h.isCompleted).length;
 
   /// Non-archived habits actually scheduled for today (respects activeDays).
-  int get _habitsDueToday =>
-      _habits.values.where((h) => !h.isArchived && h.isActiveOn()).length;
+  /// Weekly ("N times/week") habits aren't due on any specific day, so they're
+  /// excluded from the adaptive-mission "due today" count.
+  int get _habitsDueToday => _habits.values
+      .where((h) => !h.isArchived && !h.isWeekly && h.isActiveOn())
+      .length;
 
   /// Adaptive daily missions (v1.2). Instead of a fixed 1/3/5 ladder -- which
   /// is impossible for someone with 2 habits and trivial for someone with 12 --
@@ -1393,7 +1396,9 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
                   .where(
                     (h) =>
                         h.isCompleted ||
-                        (!h.isArchived && h.activeDays[closingWeekday - 1]),
+                        (!h.isArchived &&
+                            !h.isWeekly &&
+                            h.activeDays[closingWeekday - 1]),
                   )
                   .toList();
         final completedCount = dueHabits.where((h) => h.isCompleted).length;
@@ -1491,9 +1496,13 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         // or leave a history entry at all. Same for an archived (paused)
         // habit -- pausing is meant to stop the penalty, not just hide it;
         // a genuine completion before archiving still counts either way.
+        // A weekly ("N times/week") habit is only ever recorded on days it was
+        // actually completed -- it has no per-day due-ness, so an off-day is
+        // never a "miss"/skip and never touches totalDays or the daily streak.
         final wasDueOrDone =
             habit.isCompleted ||
             (!habit.isArchived &&
+                !habit.isWeekly &&
                 closingWeekday != null &&
                 habit.activeDays[closingWeekday - 1]);
         if (completedDayKey != null && wasDueOrDone) {
@@ -1550,9 +1559,12 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   // toward "did you finish today," matching how they're excluded from the
   // daily-reset tally below.
   bool isRoutineComplete(String routineType) {
+    // Weekly ("N times/week") habits are excluded: they're a parallel track
+    // that must never gate the daily routine-completion / streak, so an
+    // off-day for a weekly habit doesn't stop the day from counting.
     List<Habit> habits = getHabitsForRoutine(
       routineType,
-    ).where((h) => h.isActiveOn()).toList();
+    ).where((h) => h.isActiveOn() && !h.isWeekly).toList();
     if (habits.isEmpty) return false;
     return habits.every((habit) => isHabitCompleted(habit.id));
   }

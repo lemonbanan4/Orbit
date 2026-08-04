@@ -677,6 +677,8 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                             habit
                                                                 .reminderTime,
                                                         initialNote: habit.note,
+                                                        initialWeeklyTarget:
+                                                            habit.weeklyTarget,
                                                       );
                                                     },
                                                     backgroundColor:
