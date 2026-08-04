@@ -17,6 +17,7 @@ import '../services/ai_coach_service.dart';
 import '../widgets/create_habit_sheet.dart';
 import '../widgets/daily_missions_card.dart';
 import '../widgets/comeback_banner.dart';
+import '../widgets/common/cosmica_fairy.dart';
 import '../screens/paywall/paywall_screen.dart';
 import '../widgets/common/base_orbit_screen.dart';
 import '../theme/orbit_colors.dart';
@@ -706,13 +707,7 @@ class _HabitDashboardScreenState extends State<HabitDashboardScreen>
                             top: -10,
                             right: -15,
                             child:
-                                SizedBox(
-                                      width: 70,
-                                      height: 70,
-                                      child: Image.asset(
-                                        'assets/images/fairy_avatar.png',
-                                      ),
-                                    )
+                                const CosmicaFairy(size: 70)
                                     .animate(
                                       onPlay: (c) => c.repeat(reverse: true),
                                     )
