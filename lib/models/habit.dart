@@ -52,6 +52,10 @@ class Habit {
   // is false.
   bool remindersEnabled;
   String? reminderTime; // "HH:MM", 24-hour
+  // Optional free-text motivation note ("why this matters to me"), shown on
+  // the habit tile and round-tripped through the create/edit sheet. Null when
+  // unset; capped at 500 chars to match firestore.rules' isValidHabit.
+  final String? note;
 
   Habit({
     required this.id,
@@ -73,6 +77,7 @@ class Habit {
     this.isArchived = false,
     this.remindersEnabled = false,
     this.reminderTime,
+    this.note,
     List<bool>? activeDays,
     Map<String, bool>? history,
   }) : history = history ?? {},
@@ -196,6 +201,7 @@ class Habit {
       isArchived: data['isArchived'] == true,
       remindersEnabled: data['remindersEnabled'] == true,
       reminderTime: data['reminderTime']?.toString(),
+      note: data['note']?.toString(),
     );
   }
 
@@ -222,6 +228,7 @@ class Habit {
       if (unit != null) 'unit': unit,
       if (targetCount != null) 'currentCount': currentCount,
       if (reminderTime != null) 'reminderTime': reminderTime,
+      if (note != null && note!.isNotEmpty) 'note': note,
     };
   }
 }

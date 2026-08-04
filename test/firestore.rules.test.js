@@ -365,6 +365,29 @@ describe("Orbit Firestore Security Rules", () => {
     await assertSucceeds(habitDoc.update({ category: "mind" }));
   });
 
+  it("Allows a habit note within 500 chars, denies an over-long one", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const habitDoc = db
+      .collection("users")
+      .doc("user123")
+      .collection("habits")
+      .doc("habit1");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false });
+      await context
+        .firestore()
+        .collection("users")
+        .doc("user123")
+        .collection("habits")
+        .doc("habit1")
+        .set({ title: "Meditate", routine: "Morning", completedDays: 0, totalDays: 0 });
+    });
+
+    await assertSucceeds(habitDoc.update({ note: "Because a calm mind changes everything." }));
+    await assertFails(habitDoc.update({ note: "x".repeat(501) }));
+  });
+
   it("Allows a valid 7-day activeDays but denies a wrong-length one", async () => {
     const db = testEnv.authenticatedContext("user123").firestore();
     const habitDoc = db

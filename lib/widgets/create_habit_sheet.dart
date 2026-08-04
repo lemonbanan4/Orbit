@@ -27,6 +27,7 @@ class CreateHabitSheet extends StatefulWidget {
   final String? initialUnit;
   final bool initialRemindersEnabled;
   final String? initialReminderTime;
+  final String? initialNote;
 
   const CreateHabitSheet({
     super.key,
@@ -41,6 +42,7 @@ class CreateHabitSheet extends StatefulWidget {
     this.initialUnit,
     this.initialRemindersEnabled = false,
     this.initialReminderTime,
+    this.initialNote,
   });
 
   static void show(
@@ -56,6 +58,7 @@ class CreateHabitSheet extends StatefulWidget {
     String? initialUnit,
     bool initialRemindersEnabled = false,
     String? initialReminderTime,
+    String? initialNote,
   }) {
     showModalBottomSheet(
       context: context,
@@ -73,6 +76,7 @@ class CreateHabitSheet extends StatefulWidget {
         initialUnit: initialUnit,
         initialRemindersEnabled: initialRemindersEnabled,
         initialReminderTime: initialReminderTime,
+        initialNote: initialNote,
       ),
     );
   }
@@ -95,6 +99,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
   late TextEditingController _unitController;
   late bool _remindersEnabled;
   late TimeOfDay _reminderTime;
+  late TextEditingController _noteController;
 
   final Map<String, IconData> _routineIcons = {
     'Morning': Icons.wb_sunny_rounded,
@@ -159,6 +164,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
       text: (widget.initialTargetCount ?? 8).toString(),
     );
     _unitController = TextEditingController(text: widget.initialUnit ?? '');
+    _noteController = TextEditingController(text: widget.initialNote ?? '');
     _remindersEnabled = widget.initialRemindersEnabled;
     _reminderTime = _parseReminderTime(widget.initialReminderTime);
   }
@@ -181,6 +187,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
     _titleController.dispose();
     _targetCountController.dispose();
     _unitController.dispose();
+    _noteController.dispose();
     super.dispose();
   }
 
@@ -219,6 +226,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
               )
             : null;
         final unit = _unitController.text.trim();
+        final note = _noteController.text.trim();
         final reminderTimeStr = _remindersEnabled
             ? '${_reminderTime.hour.toString().padLeft(2, '0')}:'
                   '${_reminderTime.minute.toString().padLeft(2, '0')}'
@@ -243,6 +251,9 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
             // targetCount/unit below).
             'reminderTime': FieldValue.delete(),
           if (_selectedCategory != null) 'category': _selectedCategory,
+          // Optional motivation note -- explicit clear on empty (merge writes
+          // only preserve absent keys), same pattern as reminderTime above.
+          if (note.isNotEmpty) 'note': note else 'note': FieldValue.delete(),
           if (widget.habitId == null) ...{
             'completedDays': 0,
             'totalDays': 0,
@@ -308,6 +319,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
             history: existing?.history,
             remindersEnabled: _remindersEnabled,
             reminderTime: reminderTimeStr,
+            note: note.isNotEmpty ? note : null,
           );
           // Best-effort -- a permission/scheduling failure shouldn't block
           // saving the habit itself (matches _safeZonedSchedule's own
@@ -849,6 +861,38 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
                 },
               ),
               const SizedBox(height: 16),
+              // Optional motivation note ("why this matters to me").
+              TextField(
+                controller: _noteController,
+                maxLines: 2,
+                maxLength: 500,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: 'Your "why" (optional)',
+                  labelStyle:
+                      TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+                  hintText: 'Why does this habit matter to you?',
+                  hintStyle:
+                      TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+                  counterStyle:
+                      TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+                  prefixIcon: Icon(
+                    Icons.favorite_border_rounded,
+                    color: Colors.white.withValues(alpha: 0.5),
+                    size: 20,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF00E5FF)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
               PrimaryButton(
                 text: 'IGNITE',
                 isLoading: _isLoading,

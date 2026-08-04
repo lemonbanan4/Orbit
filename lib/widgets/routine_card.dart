@@ -116,6 +116,57 @@ class _RoutineCardState extends State<RoutineCard> {
   // line handler already covering cheer/aura/XP/milestone/level-up) to
   // avoid duplicating and risking that logic -- this mirrors only the
   // essential parts (haptic, cheer, XP, a reward popup) on reaching target.
+  /// Subtitle under a habit's title: "Not scheduled today" when it isn't due,
+  /// otherwise the user's motivation note and/or its own 🔥 streak (2+). Null
+  /// when there's nothing to show, so the tile stays compact.
+  Widget? _habitSubtitle(Habit habit, int streak) {
+    if (!habit.isActiveOn()) {
+      return const Text(
+        'Not scheduled today',
+        style: TextStyle(
+          color: Colors.white38,
+          fontSize: 11,
+          fontStyle: FontStyle.italic,
+        ),
+      );
+    }
+    final rows = <Widget>[];
+    final note = habit.note?.trim() ?? '';
+    if (note.isNotEmpty) {
+      rows.add(
+        Text(
+          note,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.55),
+            fontSize: 11,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      );
+    }
+    if (streak >= 2) {
+      rows.add(
+        Text(
+          '🔥 $streak day streak',
+          style: const TextStyle(
+            color: Color(0xFFF2C879),
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
+    if (rows.isEmpty) return null;
+    if (rows.length == 1) return rows.first;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: rows,
+    );
+  }
+
   Widget _buildCountStepper(BuildContext context, Habit habit) {
     final Color themeAccent =
         Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
@@ -1005,6 +1056,8 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                               habit.remindersEnabled,
                                                                           initialReminderTime:
                                                                               habit.reminderTime,
+                                                                          initialNote:
+                                                                              habit.note,
                                                                         );
                                                                       },
                                                                   backgroundColor:
@@ -1192,34 +1245,10 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                 softWrap: true,
                                                               ),
                                                               subtitle:
-                                                                  !habit
-                                                                      .isActiveOn()
-                                                                  ? const Text(
-                                                                      'Not scheduled today',
-                                                                      style: TextStyle(
-                                                                        color: Colors
-                                                                            .white38,
-                                                                        fontSize:
-                                                                            11,
-                                                                        fontStyle:
-                                                                            FontStyle.italic,
-                                                                      ),
-                                                                    )
-                                                                  : (habitStreak >=
-                                                                            2
-                                                                        ? Text(
-                                                                            '🔥 $habitStreak day streak',
-                                                                            style: const TextStyle(
-                                                                              color: Color(
-                                                                                0xFFF2C879,
-                                                                              ),
-                                                                              fontSize:
-                                                                                  11,
-                                                                              fontWeight:
-                                                                                  FontWeight.w600,
-                                                                            ),
-                                                                          )
-                                                                        : null),
+                                                                  _habitSubtitle(
+                                                                    habit,
+                                                                    habitStreak,
+                                                                  ),
                                                               trailing: Row(
                                                                 mainAxisSize:
                                                                     MainAxisSize
