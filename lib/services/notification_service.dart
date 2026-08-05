@@ -447,6 +447,60 @@ class NotificationService {
     ];
   }
 
+  // --- Constellation week-unlock notifications (v1.3) ----------------------
+  // Fixed IDs 9001..9004 (one per week 1..4, though week 1 never actually
+  // fires -- it's activated immediately on accept), well clear of every
+  // other sweep: routine alarms (100..570ish), the daily reminder (999),
+  // per-habit reminders (700000+), and re-engagement nudges (8001..8003).
+  static const List<int> _constellationWeekIds = [9001, 9002, 9003, 9004];
+
+  static Future<void> cancelConstellationNotifications() async {
+    for (final id in _constellationWeekIds) {
+      await notificationsPlugin.cancel(id: id);
+    }
+  }
+
+  /// Schedules a one-off notification for when [week] (2..4) unlocks, so the
+  /// user finds out even if they never reopen the app right at the 7-day
+  /// mark (RoutineProvider's own catch-up logic handles that case anyway --
+  /// this is purely for discoverability). No-ops for a date already in the
+  /// past.
+  static Future<void> scheduleConstellationWeekUnlock({
+    required int week,
+    required String habitTitle,
+    required DateTime unlockDate,
+  }) async {
+    if (week < 1 || week > 4) return;
+    final scheduledTime = tz.TZDateTime.from(unlockDate, tz.local);
+    if (scheduledTime.isBefore(tz.TZDateTime.now(tz.local))) return;
+
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'constellation_channel_v1',
+        'Constellation Progress',
+        channelDescription: 'Your AI-guided roadmap unlocking a new week',
+        groupKey: 'orbit_reminders',
+        importance: Importance.high,
+        priority: Priority.high,
+        sound: RawResourceAndroidNotificationSound('orbit_chime'),
+      ),
+      iOS: _defaultIOSDetails,
+    );
+
+    try {
+      await _safeZonedSchedule(
+        id: _constellationWeekIds[week - 1],
+        title: 'Week $week has begun 🌌',
+        body: 'Your next star has ignited: $habitTitle',
+        scheduledDate: scheduledTime,
+        details: details,
+        payload: '{"screen": "dashboard"}',
+      );
+    } catch (e) {
+      debugPrint('Could not schedule constellation week $week unlock: $e');
+    }
+  }
+
   static tz.TZDateTime _nextInstanceOfDayTime(int day, int hour, int minute) {
     final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
     tz.TZDateTime scheduledDate = tz.TZDateTime(

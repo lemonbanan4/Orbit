@@ -551,6 +551,58 @@ describe("Orbit Firestore Security Rules", () => {
     await assertFails(habitDoc.update({ description: "not allowed" }));
   });
 
+  it("Allows a valid 4-week constellation, denies a malformed one", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const constellationsRef = db
+      .collection("users")
+      .doc("user123")
+      .collection("constellations");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false });
+    });
+
+    const validWeek = (week) => ({
+      week,
+      habitTitle: `Week ${week} habit`,
+      icon: "Mind",
+      routine: "Morning",
+      description: "Because it matters.",
+    });
+
+    await assertSucceeds(
+      constellationsRef.add({
+        goal: "Run a 5k",
+        habits: [validWeek(1), validWeek(2), validWeek(3), validWeek(4)],
+        currentWeek: 1,
+        status: "active",
+        createdAt: new Date(),
+      })
+    );
+
+    // Wrong week count (3 instead of 4).
+    await assertFails(
+      constellationsRef.add({
+        goal: "Run a 5k",
+        habits: [validWeek(1), validWeek(2), validWeek(3)],
+        currentWeek: 1,
+        status: "active",
+        createdAt: new Date(),
+      })
+    );
+
+    // Invalid status enum value.
+    await assertFails(
+      constellationsRef.add({
+        goal: "Run a 5k",
+        habits: [validWeek(1), validWeek(2), validWeek(3), validWeek(4)],
+        currentWeek: 1,
+        status: "not_a_real_status",
+        createdAt: new Date(),
+      })
+    );
+  });
+
   it("Denies a user from reading another user's document", async () => {
     // Alice tries to snoop on Bob's data
     const aliceDb = testEnv.authenticatedContext("alice123").firestore();

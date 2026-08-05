@@ -199,6 +199,34 @@ service cloud.firestore {
              isValidString(data.habitTitle, 1, 100);
     }
 
+    function isValidConstellationWeek(w) {
+      let allowedKeys = ['week', 'habitTitle', 'icon', 'routine', 'description', 'habitId'];
+      return w.keys().hasOnly(allowedKeys) &&
+             w.week is int && w.week >= 1 && w.week <= 4 &&
+             isValidString(w.habitTitle, 1, 100) &&
+             isValidString(w.icon, 1, 30) &&
+             isValidString(w.routine, 1, 20) &&
+             isValidString(w.description, 0, 300) &&
+             (!('habitId' in w) || isValidString(w.habitId, 1, 200));
+    }
+
+    // A "Constellation" is a persisted AI-generated 4-week habit roadmap
+    // (see lib/models/constellation.dart) -- always exactly 4 weeks, each
+    // individually shape-checked above.
+    function isValidConstellation(data) {
+      let allowedKeys = ['goal', 'habits', 'currentWeek', 'status', 'createdAt'];
+      return data.keys().hasOnly(allowedKeys) &&
+             isValidString(data.goal, 1, 200) &&
+             data.habits is list && data.habits.size() == 4 &&
+             isValidConstellationWeek(data.habits[0]) &&
+             isValidConstellationWeek(data.habits[1]) &&
+             isValidConstellationWeek(data.habits[2]) &&
+             isValidConstellationWeek(data.habits[3]) &&
+             data.currentWeek is int && data.currentWeek >= 1 && data.currentWeek <= 4 &&
+             data.status in ['active', 'completed', 'abandoned'] &&
+             data.createdAt is timestamp;
+    }
+
     function isValidCoachingNote(data) {
       let allowedKeys = ['text', 'createdAt', 'mood'];
       return data.keys().hasOnly(allowedKeys) &&
@@ -233,6 +261,11 @@ service cloud.firestore {
       match /habits/{habitId} {
         allow read, delete: if isOwner(userId);
         allow create, update: if isOwner(userId) && isValidHabit(request.resource.data);
+      }
+
+      match /constellations/{constellationId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidConstellation(request.resource.data);
       }
 
       match /journal_entries/{entryId} {

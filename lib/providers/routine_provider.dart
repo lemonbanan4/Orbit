@@ -15,6 +15,7 @@ import '../services/notification_service.dart';
 import '../models/routine_alarm.dart';
 import '../models/habit.dart';
 import '../models/daily_mission.dart';
+import '../models/constellation.dart';
 import '../services/alchemy_telemetry_service.dart'
     show AlchemyTelemetryService;
 import '../theme/nebula_themes.dart';
@@ -998,6 +999,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> _clearLocalStateForAccountSwitch() async {
     _habits = {};
     _completedHabits.clear();
+    _activeConstellation = null;
     _isDataLoaded = false;
     notifyListeners();
     final prefs = _prefs ?? await SharedPreferences.getInstance();
@@ -1037,6 +1039,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     // When the app comes to the foreground, check if it's a new day!
     if (state == AppLifecycleState.resumed) {
       _checkDailyReset();
+      _checkConstellationProgress();
     }
   }
 
@@ -1057,6 +1060,173 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<Habit> get archivedHabits =>
       _habits.values.where((h) => h.isArchived).toList()
         ..sort((a, b) => a.title.compareTo(b.title));
+
+  // --- Constellations (v1.3): persisted AI-generated 4-week habit ---------
+  // roadmaps from the Constellation Builder ("Routine Genie"). See
+  // lib/models/constellation.dart for why weeks unlock one at a time
+  // instead of being dumped into the routine all at once on accept.
+  Constellation? _activeConstellation;
+  Constellation? get activeConstellation => _activeConstellation;
+
+  /// Maps the AI's category string onto the same lowercase variant names
+  /// StellarPlanet/Focus Journeys use elsewhere, so a constellation habit's
+  /// category correctly feeds its Focus Journey chapter progress.
+  static String _focusCategoryFor(String icon) {
+    switch (icon) {
+      case 'Fitness':
+        return 'fitness';
+      case 'Mind':
+        return 'mind';
+      case 'Book':
+      case 'Structure':
+        return 'productivity';
+      case 'Explore':
+        return 'growth';
+      default:
+        return 'core';
+    }
+  }
+
+  Future<String> _activateConstellationWeek(ConstellationWeek w) async {
+    const validRoutines = {'Morning', 'Work', 'Night'};
+    final routine = validRoutines.contains(w.routine) ? w.routine : 'Morning';
+    final habit = Habit(
+      id: 'constellation_w${w.week}_${DateTime.now().millisecondsSinceEpoch}',
+      title: w.habitTitle,
+      routineType: routine,
+      iconCodePoint: ConstellationCategoryTheme.iconCodePointFor(w.icon),
+      color: ConstellationCategoryTheme.colorFor(w.icon),
+      completedDays: 0,
+      totalDays: 0,
+      order: w.week,
+      category: _focusCategoryFor(w.icon),
+    );
+    final docRef = await _db
+        .collection('users')
+        .doc(_userId)
+        .collection('habits')
+        .add(habit.toMap());
+    upsertHabitLocally(docRef.id, habit);
+    return docRef.id;
+  }
+
+  /// Persists a newly-generated AI roadmap and activates only its first
+  /// week -- see Constellation for why weeks 2-4 unlock over time instead
+  /// of being dumped in all at once. Throws if [rawWeeks] isn't a 4-week
+  /// roadmap (the shape Gemini is prompted to always return).
+  Future<void> acceptConstellation(
+    String goal,
+    List<Map<String, dynamic>> rawWeeks,
+  ) async {
+    final weeks =
+        rawWeeks
+            .map(
+              (w) => ConstellationWeek.fromMap(Map<String, dynamic>.from(w)),
+            )
+            .toList()
+          ..sort((a, b) => a.week.compareTo(b.week));
+    if (weeks.length != 4) {
+      throw Exception('Expected a 4-week roadmap, got ${weeks.length}.');
+    }
+
+    final now = DateTime.now();
+    weeks[0].habitId = await _activateConstellationWeek(weeks[0]);
+
+    final docRef = await _db
+        .collection('users')
+        .doc(_userId)
+        .collection('constellations')
+        .add(
+          Constellation(
+            id: '',
+            goal: goal,
+            weeks: weeks,
+            currentWeek: 1,
+            status: 'active',
+            createdAt: now,
+          ).toMap(),
+        );
+
+    _activeConstellation = Constellation(
+      id: docRef.id,
+      goal: goal,
+      weeks: weeks,
+      currentWeek: 1,
+      status: 'active',
+      createdAt: now,
+    );
+
+    // Schedule all 3 remaining unlock notifications up front, so the user
+    // finds out even if they never reopen the app right at each 7-day mark.
+    for (int week = 2; week <= 4; week++) {
+      await NotificationService.scheduleConstellationWeekUnlock(
+        week: week,
+        habitTitle: weeks[week - 1].habitTitle,
+        unlockDate: _activeConstellation!.unlockDateForWeek(week),
+      );
+    }
+
+    notifyListeners();
+  }
+
+  /// Idempotent catch-up: activates any constellation weeks that should
+  /// have unlocked by now (purely time-based, see Constellation.unlockedWeek)
+  /// even if the app wasn't opened right at each 7-day mark. Safe to call
+  /// on every load/resume.
+  Future<void> _checkConstellationProgress() async {
+    final c = _activeConstellation;
+    if (c == null || c.status != 'active') return;
+
+    final target = c.unlockedWeek;
+    if (target <= c.currentWeek) return;
+
+    for (int week = c.currentWeek + 1; week <= target; week++) {
+      final idx = week - 1;
+      if (idx < 0 || idx >= c.weeks.length) continue;
+      final w = c.weeks[idx];
+      w.habitId ??= await _activateConstellationWeek(w);
+    }
+    c.currentWeek = target;
+    if (target >= 4) {
+      c.status = 'completed';
+      await NotificationService.cancelConstellationNotifications();
+    }
+
+    try {
+      await _db
+          .collection('users')
+          .doc(_userId)
+          .collection('constellations')
+          .doc(c.id)
+          .update(c.toMap());
+    } catch (e) {
+      debugPrint('Error persisting constellation progress: $e');
+    }
+    notifyListeners();
+  }
+
+  /// Abandons the active constellation: cancels future week-unlock
+  /// notifications and marks it inactive. Any habit already activated from
+  /// it (week 1, always; later weeks, if unlocked) is left alone -- it's
+  /// now just a normal habit, matching how accepting week 1 already worked.
+  Future<void> abandonConstellation() async {
+    final c = _activeConstellation;
+    if (c == null) return;
+    c.status = 'abandoned';
+    await NotificationService.cancelConstellationNotifications();
+    try {
+      await _db
+          .collection('users')
+          .doc(_userId)
+          .collection('constellations')
+          .doc(c.id)
+          .update({'status': 'abandoned'});
+    } catch (e) {
+      debugPrint('Error abandoning constellation: $e');
+    }
+    _activeConstellation = null;
+    notifyListeners();
+  }
 
   Future<void> setHabitArchived(String habitId, bool archived) async {
     final habit = _habits[habitId];
@@ -1333,6 +1503,26 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
           );
         }
         _habits = loadedHabits;
+
+        // Own try/catch -- a constellation-load hiccup must never break the
+        // habits load above it.
+        try {
+          final constellationSnap = await _db
+              .collection('users')
+              .doc(_userId)
+              .collection('constellations')
+              .where('status', isEqualTo: 'active')
+              .limit(1)
+              .get();
+          if (constellationSnap.docs.isNotEmpty) {
+            _activeConstellation = Constellation.fromSnapshot(
+              constellationSnap.docs.first,
+            );
+            await _checkConstellationProgress();
+          }
+        } catch (e) {
+          debugPrint('Error loading active constellation: $e');
+        }
 
         _checkDailyReset();
 

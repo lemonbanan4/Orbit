@@ -16,8 +16,8 @@ import '../../widgets/common/animated_frosty_button.dart';
 import '../../theme/orbit_tokens.dart';
 import '../../widgets/common/stellar_planet.dart';
 import '../../widgets/common/cosmica_fairy.dart';
+import '../../widgets/constellation_progress_view.dart';
 import '../../providers/routine_provider.dart';
-import '../../models/habit.dart';
 
 class ConstellationBuilderScreen extends StatefulWidget {
   const ConstellationBuilderScreen({super.key});
@@ -138,23 +138,6 @@ class _ConstellationBuilderScreenState
     }
   }
 
-  // Maps the AI's icon category to the same iconography/palette the
-  // stellar planets use, expressed as the Habit model's raw ints.
-  static final _iconForCategory = {
-    'Fitness': Icons.fitness_center_rounded.codePoint,
-    'Mind': Icons.self_improvement_rounded.codePoint,
-    'Book': Icons.menu_book_rounded.codePoint,
-    'Structure': Icons.menu_book_rounded.codePoint,
-    'Explore': Icons.explore_rounded.codePoint,
-  };
-  static const _colorForCategory = {
-    'Fitness': 0xFFFF8A4C, // OrbitTokens.morning
-    'Mind': 0xFFA66CFF, // OrbitTokens.violet
-    'Book': 0xFF33E6D8, // OrbitTokens.teal
-    'Structure': 0xFF33E6D8,
-    'Explore': 0xFFF2C879, // OrbitTokens.gold
-  };
-
   Future<void> _acceptDestiny() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || _constellation.isEmpty) return;
@@ -163,39 +146,14 @@ class _ConstellationBuilderScreenState
     HapticFeedback.heavyImpact();
 
     try {
-      // Write through RoutineProvider so the docs match Habit.toMap() —
-      // the shape firestore.rules' isValidHabit() allowlists — and show up
-      // in local state immediately. The old raw batch wrote fields the
-      // rules reject (description/week/isConstellationHabit/createdAt) and
-      // omitted the required 'routine', so it was always PERMISSION_DENIED
-      // — and even without rules, routine-less docs never surfaced in any
-      // routine list.
+      // acceptConstellation persists the full 4-week roadmap and activates
+      // only week 1 — weeks 2-4 unlock over time (see Constellation) instead
+      // of all 4 habits being dumped into the routine at once like before.
       final routineProvider = context.read<RoutineProvider>();
-
-      const validRoutines = {'Morning', 'Work', 'Night'};
-      for (var habit in _constellation) {
-        final week = habit['week'] as int? ?? 1;
-        final category = habit['icon'] as String?;
-        // The AI assigns each habit its best-fit time of day; anything
-        // unexpected falls back to Morning (the rules require a routine).
-        final aiRoutine = habit['routine'] as String?;
-        final routine =
-            validRoutines.contains(aiRoutine) ? aiRoutine! : 'Morning';
-        await routineProvider.addHabit(
-          Habit(
-            id: 'constellation_w${week}_${DateTime.now().millisecondsSinceEpoch}',
-            title: habit['habitTitle'] as String? ?? 'New Habit',
-            routineType: routine,
-            iconCodePoint:
-                _iconForCategory[category] ?? Icons.star_rounded.codePoint,
-            color: _colorForCategory[category] ?? 0xFF3D5CFF,
-            completedDays: 0,
-            totalDays: 0,
-            order: week,
-            category: StellarPlanet.variantForIcon(category).name,
-          ),
-        );
-      }
+      await routineProvider.acceptConstellation(
+        _goalController.text.trim(),
+        _constellation,
+      );
 
       if (mounted) {
         setState(() {
@@ -206,7 +164,7 @@ class _ConstellationBuilderScreenState
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Destiny accepted! Check your active habits. 🌌"),
+            content: Text("Destiny accepted! Week 1 has begun. 🌌"),
             backgroundColor: OrbitTokens.violet,
           ),
         );
@@ -231,6 +189,12 @@ class _ConstellationBuilderScreenState
 
   @override
   Widget build(BuildContext context) {
+    // An active Constellation takes over this screen (progress view) until
+    // it's completed or abandoned -- only one AI-guided roadmap at a time,
+    // so the mental model stays simple. A freshly-generated but not-yet-
+    // accepted preview (_constellation non-empty) still takes priority so
+    // "Ignite Destiny" can be reviewed before committing.
+    final activeConstellation = context.watch<RoutineProvider>().activeConstellation;
     return Scaffold(
       backgroundColor: OrbitTokens.ground,
       body: Stack(
@@ -259,7 +223,11 @@ class _ConstellationBuilderScreenState
               children: [
                 _buildHeader(),
                 Expanded(
-                  child: _constellation.isEmpty
+                  child: (activeConstellation != null && _constellation.isEmpty)
+                      ? ConstellationProgressView(
+                          constellation: activeConstellation,
+                        )
+                      : _constellation.isEmpty
                       ? SingleChildScrollView(
                           physics: const BouncingScrollPhysics(),
                           padding: const EdgeInsets.only(bottom: 24.0),
