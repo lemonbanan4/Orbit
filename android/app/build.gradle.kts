@@ -29,8 +29,13 @@ android {
     defaultConfig {
         applicationId = "com.invokerlab.orbit"
         
-        // Cast the configuration variables safely into Kotlin integers
-        minSdk = flutter.minSdkVersion
+        // Cast the configuration variables safely into Kotlin integers.
+        // minSdk is pinned to 26 (Android 8.0) rather than the Flutter
+        // default -- the health plugin's own Android library (Health
+        // Connect) requires minSdkVersion 26, and Gradle's manifest merger
+        // fails the build if the app module's minSdk is lower than any
+        // dependency's.
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         
         versionCode = flutter.versionCode

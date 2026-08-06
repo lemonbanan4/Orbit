@@ -679,6 +679,12 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                         initialNote: habit.note,
                                                         initialWeeklyTarget:
                                                             habit.weeklyTarget,
+                                                        initialHealthMetric:
+                                                            habit
+                                                                .healthMetric,
+                                                        initialHealthTarget:
+                                                            habit
+                                                                .healthTarget,
                                                       );
                                                     },
                                                     backgroundColor:
@@ -873,7 +879,9 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                         ),
                                                     onLongPress:
                                                         habit.targetCount ==
-                                                            null
+                                                                null ||
+                                                            habit
+                                                                .isHealthLinked
                                                         ? null
                                                         : () {
                                                             HapticFeedback.mediumImpact();
@@ -911,8 +919,15 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                           routineProvider
                                                               .soundsEnabled;
 
-                                                      // 2. Trigger the state change mutation
-                                                      if (habit.targetCount !=
+                                                      // 2. Trigger the state change mutation. Health-linked habits
+                                                      // have nothing to manually toggle -- a tap just triggers an
+                                                      // immediate re-sync instead of waiting for the next app resume.
+                                                      if (habit
+                                                          .isHealthLinked) {
+                                                        await routineProvider
+                                                            .syncHealthHabits();
+                                                      } else if (habit
+                                                              .targetCount !=
                                                           null) {
                                                         await routineProvider
                                                             .incrementHabitCount(
@@ -1148,9 +1163,12 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                           );
                                                         }
                                                       } else if (habit
-                                                              .targetCount !=
-                                                          null) {
+                                                                  .targetCount !=
+                                                              null ||
+                                                          habit
+                                                              .isHealthLinked) {
                                                         // A count-based tap
+                                                        // (or a health re-sync)
                                                         // that didn't reach
                                                         // target yet -- still
                                                         // give a light tap
@@ -1270,8 +1288,10 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                                       200,
                                                                 ),
                                                             width:
-                                                                habit.targetCount ==
-                                                                        null ||
+                                                                (habit.targetCount ==
+                                                                            null &&
+                                                                        !habit
+                                                                            .isHealthLinked) ||
                                                                     isCompleted
                                                                 ? 28
                                                                 : 40,
@@ -1321,6 +1341,20 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                                           .white,
                                                                       fontSize:
                                                                           11,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold,
+                                                                    ),
+                                                                  )
+                                                                : habit
+                                                                      .isHealthLinked
+                                                                ? Text(
+                                                                    '${habit.currentCount}/${habit.healthTarget ?? 1}',
+                                                                    style: const TextStyle(
+                                                                      color: Colors
+                                                                          .white,
+                                                                      fontSize:
+                                                                          10,
                                                                       fontWeight:
                                                                           FontWeight
                                                                               .bold,

@@ -25,13 +25,17 @@ class ExportService {
           habit.targetCount?.toString() ?? '',
           habit.unit ?? '',
           habit.isArchived ? 'Yes' : 'No',
+          habit.healthMetric ?? '',
+          habit.healthTarget?.toString() ?? '',
         ]);
       }
     }
     rows.sort((a, b) => a[2].compareTo(b[2]));
 
     final buffer = StringBuffer()
-      ..writeln('Habit,Routine,Date,Completed,Target,Unit,Archived');
+      ..writeln(
+        'Habit,Routine,Date,Completed,Target,Unit,Archived,HealthMetric,HealthTarget',
+      );
     for (final row in rows) {
       buffer.writeln(row.map(_escapeCsvField).join(','));
     }

@@ -14,6 +14,7 @@ import '../utils/icon_utils.dart';
 import '../theme/orbit_tokens.dart';
 import '../services/ai_coach_service.dart';
 import '../services/notification_service.dart';
+import '../services/health_sync_service.dart';
 
 class CreateHabitSheet extends StatefulWidget {
   final String? habitId;
@@ -29,6 +30,8 @@ class CreateHabitSheet extends StatefulWidget {
   final String? initialReminderTime;
   final String? initialNote;
   final int? initialWeeklyTarget;
+  final String? initialHealthMetric;
+  final int? initialHealthTarget;
 
   const CreateHabitSheet({
     super.key,
@@ -45,6 +48,8 @@ class CreateHabitSheet extends StatefulWidget {
     this.initialReminderTime,
     this.initialNote,
     this.initialWeeklyTarget,
+    this.initialHealthMetric,
+    this.initialHealthTarget,
   });
 
   static void show(
@@ -62,6 +67,8 @@ class CreateHabitSheet extends StatefulWidget {
     String? initialReminderTime,
     String? initialNote,
     int? initialWeeklyTarget,
+    String? initialHealthMetric,
+    int? initialHealthTarget,
   }) {
     showModalBottomSheet(
       context: context,
@@ -80,6 +87,12 @@ class CreateHabitSheet extends StatefulWidget {
         initialRemindersEnabled: initialRemindersEnabled,
         initialReminderTime: initialReminderTime,
         initialNote: initialNote,
+        // Was previously dropped here -- show() accepted it but never
+        // forwarded it to the widget, so editing a weekly-target habit
+        // always reopened in day-based mode.
+        initialWeeklyTarget: initialWeeklyTarget,
+        initialHealthMetric: initialHealthMetric,
+        initialHealthTarget: initialHealthTarget,
       ),
     );
   }
@@ -105,6 +118,10 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
   late TextEditingController _noteController;
   late bool _isWeekly;
   late int _weeklyTarget;
+  late bool _isHealthLinked;
+  late String _healthMetric;
+  late TextEditingController _healthTargetController;
+  bool _isCheckingHealthAccess = false;
 
   final Map<String, IconData> _routineIcons = {
     'Morning': Icons.wb_sunny_rounded,
@@ -172,9 +189,18 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
     _noteController = TextEditingController(text: widget.initialNote ?? '');
     _isWeekly = widget.initialWeeklyTarget != null;
     _weeklyTarget = widget.initialWeeklyTarget ?? 3;
+    _isHealthLinked = widget.initialHealthMetric != null;
+    _healthMetric = widget.initialHealthMetric ?? 'steps';
+    _healthTargetController = TextEditingController(
+      text: (widget.initialHealthTarget ?? _defaultHealthTarget(_healthMetric))
+          .toString(),
+    );
     _remindersEnabled = widget.initialRemindersEnabled;
     _reminderTime = _parseReminderTime(widget.initialReminderTime);
   }
+
+  static int _defaultHealthTarget(String metric) =>
+      metric == 'workout_minutes' ? 30 : 10000;
 
   static TimeOfDay _parseReminderTime(String? value) {
     final parts = value?.split(':');
@@ -195,6 +221,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
     _targetCountController.dispose();
     _unitController.dispose();
     _noteController.dispose();
+    _healthTargetController.dispose();
     super.dispose();
   }
 
@@ -252,6 +279,46 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
     );
   }
 
+  Future<void> _handleHealthToggle(bool enabled) async {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _isHealthLinked = enabled;
+      if (enabled) _isCountBased = false;
+    });
+    if (!enabled) return;
+
+    setState(() => _isCheckingHealthAccess = true);
+    try {
+      final available = await HealthSyncService.isAvailable();
+      if (!available) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                "Health Connect isn't installed -- the habit will save now "
+                'and start syncing once it is.',
+              ),
+            ),
+          );
+        }
+        return;
+      }
+      final granted = await HealthSyncService.requestAuthorization();
+      if (!granted && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Health access denied -- you can grant it later from your '
+              'device Settings to start auto-syncing.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isCheckingHealthAccess = false);
+    }
+  }
+
   Future<void> _createHabit() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) return;
@@ -265,6 +332,8 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
             widget.habitId ??
             title.toLowerCase().replaceAll(' ', '_') +
                 DateTime.now().millisecondsSinceEpoch.toString();
+        final provider = context.read<RoutineProvider>();
+        final existing = provider.habits[docId];
 
         // Keys must match firestore.rules' isValidHabit() allowlist exactly
         // (which mirrors Habit.toMap()) — a 'createdAt' field here used to
@@ -287,11 +356,30 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
               )
             : null;
         final unit = _unitController.text.trim();
+        final healthTarget = _isHealthLinked
+            ? (int.tryParse(_healthTargetController.text.trim()) ??
+                      _defaultHealthTarget(_healthMetric))
+                  .clamp(1, 1000000)
+            : null;
+        final healthMetric = _isHealthLinked ? _healthMetric : null;
         final note = _noteController.text.trim();
         final reminderTimeStr = _remindersEnabled
             ? '${_reminderTime.hour.toString().padLeft(2, '0')}:'
                   '${_reminderTime.minute.toString().padLeft(2, '0')}'
             : null;
+        // currentCount is shared between count-based and health-linked
+        // tracking -- if the tracking mode itself just changed (count-based
+        // <-> health-linked <-> plain checkbox), a leftover value from the
+        // old mode must not carry over (e.g. a stale 8500-steps currentCount
+        // misreading a fresh 8-glasses target as already complete).
+        final trackingModeChanged =
+            widget.habitId != null &&
+            ((targetCount != null && existing?.targetCount == null) ||
+                (healthMetric != null && existing?.healthMetric == null) ||
+                (targetCount == null &&
+                    healthMetric == null &&
+                    (existing?.targetCount != null ||
+                        existing?.healthMetric != null)));
 
         final habitData = {
           'title': title,
@@ -336,8 +424,20 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
             // *preserve* keys absent from the payload).
             'targetCount': FieldValue.delete(),
             'unit': FieldValue.delete(),
-            'currentCount': FieldValue.delete(),
           },
+          if (healthMetric != null) ...{
+            'healthMetric': healthMetric,
+            'healthTarget': healthTarget,
+          } else if (widget.habitId != null) ...{
+            'healthMetric': FieldValue.delete(),
+            'healthTarget': FieldValue.delete(),
+          },
+          if (trackingModeChanged)
+            'currentCount': 0
+          else if (widget.habitId != null &&
+              targetCount == null &&
+              healthMetric == null)
+            'currentCount': FieldValue.delete(),
         };
 
         await FirebaseFirestore.instance
@@ -352,18 +452,21 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
         // CreateHabitSheet writes directly to Firestore (bypassing
         // RoutineProvider.addHabit) so we must sync local state here.
         if (mounted) {
-          final provider = context.read<RoutineProvider>();
-          final existing = provider.habits[docId];
-          // Re-derive isCompleted from currentCount vs targetCount when
-          // count-based, so switching a habit's type mid-day keeps the
-          // isCompleted invariant consistent (e.g. turning tracking on for
-          // an already-checked-off habit starts it back at not-done until
-          // the target is actually hit).
-          final localCurrentCount = targetCount != null
-              ? (existing?.currentCount ?? 0)
-              : 0;
+          // Re-derive isCompleted from currentCount vs targetCount/
+          // healthTarget when in one of those tracking modes, so switching a
+          // habit's mode mid-day keeps the isCompleted invariant consistent
+          // (e.g. turning tracking on for an already-checked-off habit
+          // starts it back at not-done until the target is actually hit).
+          // A just-changed tracking mode always starts at 0 (see
+          // trackingModeChanged above); otherwise carry over the existing
+          // live progress for the *same* mode.
+          final localCurrentCount = trackingModeChanged
+              ? 0
+              : (existing?.currentCount ?? 0);
           final localIsCompleted = targetCount != null
               ? localCurrentCount >= targetCount
+              : healthMetric != null
+              ? localCurrentCount >= (healthTarget ?? 1)
               : (existing?.isCompleted ?? false);
           final localHabit = Habit(
             id: docId,
@@ -384,6 +487,8 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
             targetCount: targetCount,
             unit: unit.isNotEmpty ? unit : null,
             currentCount: localCurrentCount,
+            healthMetric: healthMetric,
+            healthTarget: healthTarget,
             history: existing?.history,
             remindersEnabled: _remindersEnabled,
             reminderTime: reminderTimeStr,
@@ -400,6 +505,12 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
             NotificationService.scheduleHabitReminder(localHabit);
           }
           provider.upsertHabitLocally(docId, localHabit);
+          // Pull real today's-progress immediately rather than waiting for
+          // the next app resume, so a freshly health-linked habit doesn't
+          // sit at 0 until the user backgrounds and reopens the app.
+          if (healthMetric != null) {
+            provider.syncHealthHabits();
+          }
           Navigator.pop(context);
         }
       }
@@ -898,7 +1009,10 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
                 ),
                 onChanged: (val) {
                   HapticFeedback.selectionClick();
-                  setState(() => _isCountBased = val);
+                  setState(() {
+                    _isCountBased = val;
+                    if (val) _isHealthLinked = false;
+                  });
                 },
               ),
               if (_isCountBased) ...[
@@ -956,6 +1070,104 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
                       ),
                     ),
                   ],
+                ),
+              ],
+              const SizedBox(height: 16),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _isHealthLinked,
+                activeThumbColor: const Color(0xFF00E5FF),
+                title: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Sync with Health',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (_isCheckingHealthAccess) ...[
+                      const SizedBox(width: 8),
+                      const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFF00E5FF),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                subtitle: Text(
+                  "Auto-completes from your phone's step count or workout "
+                  'minutes -- no manual tap needed.',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                ),
+                onChanged: _handleHealthToggle,
+              ),
+              if (_isHealthLinked) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _repeatModeChip('Steps', _healthMetric == 'steps', () {
+                      setState(() {
+                        final oldDefault = _defaultHealthTarget(
+                          _healthMetric,
+                        ).toString();
+                        if (_healthTargetController.text == oldDefault) {
+                          _healthTargetController.text = _defaultHealthTarget(
+                            'steps',
+                          ).toString();
+                        }
+                        _healthMetric = 'steps';
+                      });
+                    }),
+                    const SizedBox(width: 8),
+                    _repeatModeChip(
+                      'Workout minutes',
+                      _healthMetric == 'workout_minutes',
+                      () {
+                        setState(() {
+                          final oldDefault = _defaultHealthTarget(
+                            _healthMetric,
+                          ).toString();
+                          if (_healthTargetController.text == oldDefault) {
+                            _healthTargetController.text =
+                                _defaultHealthTarget(
+                                  'workout_minutes',
+                                ).toString();
+                          }
+                          _healthMetric = 'workout_minutes';
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _healthTargetController,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: _healthMetric == 'steps'
+                        ? 'Daily step goal'
+                        : 'Daily workout minutes',
+                    labelStyle: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF00E5FF)),
+                    ),
+                  ),
                 ),
               ],
               const SizedBox(height: 16),

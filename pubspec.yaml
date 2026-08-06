@@ -18,6 +18,7 @@ dependencies:
   vibration: ^3.1.8
 
   device_info_plus: ^13.1.0
+  health: ^13.1.1
    # Force a newer version of sensors_plus that contains the Android namespace fix
   # to prevent the shake package from pulling in the broken v1.4.1
   sensors_plus: ^6.1.1
@@ -91,6 +92,23 @@ dev_dependencies:
   mocktail: ^1.0.5
   build_runner: ^2.13.1
 
+# health (^13.1.1) declares device_info_plus <12.0.0 or ^12.1.0, one major
+# below what the rest of the app resolves to (^13.1.0, from package_info_plus
+# and others) -- pub's solver can't satisfy both without an override.
+# Overriding UP to device_info_plus's natural 13.x (rather than down to
+# health's stated 12.1.0) is the safe direction: health's only usage of the
+# package is 4 trivial field reads (DeviceInfoPlugin().androidInfo.id /
+# .iosInfo.identifierForVendor -- see health_plugin.dart), unchanged across
+# both majors, so it works fine against 13.x despite the tighter constraint
+# on paper. Forcing device_info_plus down to 12.x instead would drag its
+# win32 ^5.11.0 requirement in too, which conflicts with package_info_plus's
+# win32 ^6.0.1 -- and that Windows-only-looking code still gets compiled
+# into Android/iOS builds (package_info_plus doesn't isolate it behind a
+# platform-conditional import), so that combination fails to build even
+# though Windows isn't a shipped target (see CLAUDE.md). device_info_plus
+# itself has no direct usage anywhere in lib/ (health is its only consumer).
+dependency_overrides:
+  device_info_plus: ^13.1.0
 
 flutter:
   uses-material-design: true

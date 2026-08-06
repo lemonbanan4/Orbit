@@ -280,6 +280,86 @@ class _RoutineCardState extends State<RoutineCard> {
     );
   }
 
+  static String _formatWithCommas(int n) {
+    final s = n.toString();
+    final buf = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
+      buf.write(s[i]);
+    }
+    return buf.toString();
+  }
+
+  // Health-linked habits ("10,000 steps", "30 workout minutes") show live
+  // synced progress here instead of a manual checkbox/stepper -- there's
+  // nothing for the user to tap to complete it, since HealthSyncService
+  // drives currentCount from device data. Tapping still triggers an
+  // immediate manual re-sync (rather than waiting for the next app resume)
+  // for a "pull to refresh" feel.
+  Widget _buildHealthProgress(BuildContext context, Habit habit) {
+    final Color themeAccent =
+        Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
+        const Color(0xFF00E5FF);
+    final target = habit.healthTarget ?? 1;
+    final isCompleted = habit.currentCount >= target;
+    final unitLabel = habit.healthMetric == 'workout_minutes'
+        ? 'min'
+        : 'steps';
+
+    return Semantics(
+      button: true,
+      label:
+          '${habit.title}, ${habit.currentCount} of $target $unitLabel synced from Health'
+          '${isCompleted ? ", completed" : ""}',
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          context.read<RoutineProvider>().syncHealthHabits();
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 40),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: isCompleted
+                  ? themeAccent
+                  : Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isCompleted
+                    ? themeAccent
+                    : Colors.white.withValues(alpha: 0.15),
+              ),
+            ),
+            alignment: Alignment.center,
+            child: isCompleted
+                ? const Icon(Icons.check_rounded, color: Colors.black, size: 18)
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.monitor_heart_rounded,
+                        color: Colors.white.withValues(alpha: 0.5),
+                        size: 12,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${_formatWithCommas(habit.currentCount)}/${_formatWithCommas(target)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // widget.habits is unfiltered (every habit in this routine, regardless
@@ -1077,6 +1157,10 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                               habit.note,
                                                                           initialWeeklyTarget:
                                                                               habit.weeklyTarget,
+                                                                          initialHealthMetric:
+                                                                              habit.healthMetric,
+                                                                          initialHealthTarget:
+                                                                              habit.healthTarget,
                                                                         );
                                                                       },
                                                                   backgroundColor:
@@ -1273,8 +1357,13 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                     MainAxisSize
                                                                         .min,
                                                                 children: [
-                                                                  habit.targetCount !=
-                                                                          null
+                                                                  habit.isHealthLinked
+                                                                      ? _buildHealthProgress(
+                                                                          context,
+                                                                          habit,
+                                                                        )
+                                                                      : habit.targetCount !=
+                                                                            null
                                                                       ? _buildCountStepper(
                                                                           context,
                                                                           habit,

@@ -12,6 +12,7 @@ import 'package:home_widget/home_widget.dart';
 import 'dart:async';
 import 'dart:convert';
 import '../services/notification_service.dart';
+import '../services/health_sync_service.dart';
 import '../models/routine_alarm.dart';
 import '../models/habit.dart';
 import '../models/daily_mission.dart';
@@ -1040,6 +1041,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _checkDailyReset();
       _checkConstellationProgress();
+      syncHealthHabits();
     }
   }
 
@@ -1203,6 +1205,88 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
       debugPrint('Error persisting constellation progress: $e');
     }
     notifyListeners();
+  }
+
+  /// Pulls today's step/workout-minute totals from Health Connect/HealthKit
+  /// (see HealthSyncService) and applies them to every non-archived,
+  /// health-linked habit due today. Mirrors incrementHabitCount's
+  /// completion side effects (XP, streak advancement, skippedCount reset)
+  /// exactly -- from the app's perspective this *is* a completion, just
+  /// driven by device data instead of a manual tap. Entirely best-effort:
+  /// unavailable/unauthorized Health access or a read failure just leaves
+  /// existing progress untouched rather than surfacing an error, since this
+  /// runs silently on every boot/resume.
+  Future<void> syncHealthHabits() async {
+    final linked = _habits.values
+        .where((h) => h.isHealthLinked && !h.isArchived && h.isActiveOn())
+        .toList();
+    if (linked.isEmpty) return;
+
+    try {
+      if (!await HealthSyncService.isAvailable()) return;
+      if (!await HealthSyncService.hasPermissions()) return;
+    } catch (e) {
+      debugPrint('Error checking Health availability/permissions: $e');
+      return;
+    }
+
+    bool anyChanged = false;
+    for (final habit in linked) {
+      int? value;
+      try {
+        value = await HealthSyncService.getTodayValue(habit.healthMetric!);
+      } catch (e) {
+        debugPrint('Error syncing health data for ${habit.id}: $e');
+        continue;
+      }
+      if (value == null) continue;
+
+      final target = habit.healthTarget ?? 1;
+      final newCount = value.clamp(0, target);
+      final newIsCompleted = newCount >= target;
+      if (newCount == habit.currentCount && newIsCompleted == habit.isCompleted) {
+        continue;
+      }
+
+      final wasCompleted = habit.isCompleted;
+      habit.currentCount = newCount;
+      habit.isCompleted = newIsCompleted;
+      anyChanged = true;
+
+      _db
+          .collection('users')
+          .doc(_userId)
+          .collection('habits')
+          .doc(habit.id)
+          .update({
+            'currentCount': habit.currentCount,
+            'isCompleted': habit.isCompleted,
+          })
+          .catchError((_) {});
+
+      if (habit.isCompleted && !wasCompleted) {
+        habit.skippedCount = 0;
+        _db
+            .collection('users')
+            .doc(_userId)
+            .collection('habits')
+            .doc(habit.id)
+            .update({'skippedCount': 0})
+            .catchError((_) {});
+
+        incrementTotalHabits();
+        if (isRoutineComplete(habit.routineType)) {
+          markRoutineComplete();
+        }
+      }
+      _completedHabits[habit.id] = habit.isCompleted;
+    }
+
+    if (anyChanged && !_isDisposed) {
+      notifyListeners();
+      _updateHomeWidget();
+      _saveToCloud();
+    }
   }
 
   /// Abandons the active constellation: cancels future week-unlock
@@ -1525,6 +1609,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
 
         _checkDailyReset();
+        syncHealthHabits();
 
         _isDataLoaded = true;
         notifyListeners();

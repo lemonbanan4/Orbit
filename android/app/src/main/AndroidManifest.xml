@@ -20,6 +20,22 @@
 <!-- Required to show Notifications (Android 13 / API 33+) -->
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+<!-- Health Connect (Steps + Workout habit auto-sync, see HealthSyncService) -->
+<uses-permission android:name="android.permission.health.READ_STEPS" />
+<uses-permission android:name="android.permission.health.READ_EXERCISE" />
+<!-- Verified on-device: the health plugin's WORKOUT (ExerciseSessionRecord)
+     read unconditionally enriches every session with distance and calorie
+     sub-queries to build a summary (see HealthDataReader.handleWorkoutData
+     in the health package's Android source), and both fail without their
+     own read permission, even though Orbit only cares about session
+     duration. -->
+<uses-permission android:name="android.permission.health.READ_DISTANCE" />
+<uses-permission android:name="android.permission.health.READ_TOTAL_CALORIES_BURNED" />
+<!-- Health Connect's Steps data is sourced from the device's activity
+     recognition sensor; without this permission a steps read returns
+     nothing even with Health Connect access granted. -->
+<uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+
 
 
     <application
@@ -73,7 +89,29 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="orbitroutine.com" />
             </intent-filter>
+
+            <!-- Health Connect routes the user here to show the permissions
+                 rationale (why Orbit wants Steps/Exercise access). -->
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
         </activity>
+
+        <!-- Health Connect's permissions screen links out to Orbit's privacy
+             policy via this alias (required by Play review for apps
+             requesting Health Connect data access). Routes straight to
+             MainActivity, which owns the in-app Settings > Privacy Policy
+             link, since there's no dedicated policy screen to target directly. -->
+        <activity-alias
+            android:name="ViewPermissionUsageActivity"
+            android:exported="true"
+            android:targetActivity=".MainActivity"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
 
         <!-- Custom App Icon Aliases -->
         <activity-alias
@@ -183,6 +221,12 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Health Connect, lets HealthSyncService.isAvailable() check
+             whether the Health Connect app is installed. -->
+        <package android:name="com.google.android.apps.healthdata" />
+        <intent>
+            <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
         </intent>
     </queries>
 </manifest>

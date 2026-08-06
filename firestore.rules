@@ -133,7 +133,7 @@ service cloud.firestore {
         'completedDays', 'totalDays', 'order', 'skippedCount', 'time', 'isCompleted',
         'history', 'isGoal', 'category', 'activeDays', 'targetCount', 'unit',
         'currentCount', 'isArchived', 'remindersEnabled', 'reminderTime', 'note',
-        'weeklyTarget'];
+        'weeklyTarget', 'healthMetric', 'healthTarget'];
       // Which days of the week this habit is due (see Habit.activeDays) --
       // must be exactly 7 booleans if present at all.
       let isActiveDaysValid = !('activeDays' in data) ||
@@ -143,8 +143,12 @@ service cloud.firestore {
       let isTargetCountValid = !('targetCount' in data) ||
         (data.targetCount is int && data.targetCount >= 1 && data.targetCount <= 9999);
       let isUnitValid = !('unit' in data) || isValidString(data.unit, 0, 30);
+      // Shared by count-based habits' currentCount (targetCount capped at
+      // 9999 above) and health-linked habits' live steps/minutes progress
+      // (healthTarget capped at 1000000 below) -- bounded to the larger of
+      // the two so a high step-count target doesn't get rejected.
       let isCurrentCountValid = !('currentCount' in data) ||
-        (data.currentCount is int && data.currentCount >= 0 && data.currentCount <= 9999);
+        (data.currentCount is int && data.currentCount >= 0 && data.currentCount <= 1000000);
       let isArchivedValid = !('isArchived' in data) || data.isArchived is bool;
       let isRemindersValid =
         (!('remindersEnabled' in data) || data.remindersEnabled is bool) &&
@@ -154,12 +158,21 @@ service cloud.firestore {
       // Flexible "N times per week" scheduling (see Habit.weeklyTarget): 1..7.
       let isWeeklyTargetValid = !('weeklyTarget' in data) ||
         (data.weeklyTarget is int && data.weeklyTarget >= 1 && data.weeklyTarget <= 7);
+      // Health-linked habits (see Habit.healthMetric/healthTarget) — progress
+      // comes from HealthSyncService (device Health Connect/HealthKit data),
+      // not a manual tap, so the metric is restricted to the two types the
+      // app actually syncs and the target just needs a sane positive bound.
+      let isHealthMetricValid = !('healthMetric' in data) ||
+        data.healthMetric in ['steps', 'workout_minutes'];
+      let isHealthTargetValid = !('healthTarget' in data) ||
+        (data.healthTarget is int && data.healthTarget >= 1 && data.healthTarget <= 1000000);
       return data.keys().hasOnly(allowedKeys) &&
              isValidString(data.title, 1, 100) &&
              isValidString(data.routine, 1, 50) &&
              isActiveDaysValid && isTargetCountValid && isUnitValid &&
              isCurrentCountValid && isArchivedValid && isRemindersValid &&
-             isNoteValid && isWeeklyTargetValid;
+             isNoteValid && isWeeklyTargetValid &&
+             isHealthMetricValid && isHealthTargetValid;
     }
 
     function isValidJournalEntry(data) {

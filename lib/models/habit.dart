@@ -66,6 +66,18 @@ class Habit {
 
   bool get isWeekly => weeklyTarget != null;
 
+  // Auto-completion from real device health data (Apple Health / Google
+  // Health Connect) instead of a manual tap -- Streaks' signature move.
+  // healthMetric is null for a normal habit; 'steps' or 'workout_minutes'
+  // for a health-linked one, with healthTarget as the daily goal (e.g.
+  // 10000 steps, 30 workout minutes). Mutually exclusive with targetCount
+  // (a health-linked habit's progress comes from HealthSyncService, not a
+  // manual stepper) -- enforced in the create/edit sheet, not the model.
+  final String? healthMetric;
+  final int? healthTarget;
+
+  bool get isHealthLinked => healthMetric != null;
+
   Habit({
     required this.id,
     required this.title,
@@ -88,6 +100,8 @@ class Habit {
     this.reminderTime,
     this.note,
     this.weeklyTarget,
+    this.healthMetric,
+    this.healthTarget,
     List<bool>? activeDays,
     Map<String, bool>? history,
   }) : history = history ?? {},
@@ -213,6 +227,8 @@ class Habit {
       reminderTime: data['reminderTime']?.toString(),
       note: data['note']?.toString(),
       weeklyTarget: data['weeklyTarget'] is int ? data['weeklyTarget'] : null,
+      healthMetric: data['healthMetric']?.toString(),
+      healthTarget: data['healthTarget'] is int ? data['healthTarget'] : null,
     );
   }
 
@@ -241,6 +257,8 @@ class Habit {
       if (reminderTime != null) 'reminderTime': reminderTime,
       if (note != null && note!.isNotEmpty) 'note': note,
       if (weeklyTarget != null) 'weeklyTarget': weeklyTarget,
+      if (healthMetric != null) 'healthMetric': healthMetric,
+      if (healthTarget != null) 'healthTarget': healthTarget,
     };
   }
 
