@@ -32,6 +32,7 @@ class CreateHabitSheet extends StatefulWidget {
   final int? initialWeeklyTarget;
   final String? initialHealthMetric;
   final int? initialHealthTarget;
+  final bool initialIsNegativeHabit;
 
   const CreateHabitSheet({
     super.key,
@@ -50,6 +51,7 @@ class CreateHabitSheet extends StatefulWidget {
     this.initialWeeklyTarget,
     this.initialHealthMetric,
     this.initialHealthTarget,
+    this.initialIsNegativeHabit = false,
   });
 
   static void show(
@@ -69,6 +71,7 @@ class CreateHabitSheet extends StatefulWidget {
     int? initialWeeklyTarget,
     String? initialHealthMetric,
     int? initialHealthTarget,
+    bool initialIsNegativeHabit = false,
   }) {
     showModalBottomSheet(
       context: context,
@@ -93,6 +96,7 @@ class CreateHabitSheet extends StatefulWidget {
         initialWeeklyTarget: initialWeeklyTarget,
         initialHealthMetric: initialHealthMetric,
         initialHealthTarget: initialHealthTarget,
+        initialIsNegativeHabit: initialIsNegativeHabit,
       ),
     );
   }
@@ -122,6 +126,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
   late String _healthMetric;
   late TextEditingController _healthTargetController;
   bool _isCheckingHealthAccess = false;
+  late bool _isNegativeHabit;
 
   final Map<String, IconData> _routineIcons = {
     'Morning': Icons.wb_sunny_rounded,
@@ -197,6 +202,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
     );
     _remindersEnabled = widget.initialRemindersEnabled;
     _reminderTime = _parseReminderTime(widget.initialReminderTime);
+    _isNegativeHabit = widget.initialIsNegativeHabit;
   }
 
   static int _defaultHealthTarget(String metric) =>
@@ -283,7 +289,10 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
     HapticFeedback.selectionClick();
     setState(() {
       _isHealthLinked = enabled;
-      if (enabled) _isCountBased = false;
+      if (enabled) {
+        _isCountBased = false;
+        _isNegativeHabit = false;
+      }
     });
     if (!enabled) return;
 
@@ -413,8 +422,14 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
             'completedDays': 0,
             'totalDays': 0,
             'color': 0xFF00E5FF,
-            'isCompleted': false,
+            // Negative ("avoid") habits start each day already succeeded
+            // (see Habit.isNegativeHabit) -- everything else starts not-done.
+            'isCompleted': _isNegativeHabit,
           },
+          if (_isNegativeHabit)
+            'isNegativeHabit': true
+          else if (widget.habitId != null)
+            'isNegativeHabit': FieldValue.delete(),
           if (targetCount != null) ...{
             'targetCount': targetCount,
             if (unit.isNotEmpty) 'unit': unit,
@@ -467,7 +482,10 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
               ? localCurrentCount >= targetCount
               : healthMetric != null
               ? localCurrentCount >= (healthTarget ?? 1)
-              : (existing?.isCompleted ?? false);
+              // New negative habits start already-succeeded for the day
+              // (see Habit.isNegativeHabit); everything else preserves
+              // whatever it already was.
+              : (existing?.isCompleted ?? _isNegativeHabit);
           final localHabit = Habit(
             id: docId,
             title: title,
@@ -489,6 +507,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
             currentCount: localCurrentCount,
             healthMetric: healthMetric,
             healthTarget: healthTarget,
+            isNegativeHabit: _isNegativeHabit,
             history: existing?.history,
             remindersEnabled: _remindersEnabled,
             reminderTime: reminderTimeStr,
@@ -1011,7 +1030,10 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
                   HapticFeedback.selectionClick();
                   setState(() {
                     _isCountBased = val;
-                    if (val) _isHealthLinked = false;
+                    if (val) {
+                      _isHealthLinked = false;
+                      _isNegativeHabit = false;
+                    }
                   });
                 },
               ),
@@ -1170,6 +1192,34 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
                   ),
                 ),
               ],
+              const SizedBox(height: 16),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _isNegativeHabit,
+                activeThumbColor: Colors.redAccent,
+                title: const Text(
+                  'Something to Avoid',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text(
+                  'For habits you\'re quitting ("No junk food") -- starts each '
+                  'day already succeeded; tap only if you slip.',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                ),
+                onChanged: (val) {
+                  HapticFeedback.selectionClick();
+                  setState(() {
+                    _isNegativeHabit = val;
+                    if (val) {
+                      _isCountBased = false;
+                      _isHealthLinked = false;
+                    }
+                  });
+                },
+              ),
               const SizedBox(height: 16),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,

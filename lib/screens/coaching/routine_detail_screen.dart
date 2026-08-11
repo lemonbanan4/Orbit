@@ -685,6 +685,9 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                         initialHealthTarget:
                                                             habit
                                                                 .healthTarget,
+                                                        initialIsNegativeHabit:
+                                                            habit
+                                                                .isNegativeHabit,
                                                       );
                                                     },
                                                     backgroundColor:
@@ -995,7 +998,9 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                       // flips to true, not
                                                       // on every tap.
                                                       if (!wasCompleted &&
-                                                          habit.isCompleted) {
+                                                          habit.isCompleted &&
+                                                          !habit
+                                                              .isNegativeHabit) {
                                                         HapticFeedback.lightImpact();
 
                                                         // Fire the cheer overlay directly into this view tree context
@@ -1165,14 +1170,16 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                       } else if (habit
                                                                   .targetCount !=
                                                               null ||
+                                                          habit.isHealthLinked ||
                                                           habit
-                                                              .isHealthLinked) {
+                                                              .isNegativeHabit) {
                                                         // A count-based tap
-                                                        // (or a health re-sync)
-                                                        // that didn't reach
-                                                        // target yet -- still
-                                                        // give a light tap
-                                                        // confirmation.
+                                                        // (or a health re-sync,
+                                                        // or a negative-habit
+                                                        // slip/redemption) that
+                                                        // isn't reward-eligible
+                                                        // -- still give a light
+                                                        // tap confirmation.
                                                         HapticFeedback.selectionClick();
                                                       }
                                                     },

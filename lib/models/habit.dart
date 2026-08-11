@@ -78,6 +78,15 @@ class Habit {
 
   bool get isHealthLinked => healthMetric != null;
 
+  // "Quit"/avoid habits ("No junk food") invert the daily default: isCompleted
+  // starts each day at true (assumed avoided) instead of false, and a tap
+  // logs a slip (isCompleted -> false) rather than an achievement. isCompleted
+  // stays the single source of truth everywhere else (history, streaks,
+  // stats) exactly like every other habit type -- see
+  // RoutineProvider._checkDailyReset (default flip) and
+  // RoutineProvider.toggleHabit (reward gating).
+  final bool isNegativeHabit;
+
   Habit({
     required this.id,
     required this.title,
@@ -102,6 +111,7 @@ class Habit {
     this.weeklyTarget,
     this.healthMetric,
     this.healthTarget,
+    this.isNegativeHabit = false,
     List<bool>? activeDays,
     Map<String, bool>? history,
   }) : history = history ?? {},
@@ -229,6 +239,7 @@ class Habit {
       weeklyTarget: data['weeklyTarget'] is int ? data['weeklyTarget'] : null,
       healthMetric: data['healthMetric']?.toString(),
       healthTarget: data['healthTarget'] is int ? data['healthTarget'] : null,
+      isNegativeHabit: data['isNegativeHabit'] == true,
     );
   }
 
@@ -259,6 +270,7 @@ class Habit {
       if (weeklyTarget != null) 'weeklyTarget': weeklyTarget,
       if (healthMetric != null) 'healthMetric': healthMetric,
       if (healthTarget != null) 'healthTarget': healthTarget,
+      if (isNegativeHabit) 'isNegativeHabit': isNegativeHabit,
     };
   }
 

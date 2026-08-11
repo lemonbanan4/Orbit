@@ -27,6 +27,7 @@ class ExportService {
           habit.isArchived ? 'Yes' : 'No',
           habit.healthMetric ?? '',
           habit.healthTarget?.toString() ?? '',
+          habit.isNegativeHabit ? 'Yes' : 'No',
         ]);
       }
     }
@@ -34,7 +35,7 @@ class ExportService {
 
     final buffer = StringBuffer()
       ..writeln(
-        'Habit,Routine,Date,Completed,Target,Unit,Archived,HealthMetric,HealthTarget',
+        'Habit,Routine,Date,Completed,Target,Unit,Archived,HealthMetric,HealthTarget,IsNegativeHabit',
       );
     for (final row in rows) {
       buffer.writeln(row.map(_escapeCsvField).join(','));

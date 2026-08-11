@@ -439,6 +439,30 @@ describe("Orbit Firestore Security Rules", () => {
     await assertFails(habitDoc.update({ healthTarget: "10000" }));
   });
 
+  it("Allows a bool isNegativeHabit, denies a non-bool value", async () => {
+    const db = testEnv.authenticatedContext("user123").firestore();
+    const habitDoc = db
+      .collection("users")
+      .doc("user123")
+      .collection("habits")
+      .doc("habit1");
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("users").doc("user123").set({ isGuest: false });
+      await context
+        .firestore()
+        .collection("users")
+        .doc("user123")
+        .collection("habits")
+        .doc("habit1")
+        .set({ title: "No junk food", routine: "Morning", completedDays: 0, totalDays: 0 });
+    });
+
+    await assertSucceeds(habitDoc.update({ isNegativeHabit: true }));
+    await assertSucceeds(habitDoc.update({ isNegativeHabit: false }));
+    await assertFails(habitDoc.update({ isNegativeHabit: "true" }));
+  });
+
   it("Allows a valid 7-day activeDays but denies a wrong-length one", async () => {
     const db = testEnv.authenticatedContext("user123").firestore();
     const habitDoc = db

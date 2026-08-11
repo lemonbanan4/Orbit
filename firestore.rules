@@ -133,7 +133,7 @@ service cloud.firestore {
         'completedDays', 'totalDays', 'order', 'skippedCount', 'time', 'isCompleted',
         'history', 'isGoal', 'category', 'activeDays', 'targetCount', 'unit',
         'currentCount', 'isArchived', 'remindersEnabled', 'reminderTime', 'note',
-        'weeklyTarget', 'healthMetric', 'healthTarget'];
+        'weeklyTarget', 'healthMetric', 'healthTarget', 'isNegativeHabit'];
       // Which days of the week this habit is due (see Habit.activeDays) --
       // must be exactly 7 booleans if present at all.
       let isActiveDaysValid = !('activeDays' in data) ||
@@ -149,7 +149,11 @@ service cloud.firestore {
       // the two so a high step-count target doesn't get rejected.
       let isCurrentCountValid = !('currentCount' in data) ||
         (data.currentCount is int && data.currentCount >= 0 && data.currentCount <= 1000000);
-      let isArchivedValid = !('isArchived' in data) || data.isArchived is bool;
+      // isNegativeHabit ("quit"/avoid habits, see Habit.isNegativeHabit) is
+      // grouped in here too, purely to stay under Firestore's
+      // 10-variable-per-function limit -- both are plain bool flags.
+      let isArchivedValid = (!('isArchived' in data) || data.isArchived is bool) &&
+        (!('isNegativeHabit' in data) || data.isNegativeHabit is bool);
       let isRemindersValid =
         (!('remindersEnabled' in data) || data.remindersEnabled is bool) &&
         (!('reminderTime' in data) || isValidString(data.reminderTime, 3, 5));

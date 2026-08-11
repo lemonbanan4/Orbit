@@ -1821,11 +1821,26 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
               })
               .catchError((_) {});
         }
-        habit.isCompleted = false;
+        // "Quit"/avoid habits default to already-succeeded each day (see
+        // Habit.isNegativeHabit) -- everything else defaults to not-yet-done.
+        habit.isCompleted = habit.isNegativeHabit;
         // Reset count-based habits' daily progress too -- no-op (stays 0)
         // for simple checkbox habits.
         habit.currentCount = 0;
       });
+
+      // A routine made up entirely of negative habits (or where today's mix
+      // otherwise already satisfies every habit thanks to the default flip
+      // above) would never call markRoutineComplete() on its own -- that's
+      // normally only triggered by a completion tap. Check proactively so
+      // today's streak isn't silently missed just because nothing needed
+      // tapping. markRoutineComplete() is idempotent (only the first call
+      // each day does anything), so this is safe to run unconditionally.
+      for (final routineType in _routineAlarms.keys) {
+        if (isRoutineComplete(routineType)) {
+          markRoutineComplete();
+        }
+      }
 
       _checkFocusJourneyUnlocks();
 
@@ -1946,16 +1961,25 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     habit.isCompleted = !habit.isCompleted;
 
     if (habit.isCompleted) {
-      habit.skippedCount = 0;
-      _db
-          .collection('users')
-          .doc(_userId)
-          .collection('habits')
-          .doc(habit.id)
-          .update({'skippedCount': 0})
-          .catchError((_) {});
+      // A negative ("quit"/avoid) habit reaching isCompleted==true is a
+      // redemption (undoing an earlier slip), not a fresh achievement --
+      // it defaulted to already-succeeded for the day (see
+      // Habit.isNegativeHabit), so it shouldn't re-earn XP/skippedCount
+      // reset/a chime every time the user taps it back to "avoided."
+      // markRoutineComplete() below still runs either way since a
+      // redemption can genuinely be the thing that completes the routine.
+      if (!habit.isNegativeHabit) {
+        habit.skippedCount = 0;
+        _db
+            .collection('users')
+            .doc(_userId)
+            .collection('habits')
+            .doc(habit.id)
+            .update({'skippedCount': 0})
+            .catchError((_) {});
 
-      incrementTotalHabits(); // ALWAYS triggers on completion!
+        incrementTotalHabits(); // ALWAYS triggers on completion!
+      }
 
       // markRoutineComplete() (streak advancement) previously had exactly
       // one caller -- skipRoutine()'s bulk "skip remaining" action -- so
@@ -1966,7 +1990,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         markRoutineComplete();
       }
 
-      if (_soundsEnabled) {
+      if (!habit.isNegativeHabit && _soundsEnabled) {
         try {
           await _audioPlayer.play(
             audioplayers.AssetSource('audio/success_chime.mp3'),

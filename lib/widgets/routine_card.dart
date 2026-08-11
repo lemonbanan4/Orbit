@@ -131,6 +131,24 @@ class _RoutineCardState extends State<RoutineCard> {
       );
     }
     final rows = <Widget>[];
+    // "Quit"/avoid habits (Habit.isNegativeHabit) start each day already
+    // succeeded -- isCompleted==false here means a slip happened today, so
+    // the label needs to say so explicitly rather than reading like an
+    // ordinary not-done-yet habit.
+    if (habit.isNegativeHabit) {
+      rows.add(
+        Text(
+          habit.isCompleted ? '🛡️ Avoided today' : '⚠️ Slipped today',
+          style: TextStyle(
+            color: habit.isCompleted
+                ? const Color(0xFF33E6D8)
+                : Colors.redAccent.withValues(alpha: 0.85),
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
     // Weekly ("N times/week") habits show their weekly progress instead of a
     // daily streak (a per-day streak is meaningless for them).
     if (habit.isWeekly) {
@@ -1161,6 +1179,8 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                               habit.healthMetric,
                                                                           initialHealthTarget:
                                                                               habit.healthTarget,
+                                                                          initialIsNegativeHabit:
+                                                                              habit.isNegativeHabit,
                                                                         );
                                                                       },
                                                                   backgroundColor:
@@ -1411,7 +1431,8 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                               return;
                                                                             }
 
-                                                                            if (!wasCompleted) {
+                                                                            if (!wasCompleted &&
+                                                                                !habit.isNegativeHabit) {
                                                                               HapticFeedback.lightImpact();
                                                                               context
                                                                                   .read<
