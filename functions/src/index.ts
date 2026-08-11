@@ -1203,6 +1203,95 @@ export const removeFriend = onCall(async (request) => {
   return {success: true};
 });
 
+// Creates a Group Challenge (a time-boxed shared commitment among mutual
+// friends -- see lib/models/challenge.dart). Server-side because it needs
+// to verify every invitee is actually a mutual friend of the creator by
+// reading the creator's own `friends` array, something firestore.rules
+// can't cheaply check against a document being newly created (there's no
+// `resource.data` yet to compare against, and rules can't easily assert
+// "every element of this array is present in that other document's array"
+// without per-element get() calls) -- same reasoning as linkPartner/
+// removeFriend already being callables rather than direct client writes.
+export const createChallenge = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Must be logged in to create a challenge."
+    );
+  }
+
+  const uid = request.auth.uid;
+  const title = request.data?.title;
+  const goal = request.data?.goal;
+  const durationDays = request.data?.durationDays;
+  const inviteeUids = request.data?.inviteeUids;
+
+  if (
+    !title ||
+    typeof title !== "string" ||
+    title.trim().length === 0 ||
+    title.length > 100
+  ) {
+    throw new HttpsError("invalid-argument", "Invalid title.");
+  }
+  if (goal !== undefined && goal !== null &&
+      (typeof goal !== "string" || goal.length > 300)) {
+    throw new HttpsError("invalid-argument", "Invalid goal.");
+  }
+  if (![7, 14, 30].includes(durationDays)) {
+    throw new HttpsError("invalid-argument", "Invalid duration.");
+  }
+  if (
+    !Array.isArray(inviteeUids) ||
+    inviteeUids.length === 0 ||
+    inviteeUids.length > 9 ||
+    inviteeUids.some((id: unknown) => typeof id !== "string")
+  ) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Invite between 1 and 9 friends."
+    );
+  }
+
+  // Only allow inviting mutual friends -- read the creator's own doc
+  // (never another user's, keeping this consistent with firestore.rules'
+  // owner-only read model) and verify every invitee is already in it.
+  const creatorSnap = await admin
+    .firestore()
+    .collection("users")
+    .doc(uid)
+    .get();
+  const friends: string[] = creatorSnap.data()?.friends ?? [];
+  const hasStranger = inviteeUids.some(
+    (id: string) => !friends.includes(id)
+  );
+  if (hasStranger) {
+    throw new HttpsError(
+      "permission-denied",
+      "You can only invite mutual friends."
+    );
+  }
+
+  const participantIds = Array.from(new Set([uid, ...inviteeUids]));
+  const now = admin.firestore.Timestamp.now();
+  const endDate = admin.firestore.Timestamp.fromMillis(
+    now.toMillis() + durationDays * 24 * 60 * 60 * 1000
+  );
+
+  const challengeRef = admin.firestore().collection("challenges").doc();
+  await challengeRef.set({
+    creatorId: uid,
+    title: title.trim(),
+    goal: (goal ?? "").trim(),
+    participantIds,
+    startDate: now,
+    endDate,
+    createdAt: now,
+  });
+
+  return {success: true, challengeId: challengeRef.id};
+});
+
 // Cleans up guest accounts that are older than 30 days
 export const deleteOrphanedGuestAccounts = onSchedule(
   "every day 03:00",

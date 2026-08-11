@@ -667,4 +667,123 @@ describe("Orbit Firestore Security Rules", () => {
     await assertFails(bobDoc.get());
     await assertFails(bobDoc.update({ name: "Hacked by Alice" }));
   });
+
+  describe("Group Challenges (top-level challenges collection)", () => {
+    const seedChallenge = async (challengeId, participantIds) => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await context
+          .firestore()
+          .collection("challenges")
+          .doc(challengeId)
+          .set({
+            creatorId: participantIds[0],
+            title: "No Sugar Week",
+            goal: "Quit sugar together",
+            participantIds,
+            startDate: new Date(),
+            endDate: new Date(),
+            createdAt: new Date(),
+          });
+      });
+    };
+
+    it("Lets a participant read a challenge, denies a non-participant", async () => {
+      await seedChallenge("chal1", ["alice123", "bob456"]);
+
+      const aliceDoc = testEnv
+        .authenticatedContext("alice123")
+        .firestore()
+        .collection("challenges")
+        .doc("chal1");
+      const eveDoc = testEnv
+        .authenticatedContext("eve789")
+        .firestore()
+        .collection("challenges")
+        .doc("chal1");
+
+      await assertSucceeds(aliceDoc.get());
+      await assertFails(eveDoc.get());
+    });
+
+    it("Denies any direct client create/update/delete on a challenge doc", async () => {
+      const aliceDb = testEnv.authenticatedContext("alice123").firestore();
+      await assertFails(
+        aliceDb.collection("challenges").doc("chal2").set({
+          creatorId: "alice123",
+          title: "Hack",
+          goal: "",
+          participantIds: ["alice123"],
+          startDate: new Date(),
+          endDate: new Date(),
+          createdAt: new Date(),
+        })
+      );
+
+      await seedChallenge("chal3", ["alice123"]);
+      await assertFails(
+        aliceDb
+          .collection("challenges")
+          .doc("chal3")
+          .update({ title: "Renamed" })
+      );
+      await assertFails(
+        aliceDb.collection("challenges").doc("chal3").delete()
+      );
+    });
+
+    it("Lets a participant write only their own progress doc with a valid shape", async () => {
+      await seedChallenge("chal4", ["alice123", "bob456"]);
+      const aliceProgress = testEnv
+        .authenticatedContext("alice123")
+        .firestore()
+        .collection("challenges")
+        .doc("chal4")
+        .collection("progress")
+        .doc("alice123");
+
+      await assertSucceeds(
+        aliceProgress.set({ checkins: { "2026-08-11": true } })
+      );
+      // Wrong shape: extra key.
+      await assertFails(
+        aliceProgress.set({ checkins: {}, bogus: "field" })
+      );
+      // Wrong shape: checkins not a map.
+      await assertFails(aliceProgress.set({ checkins: "yes" }));
+    });
+
+    it("Denies writing another participant's progress doc, and denies a non-participant entirely", async () => {
+      await seedChallenge("chal5", ["alice123", "bob456"]);
+      const aliceDb = testEnv.authenticatedContext("alice123").firestore();
+
+      // Alice trying to write Bob's own progress doc.
+      await assertFails(
+        aliceDb
+          .collection("challenges")
+          .doc("chal5")
+          .collection("progress")
+          .doc("bob456")
+          .set({ checkins: { "2026-08-11": true } })
+      );
+
+      // Eve isn't a participant in this challenge at all.
+      const eveDb = testEnv.authenticatedContext("eve789").firestore();
+      await assertFails(
+        eveDb
+          .collection("challenges")
+          .doc("chal5")
+          .collection("progress")
+          .doc("eve789")
+          .set({ checkins: { "2026-08-11": true } })
+      );
+      await assertFails(
+        eveDb
+          .collection("challenges")
+          .doc("chal5")
+          .collection("progress")
+          .doc("alice123")
+          .get()
+      );
+    });
+  });
 });

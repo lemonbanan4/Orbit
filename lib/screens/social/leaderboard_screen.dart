@@ -9,6 +9,7 @@ import '../../widgets/common/base_orbit_screen.dart';
 import '../../widgets/common/premium_glass_card.dart';
 import '../common/add_friend_screen.dart';
 import '../common/friend_requests_screen.dart';
+import 'group_challenges_screen.dart';
 
 class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({super.key});
@@ -121,6 +122,19 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               );
             },
           ),
+        IconButton(
+          icon: Icon(Icons.emoji_events_rounded, color: textColor),
+          tooltip: 'Group Challenges',
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const GroupChallengesScreen(),
+              ),
+            );
+          },
+        ),
         IconButton(
           icon: Icon(Icons.person_add_alt_1_rounded, color: textColor),
           onPressed: () {

@@ -258,6 +258,20 @@ service cloud.firestore {
              data.status is string;
     }
 
+    // A participant's own daily check-in record within a group Challenge
+    // (see lib/models/challenge.dart) -- {date: true} entries, one per day
+    // they showed up. Not deeply validated key-by-key (Firestore rules
+    // can't cheaply iterate a map's values) -- matches the existing
+    // precedent of Habit.history, which is allowlisted but not
+    // per-entry-validated either. size() is capped generously above the
+    // longest challenge duration (30 days) as a sanity bound, not an
+    // attempt at exact validation.
+    function isValidChallengeProgress(data) {
+      return data.keys().hasOnly(['checkins']) &&
+             data.checkins is map &&
+             data.checkins.size() <= 40;
+    }
+
     // ===============================================================
     // Collections
     // ===============================================================
@@ -362,6 +376,34 @@ service cloud.firestore {
     match /wisdom_library/{document} {
       allow read: if isAuthenticated();
       allow write: if false;
+    }
+
+    // Group Challenges: a time-boxed shared commitment among mutual friends
+    // (see lib/models/challenge.dart). Lives as a top-level collection
+    // (like `links`) rather than nested under users/{userId} because it's
+    // genuinely shared across multiple UIDs, not owned by one user.
+    match /challenges/{challengeId} {
+      // Only participants can see a challenge exists at all (privacy --
+      // non-participants shouldn't be able to read who's in it or its
+      // title/goal). Creation only ever happens server-side (the
+      // createChallenge Cloud Function) since it needs to verify every
+      // invitee is a mutual friend of the creator -- something rules can't
+      // cheaply check across two different users' documents.
+      allow read: if isAuthenticated() &&
+        request.auth.uid in resource.data.participantIds;
+      allow create, update, delete: if false;
+
+      match /progress/{uid} {
+        // Any participant of the parent challenge can read everyone's
+        // check-ins (needed for the shared leaderboard); only the owning
+        // participant can write their own.
+        allow read: if isAuthenticated() &&
+          request.auth.uid in get(/databases/$(database)/documents/challenges/$(challengeId)).data.participantIds;
+        allow create, update: if isOwner(uid) &&
+          request.auth.uid in get(/databases/$(database)/documents/challenges/$(challengeId)).data.participantIds &&
+          isValidChallengeProgress(request.resource.data);
+        allow delete: if false;
+      }
     }
 
     // Global deny for everything else (Default Deny)
