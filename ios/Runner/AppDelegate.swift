@@ -26,6 +26,19 @@ import FirebaseAppCheck
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+
+    let messenger = engineBridge.applicationRegistrar.messenger()
+    let liveActivityChannel = FlutterMethodChannel(
+      name: "com.orbitroutine.orbit/live_activity",
+      binaryMessenger: messenger
+    )
+    liveActivityChannel.setMethodCallHandler { call, result in
+      if #available(iOS 16.2, *) {
+        OrbitLiveActivityManager.shared.handle(call, result: result)
+      } else {
+        result(false)
+      }
+    }
   }
 }
 

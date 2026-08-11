@@ -13,6 +13,7 @@ import 'dart:async';
 import 'dart:convert';
 import '../services/notification_service.dart';
 import '../services/health_sync_service.dart';
+import '../services/live_activity_service.dart';
 import '../models/routine_alarm.dart';
 import '../models/habit.dart';
 import '../models/daily_mission.dart';
@@ -1003,6 +1004,10 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     _activeConstellation = null;
     _isDataLoaded = false;
     notifyListeners();
+    // A running Live Activity is still showing the previous account's
+    // streak/progress on the Lock Screen -- it no longer represents this
+    // session once the account underneath it changes.
+    LiveActivityService.end();
     final prefs = _prefs ?? await SharedPreferences.getInstance();
     await prefs.clear();
   }
@@ -1285,6 +1290,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (anyChanged && !_isDisposed) {
       notifyListeners();
       _updateHomeWidget();
+      _refreshLiveActivity();
       _saveToCloud();
     }
   }
@@ -1639,6 +1645,12 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
       10,
     ); // Format: YYYY-MM-DD
     if (_lastResetDate != today) {
+      // A new day means yesterday's "routine session" Live Activity (if
+      // still running -- e.g. the user never finished yesterday's habits)
+      // is no longer representing anything live. End it rather than let it
+      // linger showing stale progress.
+      LiveActivityService.end();
+
       // Capture the date that's ending before it gets overwritten below —
       // per-habit history entries below belong to this day, not "today".
       final String? completedDayKey = _lastResetDate;
@@ -1979,6 +1991,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     _refreshReEngagementNudges();
     notifyListeners();
     _updateHomeWidget(); // Trigger home widget update on any habit toggle
+    _refreshLiveActivity();
     if (habitId == _featuredHabitId) _updateFeaturedHabitWidget();
     _saveToCloud();
   }
@@ -2049,6 +2062,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_isDisposed) return;
     notifyListeners();
     _updateHomeWidget();
+    _refreshLiveActivity();
     if (habitId == _featuredHabitId) _updateFeaturedHabitWidget();
     _saveToCloud();
   }
@@ -2543,6 +2557,30 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
       );
     } catch (e) {
       debugPrint('Error updating home screen widget: $e');
+    }
+  }
+
+  /// Starts or updates today's Live Activity (iOS Lock Screen + Dynamic
+  /// Island) once the user has made real progress, and ends it once every
+  /// habit due today is complete -- a Live Activity represents a bounded,
+  /// ongoing event, not a permanent fixture like the home-screen widgets,
+  /// so it's deliberately never started for an untouched 0/N day.
+  void _refreshLiveActivity() {
+    final todaysHabits = _habits.values
+        .where((h) => !h.isArchived && h.isActiveOn())
+        .toList();
+    if (todaysHabits.isEmpty) return;
+    final completed = todaysHabits.where((h) => h.isCompleted).length;
+    final total = todaysHabits.length;
+    if (completed <= 0) return;
+    if (completed >= total) {
+      LiveActivityService.end();
+    } else {
+      LiveActivityService.start(
+        completedCount: completed,
+        totalCount: total,
+        streak: _currentStreak,
+      );
     }
   }
 

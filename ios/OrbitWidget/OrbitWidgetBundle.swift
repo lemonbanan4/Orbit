@@ -12,5 +12,8 @@ import SwiftUI
 struct OrbitWidgetBundle: WidgetBundle {
     var body: some Widget {
         OrbitWidget()
+        if #available(iOS 16.2, *) {
+            OrbitLiveActivity()
+        }
     }
 }
