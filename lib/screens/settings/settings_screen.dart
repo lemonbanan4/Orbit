@@ -25,6 +25,7 @@ import '../../services/export_service.dart';
 import '../../widgets/settings/nebula_theme_sheet.dart';
 import '../../widgets/settings/interests_sheet.dart';
 import '../../widgets/settings/featured_habit_sheet.dart';
+import '../../l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -63,19 +64,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final intentionsCsv =
         ExportService.buildIntentionsCsv(routineProvider.intentionHistory);
 
-    final hasHabitData =
-        habitCsv.trim() != 'Habit,Routine,Date,Completed,Target,Unit,Archived';
-    final hasMoodData = moodCsv.trim() != 'Date,Mood,Note';
-    final hasIntentionData = intentionsCsv.trim() != 'Date,Intention';
+    // A CSV with only its header line (no data rows) means there's nothing
+    // to export -- comparing against a hardcoded copy of the header string
+    // is exactly what went stale and silently broke this check the last
+    // time ExportService's header gained new columns (HealthMetric/
+    // HealthTarget/IsNegativeHabit), so this counts lines instead of
+    // duplicating knowledge ExportService already owns.
+    bool hasRows(String csv) => csv.trim().split('\n').length > 1;
+    final hasHabitData = hasRows(habitCsv);
+    final hasMoodData = hasRows(moodCsv);
+    final hasIntentionData = hasRows(intentionsCsv);
 
     if (!hasHabitData && !hasMoodData && !hasIntentionData) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "No data yet to export — check back after your first daily reset.",
-            ),
-          ),
+          SnackBar(content: Text(AppLocalizations.of(context)!.noDataToExportMessage)),
         );
       }
       return;
@@ -164,7 +167,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           FocusScope.of(context).unfocus(); // Dismiss keyboard
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Profile updated successfully!'),
+              content: Text(AppLocalizations.of(context)!.profileUpdatedMessage),
               backgroundColor: _accent,
               behavior: SnackBarBehavior.floating,
             ),
@@ -206,17 +209,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     bool isRedeeming = false;
     final theme = Theme.of(context);
     final textColor = theme.colorScheme.onSurface;
+    final l10n = AppLocalizations.of(context)!;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('Redeem Invite Code', style: TextStyle(color: textColor)),
+          title: Text(l10n.redeemDialogTitle, style: TextStyle(color: textColor)),
           content: TextField(
             controller: codeController,
             style: TextStyle(color: textColor),
             decoration: InputDecoration(
-              hintText: 'Enter 6-digit code',
+              hintText: l10n.redeemCodeHint,
               hintStyle: TextStyle(color: textColor.withValues(alpha: 0.5)),
               filled: true,
               fillColor: textColor.withValues(alpha: 0.1),
@@ -230,7 +234,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
-                'Cancel',
+                l10n.cancelButton,
                 style: TextStyle(color: textColor.withValues(alpha: 0.6)),
               ),
             ),
@@ -258,10 +262,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         if (mounted && context.mounted) {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Success! You and your friend both got 30 days of Orbit Pro! 🎉',
-                              ),
+                            SnackBar(
+                              content: Text(l10n.redeemSuccessMessage),
                               backgroundColor: Colors.green,
                             ),
                           );
@@ -303,9 +305,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         strokeWidth: 2,
                       ),
                     )
-                  : const Text(
-                      'Redeem',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                  : Text(
+                      l10n.redeemButton,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
             ),
           ],
@@ -318,31 +320,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
     HapticFeedback.heavyImpact();
     final theme = Theme.of(context);
     final textColor = theme.colorScheme.onSurface;
+    final l10n = AppLocalizations.of(context)!;
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-          'Delete Account',
+          l10n.deleteAccountDialogTitle,
           style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Are you sure you want to permanently delete your account? This action cannot be undone and will erase all your progress.',
+          l10n.deleteAccountDialogContent,
           style: TextStyle(color: textColor.withValues(alpha: 0.7)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
-              'Cancel',
+              l10n.cancelButton,
               style: TextStyle(color: textColor.withValues(alpha: 0.5)),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Delete',
-              style: TextStyle(
+            child: Text(
+              l10n.deleteButton,
+              style: const TextStyle(
                 color: Colors.redAccent,
                 fontWeight: FontWeight.bold,
               ),
@@ -414,7 +417,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Support request sent successfully!')),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.supportRequestSentMessage),
+          ),
         );
       }
     } catch (e) {
@@ -431,18 +436,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     bool isSending = false;
     final theme = Theme.of(context);
     final textColor = theme.colorScheme.onSurface;
+    final l10n = AppLocalizations.of(context)!;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('Contact Support', style: TextStyle(color: textColor)),
+          title: Text(l10n.contactSupportDialogTitle, style: TextStyle(color: textColor)),
           content: TextField(
             controller: messageController,
             style: TextStyle(color: textColor),
             maxLines: 4,
             decoration: InputDecoration(
-              hintText: 'How can we help you?',
+              hintText: l10n.contactSupportHint,
               hintStyle: TextStyle(color: textColor.withValues(alpha: 0.5)),
               filled: true,
               fillColor: textColor.withValues(alpha: 0.1),
@@ -456,7 +462,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
-                'Cancel',
+                l10n.cancelButton,
                 style: TextStyle(color: textColor.withValues(alpha: 0.6)),
               ),
             ),
@@ -487,9 +493,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         strokeWidth: 2,
                       ),
                     )
-                  : const Text(
-                      'Send',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                  : Text(
+                      l10n.sendButton,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
             ),
           ],
@@ -503,15 +509,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final theme = Theme.of(context);
     final textColor = theme.colorScheme.onSurface;
     final subtitleColor = textColor.withValues(alpha: 0.6);
+    final l10n = AppLocalizations.of(context)!;
 
     return BaseOrbitScreen(
-      title: 'Settings',
+      title: l10n.settingsTitle,
       body: ListView(
         padding: const EdgeInsets.all(24),
         physics: const BouncingScrollPhysics(),
         children: [
           Text(
-            'Edit Profile',
+            l10n.editProfileHeader,
             style: TextStyle(
               color: textColor,
               fontSize: 20,
@@ -529,7 +536,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     fontWeight: FontWeight.w600,
                   ),
                   decoration: InputDecoration(
-                    labelText: 'Display Name',
+                    labelText: l10n.displayNameLabel,
                     labelStyle: TextStyle(color: subtitleColor),
                     prefixIcon: Icon(
                       Icons.person_rounded,
@@ -545,7 +552,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 24),
                 PrimaryButton(
-                  text: 'Save Changes',
+                  text: l10n.saveChangesButton,
                   isLoading: _isSaving,
                   onPressed: _updateProfile,
                 ),
@@ -555,7 +562,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     value: routineProvider.confettiEnabled,
                     activeThumbColor: _accent,
                     title: Text(
-                      'Enable Confetti',
+                      l10n.enableConfetti,
                       style: TextStyle(
                         color: textColor,
                         fontWeight: FontWeight.bold,
@@ -577,14 +584,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     value: routineProvider.soundsEnabled,
                     activeThumbColor: _accent,
                     title: Text(
-                      'Sound Effects',
+                      l10n.soundEffectsTitle,
                       style: TextStyle(
                         color: textColor,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     subtitle: Text(
-                      'Play a chime when you complete a habit.',
+                      l10n.soundEffectsSubtitle,
                       style: TextStyle(color: textColor.withValues(alpha: 0.5)),
                     ),
                     onChanged: (val) {
@@ -602,7 +609,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onTap: _confirmDeleteAccount,
                   icon: Icons.person_remove_rounded,
                   iconColor: Colors.redAccent,
-                  title: 'Delete Account',
+                  title: l10n.deleteAccountTitle,
                   titleColor: Colors.redAccent,
                   trailing: const SizedBox.shrink(),
                 ),
@@ -621,7 +628,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
           const SizedBox(height: 40),
           Text(
-            'Account',
+            l10n.accountHeader,
             style: TextStyle(
               color: textColor,
               fontSize: 20,
@@ -651,7 +658,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     NebulaThemeSheet.show(context);
                   },
                   icon: Icons.palette_rounded,
-                  title: 'Nebula Theme',
+                  title: l10n.nebulaThemeTitle,
                 ),
                 Divider(
                   color: textColor.withValues(alpha: 0.1),
@@ -663,8 +670,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     InterestsSheet.show(context);
                   },
                   icon: Icons.interests_rounded,
-                  title: 'Focus Interests',
-                  subtitle: 'Steer your Daily Wisdom and AI coaching',
+                  title: l10n.focusInterestsTitle,
+                  subtitle: l10n.focusInterestsSubtitle,
                 ),
                 Divider(
                   color: textColor.withValues(alpha: 0.1),
@@ -676,8 +683,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     FeaturedHabitSheet.show(context);
                   },
                   icon: Icons.widgets_outlined,
-                  title: 'Habit Widget',
-                  subtitle: 'Pin a habit to your home screen',
+                  title: l10n.habitWidgetTitle,
+                  subtitle: l10n.habitWidgetSubtitle,
                 ),
                 Divider(
                   color: textColor.withValues(alpha: 0.1),
@@ -709,7 +716,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     }
                   },
                   icon: Icons.hub_rounded,
-                  title: 'Nebula Forge Analytics',
+                  title: l10n.nebulaForgeTitle,
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -724,7 +731,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               border: Border.all(color: _accent),
                             ),
                             child: Text(
-                              'PRO',
+                              l10n.proBadge,
                               style: TextStyle(
                                 color: _accent,
                                 fontSize: 10,
@@ -746,16 +753,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Consumer<RoutineProvider>(
                   builder: (context, provider, child) {
                     return SwitchListTile(
-                      title: const Text(
-                        'Enable All Notifications',
-                        style: TextStyle(
+                      title: Text(
+                        l10n.enableAllNotifsTitle,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      subtitle: const Text(
-                        'Temporarily pause or resume All Orbit reminders.',
-                        style: TextStyle(color: Colors.white54),
+                      subtitle: Text(
+                        l10n.enableAllNotifsSubtitle,
+                        style: const TextStyle(color: Colors.white54),
                       ),
                       activeThumbColor: _accent,
                       value: provider.allNotifsEnabled,
@@ -768,16 +775,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Consumer<RoutineProvider>(
                   builder: (context, provider, child) {
                     return SwitchListTile(
-                      title: const Text(
-                        'Evening Summary',
-                        style: TextStyle(
+                      title: Text(
+                        l10n.eveningSummaryTitle,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      subtitle: const Text(
-                        'Get a daily digest of your completed habits.',
-                        style: TextStyle(color: Colors.white54),
+                      subtitle: Text(
+                        l10n.eveningSummarySubtitle,
+                        style: const TextStyle(color: Colors.white54),
                       ),
                       activeThumbColor: _accent,
                       value: provider.dailySummaryNotifs,
@@ -791,16 +798,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Consumer<RoutineProvider>(
                   builder: (context, provider, child) {
                     return SwitchListTile(
-                      title: const Text(
-                        'Morning Routine Reminders',
-                        style: TextStyle(
+                      title: Text(
+                        l10n.morningRemindersTitle,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      subtitle: const Text(
-                        'Alarm reminders for your Morning routine.',
-                        style: TextStyle(color: Colors.white54),
+                      subtitle: Text(
+                        l10n.morningRemindersSubtitle,
+                        style: const TextStyle(color: Colors.white54),
                       ),
                       activeThumbColor: _accent,
                       value: provider.morningNotifs,
@@ -814,16 +821,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Consumer<RoutineProvider>(
                   builder: (context, provider, child) {
                     return SwitchListTile(
-                      title: const Text(
-                        'Night Routine Reminders',
-                        style: TextStyle(
+                      title: Text(
+                        l10n.nightRemindersTitle,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      subtitle: const Text(
-                        'Alarm reminders for your Night routine.',
-                        style: TextStyle(color: Colors.white54),
+                      subtitle: Text(
+                        l10n.nightRemindersSubtitle,
+                        style: const TextStyle(color: Colors.white54),
                       ),
                       activeThumbColor: _accent,
                       value: provider.nightNotifs,
@@ -846,7 +853,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     );
                   },
                   icon: Icons.notifications_rounded,
-                  title: 'Notifications',
+                  title: l10n.notificationsTitle,
                 ),
                 Divider(color: textColor.withValues(alpha: 0.1), height: 1),
                 SettingsTile(
@@ -855,8 +862,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     openSubscriptionManagement();
                   },
                   icon: Icons.workspace_premium_rounded,
-                  title: 'Manage Subscription',
-                  subtitle: 'View, change, or cancel your Orbit Pro plan',
+                  title: l10n.manageSubscriptionTitle,
+                  subtitle: l10n.manageSubscriptionSubtitle,
                 ),
                 Divider(color: textColor.withValues(alpha: 0.1), height: 1),
                 SettingsTile(
@@ -867,7 +874,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                   icon: Icons.logout_rounded,
                   iconColor: Colors.redAccent,
-                  title: 'Sign Out',
+                  title: l10n.signOutTitle,
                   titleColor: Colors.redAccent,
                 ),
               ],
@@ -875,7 +882,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ).animate().fade(delay: 200.ms).slideY(begin: 0.1),
           const SizedBox(height: 40),
           Text(
-            'My Data',
+            l10n.myDataHeader,
             style: TextStyle(
               color: textColor,
               fontSize: 20,
@@ -893,15 +900,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ? Icons.hourglass_top_rounded
                       : Icons.file_download_rounded,
                   iconColor: _accent,
-                  title: _isExporting ? 'Preparing export...' : 'Export My Data',
-                  subtitle: 'Habit history, mood log, and intentions as CSVs',
+                  title: _isExporting
+                      ? l10n.exportDataPreparing
+                      : l10n.exportDataTitle,
+                  subtitle: l10n.exportDataSubtitle,
                 ),
               ],
             ),
           ).animate().fade(delay: 225.ms).slideY(begin: 0.1),
           const SizedBox(height: 40),
           Text(
-            'Spread the Word',
+            l10n.spreadWordHeader,
             style: TextStyle(
               color: textColor,
               fontSize: 20,
@@ -929,8 +938,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                   icon: Icons.favorite_rounded,
                   iconColor: Colors.pinkAccent,
-                  title: 'Refer a Friend',
-                  subtitle: 'Give 30 Days Pro, Get 30 Days Pro',
+                  title: l10n.referFriendTitle,
+                  subtitle: l10n.referFriendSubtitle,
                   trailing: Icon(
                     Icons.ios_share_rounded,
                     color: textColor.withValues(alpha: 0.5),
@@ -944,7 +953,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                   icon: Icons.redeem_rounded,
                   iconColor: _accent,
-                  title: 'Redeem Code',
+                  title: l10n.redeemCodeTitle,
                 ),
                 Divider(color: textColor.withValues(alpha: 0.1), height: 1),
                 SettingsTile(
@@ -960,17 +969,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     } catch (e) {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Thank you for your support! 🌟'),
-                          ),
+                          SnackBar(content: Text(l10n.thankYouReviewMessage)),
                         );
                       }
                     }
                   },
                   icon: Icons.star_rounded,
                   iconColor: Colors.amber,
-                  title: 'Review Orbit',
-                  subtitle: 'Help us grow by leaving a review',
+                  title: l10n.reviewOrbitTitle,
+                  subtitle: l10n.reviewOrbitSubtitle,
                   trailing: const Icon(Icons.star_rounded, color: Colors.amber)
                       .animate(onPlay: (c) => c.repeat(reverse: true))
                       .scaleXY(begin: 1.0, end: 1.2, duration: 800.ms)
@@ -984,8 +991,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                   icon: Icons.support_agent_rounded,
                   iconColor: _accent,
-                  title: 'Contact Support',
-                  subtitle: 'Need help or have feedback?',
+                  title: l10n.contactSupportTitle,
+                  subtitle: l10n.contactSupportSubtitle,
                 ),
               ],
             ),

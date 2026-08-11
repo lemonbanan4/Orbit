@@ -20,6 +20,8 @@ import 'package:just_audio_background/just_audio_background.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 
 import 'package:go_router/go_router.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/app_localizations.dart';
 import 'services/notification_service.dart';
 import 'screens/settings/notifications_screen.dart';
 
@@ -605,6 +607,26 @@ class _OrbitAppState extends State<OrbitApp> {
       // --- THEMES ---
       theme: AppTheme.lightTheme.copyWith(extensions: [nebulaColors]),
       darkTheme: AppTheme.darkTheme.copyWith(extensions: [nebulaColors]),
+
+      // --- LOCALIZATION ---
+      // Infrastructure + Settings screen fully wired as a proof of concept
+      // (lib/l10n/app_en.arb / app_es.arb) -- most of the rest of the app is
+      // still hardcoded English text, not yet extracted to .arb. Falls back
+      // to English for any locale without an .arb file via localeResolutionCallback below.
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      localeResolutionCallback: (deviceLocale, supported) {
+        if (deviceLocale != null &&
+            supported.any((l) => l.languageCode == deviceLocale.languageCode)) {
+          return deviceLocale;
+        }
+        return const Locale('en');
+      },
 
       // --- ROUTING ENGINE ---
       routerConfig: _router,
