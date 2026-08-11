@@ -404,10 +404,18 @@ class _OrbitNavBar extends StatelessWidget {
             // so its lower half sits in the cradle, upper half floats above).
             Positioned(
               bottom: _barHeight - _orbSize / 2,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
+              child: Semantics(
+                button: true,
+                selected: currentIndex == 2,
+                label: destinations[2].label,
                 onTap: () => onSelect(2),
-                child: _CenterOrb(glyph: destinations[2].glyph),
+                child: ExcludeSemantics(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => onSelect(2),
+                    child: _CenterOrb(glyph: destinations[2].glyph),
+                  ),
+                ),
               ),
             ),
           ],
@@ -416,82 +424,108 @@ class _OrbitNavBar extends StatelessWidget {
     );
   }
 
+  // destinations[] carries no semantic-role info of its own (glyph is a
+  // decorative Unicode character, not real text -- VoiceOver would
+  // otherwise try to read it literally, e.g. "circle with left half
+  // black"), so each cell is wrapped in one Semantics node with the
+  // button/selected traits and the plain-English label, with the visual
+  // subtree excluded from the tree entirely to avoid a second, redundant
+  // announcement of the same label Text widget underneath.
   Widget _tabCell(int index) {
     final destination = destinations[index];
     final isActive = index == currentIndex;
     final color = isActive ? accent : unselectedColor;
     return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      child: Semantics(
+        button: true,
+        selected: isActive,
+        label: destination.label,
         onTap: () => onSelect(index),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 4,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 6),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isActive ? accent : Colors.transparent,
-                boxShadow: isActive
-                    ? [BoxShadow(color: accent.withValues(alpha: 0.6), blurRadius: 6)]
-                    : null,
-              ),
-            ),
-            SizedBox(
-              height: 24,
-              child: Center(
-                child: Text(
-                  destination.glyph,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: isActive ? 19 : 18,
-                    height: 1.0,
+        child: ExcludeSemantics(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => onSelect(index),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 4,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 6),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isActive ? accent : Colors.transparent,
+                    boxShadow: isActive
+                        ? [BoxShadow(color: accent.withValues(alpha: 0.6), blurRadius: 6)]
+                        : null,
                   ),
                 ),
-              ),
+                SizedBox(
+                  height: 24,
+                  child: Center(
+                    child: Text(
+                      destination.glyph,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: isActive ? 19 : 18,
+                        height: 1.0,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  destination.label,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 10.5,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 3),
-            Text(
-              destination.label,
-              style: TextStyle(
-                color: color,
-                fontSize: 10.5,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
   // Center cell holds only the label (the orb sits in the notch above it),
-  // spaced to keep the label baseline aligned with the flanking tabs.
+  // spaced to keep the label baseline aligned with the flanking tabs. Also
+  // independently focusable/announced for VoiceOver (not excluded) since
+  // it's a real, separately-tappable hit region from the orb above it, not
+  // purely decorative.
   Widget _centerLabelCell() {
     final isActive = currentIndex == 2;
     final color = isActive ? accent : unselectedColor;
     return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      child: Semantics(
+        button: true,
+        selected: isActive,
+        label: destinations[2].label,
         onTap: () => onSelect(2),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(height: 10), // matches the active-dot + margin
-            const SizedBox(height: 24), // matches the glyph slot
-            const SizedBox(height: 3),
-            Text(
-              destinations[2].label,
-              style: TextStyle(
-                color: color,
-                fontSize: 10.5,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-              ),
+        child: ExcludeSemantics(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => onSelect(2),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 10), // matches the active-dot + margin
+                const SizedBox(height: 24), // matches the glyph slot
+                const SizedBox(height: 3),
+                Text(
+                  destinations[2].label,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 10.5,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

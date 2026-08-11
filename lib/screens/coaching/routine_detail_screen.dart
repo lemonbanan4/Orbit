@@ -1288,7 +1288,19 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                                 ),
                                                               ),
                                                             ),
-                                                          AnimatedContainer(
+                                                          Semantics(
+                                                            button: true,
+                                                            label: habit
+                                                                    .isNegativeHabit
+                                                                ? '${habit.title}, ${isCompleted ? "avoided today" : "slipped today"}'
+                                                                : habit.targetCount !=
+                                                                      null
+                                                                ? '${habit.title}, ${habit.currentCount} of ${habit.targetCount}${isCompleted ? ", completed" : ""}'
+                                                                : habit
+                                                                      .isHealthLinked
+                                                                ? '${habit.title}, ${habit.currentCount} of ${habit.healthTarget ?? 1}${isCompleted ? ", completed" : ""}'
+                                                                : '${habit.title}, ${isCompleted ? "completed" : "not completed"}',
+                                                            child: AnimatedContainer(
                                                             duration:
                                                                 const Duration(
                                                                   milliseconds:
@@ -1368,6 +1380,7 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                                     ),
                                                                   )
                                                                 : null,
+                                                            ),
                                                           ),
                                                           const SizedBox(
                                                             width: 12,
