@@ -22,6 +22,23 @@ admin.initializeApp();
 // Set all v2 functions to deploy to Europe (matching your eur3 Firestore)
 setGlobalOptions({region: "europe-west1"});
 
+/**
+ * Settings screen's "Enable All Notifications" toggle (subtitle: "Temporarily
+ * pause or resume All Orbit reminders") only ever stopped *local* alarms --
+ * every server-pushed FCM notification (friend requests, partner links,
+ * milestones, challenge invites, the 3-day re-engagement nudge, etc.) had no
+ * concept of it at all, so disabling it in Settings didn't actually stop
+ * pushes from arriving. Defaults to true to match the client's own default
+ * (RoutineProvider._allNotifsEnabled starts true) for users who never
+ * touched the toggle.
+ * @param {FirebaseFirestore.DocumentData | undefined} userData The
+ * recipient's user document data.
+ * @return {boolean} Whether server-pushed notifications should be sent.
+ */
+function isNotifsEnabled(userData: FirebaseFirestore.DocumentData | undefined) {
+  return userData?.all_notifs !== false;
+}
+
 export const sendPushNotificationOnNewMessage = onDocumentCreated(
   "users/{userId}/notifications/{notificationId}",
   async (event) => {
@@ -44,6 +61,7 @@ export const sendPushNotificationOnNewMessage = onDocumentCreated(
       logger.info(`No FCM token found for user: ${userId}`);
       return;
     }
+    if (!isNotifsEnabled(userData)) return;
 
     // 2. Build the push notification payload
     const payload = {
@@ -157,6 +175,7 @@ export const notifyOnFriendRequest = onDocumentCreated(
     const userData = userDoc.data();
 
     if (!userData || !userData.fcmToken) return;
+    if (!isNotifsEnabled(userData)) return;
 
     const senderName = requestData.senderName || "A fellow astronaut";
 
@@ -240,6 +259,7 @@ export const notifyPartnerOnHabitComplete = onDocumentUpdated(
       const partnerData = partnerDoc.data();
 
       if (!partnerData||!partnerData.fcmToken) return;
+      if (!isNotifsEnabled(partnerData)) return;
 
       // 3. Send the push notification
       const payload = {
@@ -312,6 +332,7 @@ export const notifyOnFriendRequestAccepted = onDocumentUpdated(
       const senderData = senderDoc.data();
 
       if (!senderData || !senderData.fcmToken) return;
+      if (!isNotifsEnabled(senderData)) return;
 
       const payload = {notification: {title:
         "Request Accepted! 🎉",
@@ -359,7 +380,7 @@ export const notifyOnPartnerLinked = onDocumentCreated(
     const nameA = userADoc.data()?.name || "A fellow astronaut";
     const tokenB = userBDoc.data()?.fcmToken;
 
-    if (tokenB) {
+    if (tokenB && isNotifsEnabled(userBDoc.data())) {
       const payload = {notification:
             {title: "Orbits Linked! 🚀",
               body: `${nameA} successfully linked accounts with you!`},
@@ -401,7 +422,7 @@ export const notifyOnChallengeCreated = onDocumentCreated(
 
     await Promise.all(inviteeDocs.map(async (doc) => {
       const fcmToken = doc.data()?.fcmToken;
-      if (!fcmToken) return;
+      if (!fcmToken || !isNotifsEnabled(doc.data())) return;
 
       const payload = {
         notification: {
@@ -597,6 +618,7 @@ export const sendDailySummary = onSchedule(
         if (!userData.fcmToken) return;
         // Respect user settings (defaults to true)
         if (userData.daily_summary_notifs === false) return;
+        if (!isNotifsEnabled(userData)) return;
 
         // RoutineProvider._saveToCloud() writes 'habits' as
         // Map<habitId, bool> (habitId -> isCompleted) -- comparing the
@@ -932,7 +954,17 @@ export const redeemReferralCode = onCall(async (request) => {
       },
       body: JSON.stringify({duration: "monthly"}), // Grants exactly 30 days
     });
-    return response.json();
+    const body = await response.json();
+    // RevenueCat returns a valid JSON body on 4xx/5xx too (an error object,
+    // not a thrown exception), so this previously reported success back to
+    // the client even when nothing was actually granted.
+    if (!response.ok) {
+      throw new Error(
+        `RevenueCat grant failed for ${uid}: ${response.status} ` +
+        `${JSON.stringify(body)}`
+      );
+    }
+    return body;
   };
 
   try {
@@ -955,6 +987,14 @@ export const redeemReferralCode = onCall(async (request) => {
     return {success: true, message: "30 Days of Pro unlocked!"};
   } catch (error) {
     logger.error("RC API Error:", error);
+    // The redemption was already reserved transactionally above (to block
+    // replay) before either grant was attempted -- if the grant itself
+    // failed, roll that reservation back so the user isn't permanently
+    // locked out of ever redeeming a code just because RevenueCat had a
+    // transient failure.
+    await refereeRef.update({
+      referredBy: admin.firestore.FieldValue.delete(),
+    }).catch((e) => logger.error("Failed to roll back referredBy:", e));
     throw new HttpsError("internal", "Failed to communicate with RevenueCat.");
   }
 });
@@ -1555,6 +1595,21 @@ export const manageInactiveAccounts = onSchedule(
           // 1. Delete if inactive for >= 1 year
           if (timeInactive >= oneYearMs) {
             try {
+              // lastSignInTime is a Firebase Auth concept -- it has nothing
+              // to do with whether an Apple/Google subscription is still
+              // active and auto-renewing (RevenueCat billing is entirely
+              // independent of Firebase Auth activity). Without this check,
+              // a paying Pro subscriber who simply hadn't opened the app in
+              // a year got their Firebase Auth user AND all their Firestore
+              // data (via cleanupUserAccount's onDelete trigger) permanently
+              // deleted while still being billed, with no way back in under
+              // that identity.
+              const userDoc = await admin.firestore()
+                .collection("users").doc(userRecord.uid).get();
+              if (userDoc.data()?.isPro === true) {
+                continue;
+              }
+
               await admin.auth().deleteUser(userRecord.uid);
               deletedCount++;
 
@@ -1643,7 +1698,7 @@ export const manageInactiveAccounts = onSchedule(
               .doc(userRecord.uid).get();
             const fcmToken = userDoc.data()?.fcmToken;
 
-            if (fcmToken) {
+            if (fcmToken && isNotifsEnabled(userDoc.data())) {
               const payload = {
                 notification: {
                   title: "We miss you in Orbit! 🚀",

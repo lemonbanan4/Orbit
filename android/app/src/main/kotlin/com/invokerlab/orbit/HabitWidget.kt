@@ -3,7 +3,9 @@ package com.invokerlab.orbit // Check your MainActivity.kt to ensure this matche
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.Uri
 import android.widget.RemoteViews
+import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetProvider
 
 class HabitWidget : HomeWidgetProvider() {
@@ -23,6 +25,17 @@ class HabitWidget : HomeWidgetProvider() {
                 val streak = widgetData.getInt("streak", 0)
                 setTextViewText(R.id.widget_title, title)
                 setTextViewText(R.id.widget_habit_streak, "$streak Day Streak")
+
+                // iOS's equivalent widget sets .widgetURL to deep-link via
+                // orbit://habit (handled in main.dart's
+                // _handleWidgetNavigation); this was never wired up on
+                // Android, so tapping the widget did nothing.
+                val pendingIntent = HomeWidgetLaunchIntent.getActivity(
+                    context,
+                    MainActivity::class.java,
+                    Uri.parse("orbit://habit")
+                )
+                setOnClickPendingIntent(R.id.widget_root, pendingIntent)
             }
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }

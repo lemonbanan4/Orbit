@@ -1003,14 +1003,17 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
           // LAYER 4: CLOSE BUTTON
           //
-          // Disabled while a purchase is in flight (_isPurchasing) or its
-          // entitlement is still being polled (_isVerifying) -- previously
-          // this always navigated away immediately regardless of state, so
-          // tapping Close right after tapping a purchase button would yank
-          // the user out of the flow before _pollForEntitlement ever
-          // resolved. The purchase could still succeed in the background,
-          // but the UI never showed it, and Apple flagged exactly this
-          // shape of bug under Guideline 2.1(b) in sandbox review.
+          // Disabled while a purchase is in flight (_isPurchasing), its
+          // entitlement is still being polled (_isVerifying), or a restore
+          // is in flight (_isRestoring) -- previously this always navigated
+          // away immediately regardless of state, so tapping Close right
+          // after tapping a purchase button would yank the user out of the
+          // flow before _pollForEntitlement ever resolved. The purchase
+          // could still succeed in the background, but the UI never showed
+          // it, and Apple flagged exactly this shape of bug under Guideline
+          // 2.1(b) in sandbox review. _isRestoring was left out of this same
+          // gate even though Purchases.restorePurchases() is just as
+          // interruptible mid-flight.
           SafeArea(
                 child: Align(
                   alignment: Alignment.topRight,
@@ -1018,7 +1021,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     padding: const EdgeInsets.all(16.0),
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTap: (_isPurchasing || _isVerifying)
+                      onTap: (_isPurchasing || _isVerifying || _isRestoring)
                           ? null
                           : () async {
                               HapticFeedback.lightImpact();
@@ -1034,7 +1037,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                         ),
                         child: Icon(
                           Icons.close_rounded,
-                          color: (_isPurchasing || _isVerifying)
+                          color: (_isPurchasing || _isVerifying || _isRestoring)
                               ? OrbitTokens.inkDim.withValues(alpha: 0.3)
                               : OrbitTokens.inkDim,
                           size: 20,

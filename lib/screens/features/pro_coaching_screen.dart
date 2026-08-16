@@ -58,26 +58,32 @@ class _ProCoachingScreenState extends State<ProCoachingScreen> {
           .toList();
 
       if (habits.isEmpty) {
-        setState(() {
-          _scanResult =
-              "🛸 Mission Control Alert: You must construct at least one habit constellation before running a telemetry alignment scan!";
-          _isScanning = false;
-        });
+        if (mounted) {
+          setState(() {
+            _scanResult =
+                "🛸 Mission Control Alert: You must construct at least one habit constellation before running a telemetry alignment scan!";
+            _isScanning = false;
+          });
+        }
         return;
       }
 
       final result = await AiCoachService.generateProAlignmentScan(habits);
 
-      setState(() {
-        _scanResult = result;
-        _isScanning = false;
-      });
+      if (mounted) {
+        setState(() {
+          _scanResult = result;
+          _isScanning = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _scanResult =
-            "Cosmic interference detected. Retrying telemetry baseline link...";
-        _isScanning = false;
-      });
+      if (mounted) {
+        setState(() {
+          _scanResult =
+              "Cosmic interference detected. Retrying telemetry baseline link...";
+          _isScanning = false;
+        });
+      }
     }
   }
 

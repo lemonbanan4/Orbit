@@ -18,6 +18,7 @@ import '../../widgets/common/stellar_planet.dart';
 import '../../widgets/common/cosmica_fairy.dart';
 import '../../widgets/constellation_progress_view.dart';
 import '../../providers/routine_provider.dart';
+import '../../providers/auth_provider.dart';
 
 class ConstellationBuilderScreen extends StatefulWidget {
   const ConstellationBuilderScreen({super.key});
@@ -45,10 +46,19 @@ class _ConstellationBuilderScreenState
   @override
   void initState() {
     super.initState();
-    // Fetch the dynamic greeting when the screen loads
-    _greetingFuture = context
-        .read<CosmicMirrorService>()
-        .generateRoutineGenieGreeting();
+    // This screen is one of MainNavigationScreen's IndexedStack tabs, which
+    // are all mounted eagerly at app-shell startup (comment there: "keeps
+    // all screens mounted so state persists across tabs") -- so this fired
+    // a real Gemini call on every single cold start for every user, whether
+    // they ever visit this tab or not, with no Pro gate at all. Free users
+    // now get the same canned line the API-error fallback already used;
+    // only Pro gets a fresh generated one.
+    final isPro = context.read<AppAuthProvider>().isPro == true;
+    _greetingFuture = isPro
+        ? context.read<CosmicMirrorService>().generateRoutineGenieGreeting()
+        : Future.value(
+            "The celestial loom awaits. What destiny shall we weave?",
+          );
   }
 
   @override
