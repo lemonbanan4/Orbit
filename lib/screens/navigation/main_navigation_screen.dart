@@ -195,23 +195,34 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 /// (RoutineProvider.habitsCompletedToday) — no fake animation.
 class _CenterOrb extends StatefulWidget {
   final String glyph;
-  const _CenterOrb({required this.glyph});
+  final VoidCallback onTap;
+  const _CenterOrb({required this.glyph, required this.onTap});
 
   @override
   State<_CenterOrb> createState() => _CenterOrbState();
 }
 
 class _CenterOrbState extends State<_CenterOrb>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _pulse = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 620),
+  );
+  // Separate from _pulse (a one-shot "bump" on habit completion) -- this
+  // ramps up on tap-down/hold and eases back down on release, so tapping
+  // or holding the orb gives it the same glow language without fighting
+  // the completion pulse's own timing.
+  late final AnimationController _pressGlow = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 150),
+    reverseDuration: const Duration(milliseconds: 350),
   );
   int? _lastCount;
 
   @override
   void dispose() {
     _pulse.dispose();
+    _pressGlow.dispose();
     super.dispose();
   }
 
@@ -232,56 +243,65 @@ class _CenterOrbState extends State<_CenterOrb>
       if (mounted) _onCount(count);
     });
 
-    return AnimatedBuilder(
-      animation: _pulse,
-      builder: (context, _) {
-        final t = math.sin(_pulse.value * math.pi); // 0 -> 1 -> 0 bump
-        final scale = 1 + 0.16 * t;
-        final glow = 0.42 + 0.45 * t;
-        return Transform.scale(
-          scale: scale,
-          child: Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  OrbitTokens.teal,
-                  OrbitTokens.violet,
-                  OrbitTokens.gold,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => _pressGlow.forward(),
+      onTapUp: (_) => _pressGlow.reverse(),
+      onTapCancel: () => _pressGlow.reverse(),
+      onLongPressEnd: (_) => _pressGlow.reverse(),
+      onTap: widget.onTap,
+      child: AnimatedBuilder(
+        animation: Listenable.merge([_pulse, _pressGlow]),
+        builder: (context, _) {
+          final pulseT = math.sin(_pulse.value * math.pi); // 0 -> 1 -> 0 bump
+          final t = math.max(pulseT, _pressGlow.value);
+          final scale = 1 + 0.16 * t;
+          final glow = 0.42 + 0.45 * t;
+          return Transform.scale(
+            scale: scale,
+            child: Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    OrbitTokens.teal,
+                    OrbitTokens.violet,
+                    OrbitTokens.gold,
+                  ],
+                ),
+                border: Border.all(color: Colors.white24, width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: OrbitTokens.violet.withValues(alpha: glow),
+                    blurRadius: 16 + 14 * t,
+                    spreadRadius: 1 + 2 * t,
+                  ),
+                  BoxShadow(
+                    color: OrbitTokens.teal.withValues(alpha: 0.22 + 0.3 * t),
+                    blurRadius: 12,
+                    spreadRadius: -3,
+                  ),
                 ],
               ),
-              border: Border.all(color: Colors.white24, width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: OrbitTokens.violet.withValues(alpha: glow),
-                  blurRadius: 16 + 14 * t,
-                  spreadRadius: 1 + 2 * t,
-                ),
-                BoxShadow(
-                  color: OrbitTokens.teal.withValues(alpha: 0.22 + 0.3 * t),
-                  blurRadius: 12,
-                  spreadRadius: -3,
-                ),
-              ],
-            ),
-            child: Center(
-              child: Text(
-                widget.glyph,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  height: 1.0,
-                  fontWeight: FontWeight.w700,
+              child: Center(
+                child: Text(
+                  widget.glyph,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    height: 1.0,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
@@ -409,11 +429,15 @@ class _OrbitNavBar extends StatelessWidget {
                 selected: currentIndex == 2,
                 label: destinations[2].label,
                 onTap: () => onSelect(2),
+                // _CenterOrb owns its own GestureDetector now (needs
+                // onTapDown/onTapUp for the press-glow effect, which would
+                // otherwise compete with an outer one in the gesture arena
+                // and risk the outer onTap never firing), so this just
+                // wraps it for semantics rather than also handling the tap.
                 child: ExcludeSemantics(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
+                  child: _CenterOrb(
+                    glyph: destinations[2].glyph,
                     onTap: () => onSelect(2),
-                    child: _CenterOrb(glyph: destinations[2].glyph),
                   ),
                 ),
               ),
