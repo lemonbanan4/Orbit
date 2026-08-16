@@ -1009,7 +1009,25 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     // session once the account underneath it changes.
     LiveActivityService.end();
     final prefs = _prefs ?? await SharedPreferences.getInstance();
+    // has_seen_onboarding/last_seen_version (read by main.dart's
+    // AuthWrapper/WhatsNewScreen) are device-scoped, not per-account cache
+    // -- unlike current_streak/xp/avatar/cached_habits_data etc., they
+    // don't come from any account's cloud doc and have no "stale from the
+    // previous account" problem to guard against. This fires on a plain
+    // sign-out too (newUid becomes null), not just switching to a second
+    // account, so a bare prefs.clear() here was wiping has_seen_onboarding
+    // on every sign-out -- meaning ANY account signing back in afterward,
+    // guest or otherwise, looked freshly-installed to AuthWrapper and got
+    // routed through the entire onboarding survey again on every restart.
+    final hasSeenOnboarding = prefs.getBool('has_seen_onboarding');
+    final lastSeenVersion = prefs.getString('last_seen_version');
     await prefs.clear();
+    if (hasSeenOnboarding != null) {
+      await prefs.setBool('has_seen_onboarding', hasSeenOnboarding);
+    }
+    if (lastSeenVersion != null) {
+      await prefs.setString('last_seen_version', lastSeenVersion);
+    }
   }
 
   // _checkDailyReset() previously only ran on init/cloud-load and on

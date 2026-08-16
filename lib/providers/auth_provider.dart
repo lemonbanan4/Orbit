@@ -124,14 +124,20 @@ class AppAuthProvider extends ChangeNotifier {
   }
 
   // ANONYMOUS GUEST LOGIN
+  //
+  // Deliberately does NOT catch its own errors here (unlike an earlier
+  // version) -- every sibling sign-in method (signInWithGoogle,
+  // signInWithApple, signInWithEmailAndPassword) just lets a failure
+  // propagate up to login_screen.dart's _performSignIn, which logs it to
+  // Crashlytics and shows the user an error SnackBar. This one used to
+  // swallow its own exception with only a debugPrint, so a failed guest
+  // sign-in (network error, or Firebase Auth left in an inconsistent
+  // state) looked like the button silently doing nothing, with zero
+  // diagnostic signal anywhere.
   Future<void> signInAsGuest() async {
-    try {
-      await _authService.signInAsGuest();
-      // Firebase will automatically update the user state,
-      // and your main.dart AuthWrapper will push them to the onboarding!
-    } catch (e) {
-      debugPrint("Error signing in anonymously: $e");
-    }
+    await _authService.signInAsGuest();
+    // Firebase will automatically update the user state,
+    // and your main.dart AuthWrapper will push them to the onboarding!
   }
 
   Future<void> signOut() async {
