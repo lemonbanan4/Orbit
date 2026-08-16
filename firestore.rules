@@ -61,7 +61,7 @@ service cloud.firestore {
         // otherwise be silently rejected forever.
         'isPro', 'willRenew', 'proExpirationDate', 'retentionEmailSent',
         'referredBy', 'hasReadWarningEmail', 'warningEmailOpenedAt',
-        'emailTrackingToken', 'featured_habit_id'
+        'emailTrackingToken', 'featured_habit_id', 'lastActiveAt'
       ];
 
       // Prevent 1MB string payload attacks on display name — 'name' is

@@ -448,6 +448,24 @@ class _OrbitAppState extends State<OrbitApp> {
       user,
     ) async {
       if (user != null) {
+        // Stamped on every app boot/sign-in so deleteOrphanedGuestAccounts
+        // (functions/src/index.ts) can tell an abandoned guest account from
+        // one that's still actively being used -- it previously only
+        // checked createdAt, so any guest account older than 30 days got
+        // deleted (Firestore data AND the Firebase Auth user) regardless of
+        // how recently they'd opened the app, silently wiping out a loyal
+        // guest's data mid-session the next time the cleanup cron ran.
+        try {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .set({
+                'lastActiveAt': FieldValue.serverTimestamp(),
+              }, SetOptions(merge: true));
+        } catch (e) {
+          debugPrint('Error stamping lastActiveAt: $e');
+        }
+
         // Throws on simulators (and real devices before APNS has
         // provisioned a token) — was previously unguarded, an uncaught
         // error inside this stream listener that only Crashlytics'

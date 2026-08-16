@@ -2325,6 +2325,21 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     } catch (e) {
       debugPrint("Error caching reorder locally: $e");
     }
+    // _userId falls back to a hardcoded guest placeholder when there's no
+    // signed-in user at all (see its getter above) -- a batch write built
+    // from that placeholder is guaranteed to fail firestore.rules' isOwner()
+    // check (it requires a real request.auth), so skip the doomed network
+    // round-trip (and the resulting non-fatal Crashlytics noise on every
+    // attempt) entirely rather than firing it and catching the rejection.
+    // This can genuinely happen mid-session: e.g. a guest account whose
+    // Firebase Auth user got invalidated server-side (see
+    // deleteOrphanedGuestAccounts) while this screen was still open. The
+    // reorder still applies locally via notifyListeners()/the cache write
+    // above either way.
+    if (_auth.currentUser == null) {
+      debugPrint('Skipping reorderHabits Firestore sync: no signed-in user.');
+      return;
+    }
     try {
       // onReorder (routine_card.dart) is a sync callback, so its caller
       // can't await or catch this -- a failed commit here (offline, etc.)

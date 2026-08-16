@@ -1350,14 +1350,29 @@ export const deleteOrphanedGuestAccounts = onSchedule(
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const orphanedGuestsSnap = await admin
+      // createdAt alone previously decided deletion -- a guest who kept
+      // using the app daily past the 30-day mark, without ever linking to
+      // a permanent account, got their Firestore data AND Firebase Auth
+      // user silently deleted out from under them the next time this ran,
+      // mid-session, with no warning (surfaced as permission-denied errors
+      // on their very next write once their session was invalidated).
+      // lastActiveAt (stamped on every app boot/sign-in, see main.dart) is
+      // filtered in-memory below rather than as a second query clause so
+      // pre-migration accounts that never got a lastActiveAt stamp still
+      // fall back to createdAt instead of silently never matching.
+      const candidatesSnap = await admin
         .firestore()
         .collection("users")
         .where("isGuest", "==", true)
         .where("createdAt", "<=", thirtyDaysAgo)
         .get();
 
-      if (orphanedGuestsSnap.empty) {
+      const orphanedGuestDocs = candidatesSnap.docs.filter((doc) => {
+        const lastActiveAt = doc.data().lastActiveAt ?? doc.data().createdAt;
+        return lastActiveAt.toMillis() <= thirtyDaysAgo.getTime();
+      });
+
+      if (orphanedGuestDocs.length === 0) {
         logger.info("No orphaned guest accounts to delete.");
         return;
       }
@@ -1382,7 +1397,7 @@ export const deleteOrphanedGuestAccounts = onSchedule(
         "skipped_sessions",
       ];
 
-      for (const doc of orphanedGuestsSnap.docs) {
+      for (const doc of orphanedGuestDocs) {
         // Read all subcollections for this doc in parallel instead of one
         // await per subcollection -- this loop already runs once daily
         // against every guest account 30+ days old, so runtime scaled
@@ -1418,7 +1433,7 @@ export const deleteOrphanedGuestAccounts = onSchedule(
       // could be deleted before its Firestore batches had even started
       // committing).
       await Promise.all(
-        orphanedGuestsSnap.docs.map((doc) =>
+        orphanedGuestDocs.map((doc) =>
           admin.auth().deleteUser(doc.id).catch((e) =>
             logger.error(`Failed to delete auth for ${doc.id}`, e)
           )
@@ -1426,7 +1441,7 @@ export const deleteOrphanedGuestAccounts = onSchedule(
       );
 
       logger.info(
-        `Deleted ${orphanedGuestsSnap.size} orphaned guest accounts.`
+        `Deleted ${orphanedGuestDocs.length} orphaned guest accounts.`
       );
     } catch (error) {
       logger.error("Error deleting orphaned guest accounts:", error);
