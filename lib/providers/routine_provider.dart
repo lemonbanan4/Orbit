@@ -1804,10 +1804,17 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
         // A weekly ("N times/week") habit is only ever recorded on days it was
         // actually completed -- it has no per-day due-ness, so an off-day is
         // never a "miss"/skip and never touches totalDays or the daily streak.
+        // That doesn't hold for a negative habit though: it starts each day
+        // already "completed" and isCompleted only flips to false when the
+        // user records a slip, so every day is due by definition -- treating
+        // a weekly negative habit like a normal weekly one would silently
+        // drop slip days from history/totalDays/skippedCount. The habit
+        // creation UI now keeps isNegativeHabit/isWeekly mutually exclusive,
+        // but this guards any habit already saved with both set.
         final wasDueOrDone =
             habit.isCompleted ||
             (!habit.isArchived &&
-                !habit.isWeekly &&
+                (habit.isNegativeHabit || !habit.isWeekly) &&
                 closingWeekday != null &&
                 habit.activeDays[closingWeekday - 1]);
         if (completedDayKey != null && wasDueOrDone) {
@@ -2609,7 +2616,7 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// so it's deliberately never started for an untouched 0/N day.
   void _refreshLiveActivity() {
     final todaysHabits = _habits.values
-        .where((h) => !h.isArchived && h.isActiveOn())
+        .where((h) => !h.isArchived && !h.isWeekly && h.isActiveOn())
         .toList();
     if (todaysHabits.isEmpty) return;
     final completed = todaysHabits.where((h) => h.isCompleted).length;

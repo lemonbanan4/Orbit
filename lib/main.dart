@@ -30,6 +30,7 @@ import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/navigation/main_navigation_screen.dart';
 import 'screens/onboarding/login_screen.dart';
 import 'screens/navigation/profile_screen.dart';
+import 'screens/social/group_challenges_screen.dart';
 import 'screens/onboarding/whats_new_screen.dart';
 
 // Providers
@@ -559,6 +560,13 @@ class _OrbitAppState extends State<OrbitApp> {
     } else if (screen == 'profile') {
       navigatorKey.currentState?.push(
         MaterialPageRoute(builder: (context) => const ProfileScreen()),
+      );
+    } else if (screen == 'challenges') {
+      // notifyOnChallengeCreated sends screen: "challenges" on a Group
+      // Challenge invite -- route straight to it like 'profile' above,
+      // instead of falling through to the generic Notifications inbox.
+      navigatorKey.currentState?.push(
+        MaterialPageRoute(builder: (context) => const GroupChallengesScreen()),
       );
     } else if (screen == 'path_detail' || message.data['type'] == 'milestone') {
       // Route them directly to the Notifications Inbox to see their new reward!

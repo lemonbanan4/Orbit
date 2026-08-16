@@ -375,6 +375,56 @@ export const notifyOnPartnerLinked = onDocumentCreated(
   }
 );
 
+// Triggered when a Group Challenge is created (via the createChallenge
+// callable above) to notify every invited participant -- every other
+// social event (friend request, friend accepted, partner linked) already
+// has a matching trigger; this one didn't.
+export const notifyOnChallengeCreated = onDocumentCreated(
+  "challenges/{challengeId}",
+  async (event) => {
+    const challengeData = event.data?.data();
+    if (!challengeData) return;
+
+    const creatorId = challengeData.creatorId;
+    const title = challengeData.title || "a challenge";
+    const participantIds: string[] = challengeData.participantIds ?? [];
+    const inviteeIds = participantIds.filter((id) => id !== creatorId);
+    if (!creatorId || inviteeIds.length === 0) return;
+
+    const db = admin.firestore();
+    const creatorDoc = await db.collection("users").doc(creatorId).get();
+    const creatorName = creatorDoc.data()?.name || "A fellow astronaut";
+
+    const inviteeDocs = await Promise.all(
+      inviteeIds.map((id) => db.collection("users").doc(id).get())
+    );
+
+    await Promise.all(inviteeDocs.map(async (doc) => {
+      const fcmToken = doc.data()?.fcmToken;
+      if (!fcmToken) return;
+
+      const payload = {
+        notification: {
+          title: "New Group Challenge! 🚀",
+          body: `${creatorName} invited you to "${title}".`,
+        },
+        android: {notification: {sound: "orbit_chime"}},
+        apns: {payload: {aps: {sound: "orbit_chime.wav"}}},
+        data: {screen: "challenges"},
+        token: String(fcmToken),
+      };
+
+      try {
+        await admin.messaging().send(payload);
+      } catch (error) {
+        logger.error(
+          `Error sending challenge invite notification to ${doc.id}:`, error
+        );
+      }
+    }));
+  }
+);
+
 // Triggered automatically when a new user signs up via Firebase Auth
 export const onUserSignUp = functions
   .region("europe-west1")

@@ -425,7 +425,12 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
             // Negative ("avoid") habits start each day already succeeded
             // (see Habit.isNegativeHabit) -- everything else starts not-done.
             'isCompleted': _isNegativeHabit,
-          },
+          } else if (_isNegativeHabit && existing?.isNegativeHabit != true)
+            // Editing a habit INTO negative mid-day: apply the same
+            // already-succeeded invariant a brand-new negative habit gets,
+            // rather than carrying over whatever isCompleted happened to be
+            // under the old (non-negative) tracking mode.
+            'isCompleted': true,
           if (_isNegativeHabit)
             'isNegativeHabit': true
           else if (widget.habitId != null)
@@ -482,9 +487,12 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
               ? localCurrentCount >= targetCount
               : healthMetric != null
               ? localCurrentCount >= (healthTarget ?? 1)
-              // New negative habits start already-succeeded for the day
-              // (see Habit.isNegativeHabit); everything else preserves
-              // whatever it already was.
+              // New negative habits -- and habits just switched into negative
+              // mid-day -- start already-succeeded for the day (see
+              // Habit.isNegativeHabit); everything else preserves whatever
+              // it already was.
+              : (_isNegativeHabit && existing?.isNegativeHabit != true)
+              ? true
               : (existing?.isCompleted ?? _isNegativeHabit);
           final localHabit = Habit(
             id: docId,
@@ -857,8 +865,17 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
                   _repeatModeChip('Specific days', !_isWeekly,
                       () => setState(() => _isWeekly = false)),
                   const SizedBox(width: 8),
-                  _repeatModeChip('Times / week', _isWeekly,
-                      () => setState(() => _isWeekly = true)),
+                  _repeatModeChip('Times / week', _isWeekly, () => setState(() {
+                        _isWeekly = true;
+                        // A weekly completion-count target and a "starts
+                        // succeeded, fails on slip" negative habit use
+                        // incompatible day-tracking logic in RoutineProvider
+                        // -- combining them silently drops slip days from
+                        // history/stats, so keep them mutually exclusive
+                        // (mirrors the isCountBased/isHealthLinked pattern
+                        // below).
+                        _isNegativeHabit = false;
+                      })),
                 ],
               ),
               const SizedBox(height: 14),
@@ -1216,6 +1233,7 @@ class _CreateHabitSheetState extends State<CreateHabitSheet> {
                     if (val) {
                       _isCountBased = false;
                       _isHealthLinked = false;
+                      _isWeekly = false;
                     }
                   });
                 },
