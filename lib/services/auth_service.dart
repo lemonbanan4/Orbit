@@ -310,8 +310,23 @@ class AuthService {
   }
 
   Future<void> signOut() async {
-    // Conditional invocation is cleaner and satisfies the compiler!
-    await _googleSignIn?.signOut();
+    // Best-effort: must not block _auth.signOut() below. GoogleSignIn.
+    // instance is only ever initialize()'d lazily on the first Google
+    // sign-in attempt (see signInWithGoogle) -- calling .signOut() on it
+    // before that has ever happened (e.g. a guest-only session, or after
+    // signing in with Apple/email) throws, and since this was previously a
+    // plain sequential await with no try/catch, that exception propagated
+    // straight up and _auth.signOut() below never ran at all. Firebase's
+    // own session then stayed fully authenticated internally even though
+    // the UI had already navigated to LoginScreen -- so the next sign-in
+    // attempt (guest or otherwise) was fighting a session that was never
+    // actually cleared, and a later app restart would resume that same
+    // still-logged-in account instead of showing a fresh login.
+    try {
+      await _googleSignIn?.signOut();
+    } catch (e) {
+      debugPrint('Non-fatal error signing out of Google: $e');
+    }
     await _auth.signOut();
   }
 
