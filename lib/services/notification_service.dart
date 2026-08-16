@@ -40,11 +40,21 @@ class NotificationService {
         AndroidInitializationSettings('ic_notification');
 
     // 2. iOS Settings
+    //
+    // Deliberately false: this .initialize() call runs at app boot (see
+    // main()), before the user has even reached the login/onboarding
+    // screen. requestAlertPermission: true here fires the real iOS system
+    // permission dialog immediately -- and since iOS only ever shows that
+    // dialog once per install, it "uses up" the ask on a context-free
+    // cold-start prompt, permanently turning the deliberate, contextual
+    // soft-ask (showNotificationPrePrompt -> checkAndRequestPermissions,
+    // called from MainNavigationScreen post-login) into a no-op. The real
+    // request now happens only from that contextual flow.
     const DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
-          requestAlertPermission: true,
-          requestBadgePermission: true,
-          requestSoundPermission: true,
+          requestAlertPermission: false,
+          requestBadgePermission: false,
+          requestSoundPermission: false,
         );
 
     // 3. Combine Settings

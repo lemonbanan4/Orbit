@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import '../../data/interest_options.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -201,16 +200,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     setState(() => _isSubmitting = true);
     HapticFeedback.heavyImpact();
 
-    // Request notification permissions right before entering the app
-    try {
-      await FirebaseMessaging.instance.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-    } catch (e) {
-      debugPrint('Error requesting notification permissions: $e');
-    }
+    // Notification permission used to be requested right here, uncontextually,
+    // before the user has even reached the dashboard or the paywall -- iOS
+    // only ever shows that system dialog once per install, so this "used up"
+    // the ask on a bare survey transition. MainNavigationScreen's
+    // showNotificationPrePrompt (a custom "Stay on track!" explainer first,
+    // then the real OS prompt) already fires the first time every user
+    // lands on the dashboard, so this call was both premature and redundant.
 
     // Save the data to Firestore before navigating. This is best-effort:
     // a write failure shouldn't strand the user on the onboarding survey.

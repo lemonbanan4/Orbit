@@ -42,6 +42,11 @@ class _PaywallScreenState extends State<PaywallScreen> {
   bool _isPurchasing = false; // For the main purchase button
   bool _isRestoring = false; // For the restore button
   bool _isVerifying = false; // True while polling for entitlement post-purchase
+  // Whether the signed-in user is known to be ineligible for the annual
+  // package's free trial (already used it, or already an active/past
+  // subscriber) -- default false so pricing is unaffected until the iOS-only
+  // eligibility check below (if it can even run) resolves.
+  bool _annualTrialIneligible = false;
   String _paywallTitle = "Unlock Your\nFull Potential.";
   String _paywallSubtitle =
       "Get unlimited access to all premium features, personalized plans, and deep insights.";
@@ -116,6 +121,40 @@ class _PaywallScreenState extends State<PaywallScreen> {
       if (mounted) {
         setState(() => _isLoadingPrice = false);
       }
+    }
+    await _checkTrialEligibility();
+  }
+
+  // "START 7-DAY FREE TRIAL" was previously shown unconditionally to
+  // everyone who selected the annual plan -- including a returning user,
+  // reinstaller, or anyone who already consumed the trial and is not
+  // actually entitled to another one, which is both a bad surprise at
+  // charge time and an App Store pricing-accuracy risk. RevenueCat's
+  // eligibility API is iOS-only (Android always returns
+  // introEligibilityStatusUnknown per its own docs), so this only ever
+  // narrows the trial copy on iOS; Android keeps showing it, matching prior
+  // behavior, since there's no way to distinguish there.
+  Future<void> _checkTrialEligibility() async {
+    if (kIsWeb || !Platform.isIOS || _packages.isEmpty) return;
+    try {
+      final ids = _packages.map((p) => p.storeProduct.identifier).toList();
+      final eligibility =
+          await Purchases.checkTrialOrIntroductoryPriceEligibility(ids);
+      final annual = _packages.firstWhere(
+        (p) => p.packageType == PackageType.annual,
+        orElse: () => _packages.first,
+      );
+      final status = eligibility[annual.storeProduct.identifier]?.status;
+      // Per RevenueCat's own guidance: on an unknown/unresolvable status,
+      // show the non-trial price rather than risk a misleading trial offer.
+      final ineligible =
+          status != null &&
+          status != IntroEligibilityStatus.introEligibilityStatusEligible;
+      if (mounted) {
+        setState(() => _annualTrialIneligible = ineligible);
+      }
+    } catch (e) {
+      debugPrint("Error checking trial eligibility: $e");
     }
   }
 
@@ -520,7 +559,8 @@ class _PaywallScreenState extends State<PaywallScreen> {
     if (!_isLoadingPrice) {
       if (_selectedPackage != null) {
         final priceString = _selectedPackage!.storeProduct.priceString;
-        if (_selectedPackage!.packageType == PackageType.annual) {
+        if (_selectedPackage!.packageType == PackageType.annual &&
+            !_annualTrialIneligible) {
           buttonText = "START 7-DAY FREE TRIAL"; // Make it clear!
           priceSummary =
               "7 days free, then $priceString/year. Auto-renews until "
@@ -533,6 +573,15 @@ class _PaywallScreenState extends State<PaywallScreen> {
               "canceled at least 24 hours before the end of the current "
               "period. Any unused portion of a free trial is forfeited once "
               "you purchase a subscription.";
+        } else if (_selectedPackage!.packageType == PackageType.annual) {
+          // Known-ineligible for the trial -- show plain annual pricing
+          // instead of promising a trial that won't actually apply.
+          buttonText = "SUBSCRIBE (ANNUAL)";
+          priceSummary = "$priceString/year. Auto-renews until cancelled.";
+          renewalDisclosure =
+              "Orbit Pro (Annual, 12 months): $priceString/year. "
+              "Subscription automatically renews unless canceled at least "
+              "24 hours before the end of the current period.";
         } else {
           buttonText = "SUBSCRIBE MONTHLY";
           priceSummary =
@@ -689,6 +738,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                                       onSelect: (selected) => setState(
                                         () => _selectedPackage = selected,
                                       ),
+                                      trialIneligible: _annualTrialIneligible,
                                     );
                                   })
                                   .toList()

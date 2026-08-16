@@ -341,7 +341,11 @@ void main() {
         totalDays: 0,
       );
       final csv = ExportService.buildHistoryCsv([habit]);
-      expect(csv.trim(), 'Habit,Routine,Date,Completed,Target,Unit,Archived');
+      expect(
+        csv.trim(),
+        'Habit,Routine,Date,Completed,Target,Unit,Archived,'
+        'HealthMetric,HealthTarget,IsNegativeHabit',
+      );
     });
 
     test('buildHistoryCsv sorts rows chronologically and escapes commas', () {
@@ -357,9 +361,13 @@ void main() {
       );
       final csv = ExportService.buildHistoryCsv([habit]);
       final lines = csv.trim().split('\n');
-      expect(lines[0], 'Habit,Routine,Date,Completed,Target,Unit,Archived');
-      expect(lines[1], '"Read, Reflect",Night,2026-07-01,No,,,No');
-      expect(lines[2], '"Read, Reflect",Night,2026-07-02,Yes,,,No');
+      expect(
+        lines[0],
+        'Habit,Routine,Date,Completed,Target,Unit,Archived,'
+        'HealthMetric,HealthTarget,IsNegativeHabit',
+      );
+      expect(lines[1], '"Read, Reflect",Night,2026-07-01,No,,,No,,,No');
+      expect(lines[2], '"Read, Reflect",Night,2026-07-02,Yes,,,No,,,No');
     });
 
     test('buildHistoryCsv includes target/unit/archived metadata', () {
@@ -378,7 +386,10 @@ void main() {
       );
       final csv = ExportService.buildHistoryCsv([habit]);
       final lines = csv.trim().split('\n');
-      expect(lines[1], 'Drink Water,Morning,2026-07-01,Yes,8,glasses,Yes');
+      expect(
+        lines[1],
+        'Drink Water,Morning,2026-07-01,Yes,8,glasses,Yes,,,No',
+      );
     });
 
     test('buildMoodCsv sorts by date', () {

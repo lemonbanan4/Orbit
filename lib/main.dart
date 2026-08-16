@@ -432,12 +432,16 @@ class _OrbitAppState extends State<OrbitApp> {
   Future<void> _setupPushNotifications() async {
     if (kIsWeb) return;
 
-    // 1. Request permissions globally (Catches existing users who skipped Onboarding!)
-    await FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    // Permission used to be requested unconditionally right here, at app
+    // boot, before the user had even reached login/onboarding -- on iOS
+    // that fires the one-time-only system dialog with zero context, which
+    // permanently defeats the contextual soft-ask in MainNavigationScreen
+    // (showNotificationPrePrompt -> checkAndRequestPermissions). That soft-
+    // ask already covers every user path (fresh installs AND existing users
+    // who signed up before it existed, both start with the same
+    // has_seen_notification_prompt = false), so this early, uncontextual
+    // request was redundant as well as harmful. FCM token registration
+    // below doesn't require permission to have been granted.
 
     // 1.5 Fetch and save the token whenever the user logs in or the app starts
     _authChangesSub = FirebaseAuth.instance.authStateChanges().listen((

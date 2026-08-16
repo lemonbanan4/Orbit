@@ -10,6 +10,7 @@ import '../providers/routine_provider.dart';
 import '../providers/ai_fairy_provider.dart';
 import '../providers/telemetry_provider.dart';
 import '../providers/atmosphere_provider.dart';
+import '../providers/auth_provider.dart';
 import 'reward_popup.dart';
 import 'telemetry_levelup_dialog.dart';
 import 'create_habit_sheet.dart';
@@ -230,6 +231,7 @@ class _RoutineCardState extends State<RoutineCard> {
               routineProvider.currentStreak,
               playSound: routineProvider.soundsEnabled,
               skippedCount: skips,
+              isPro: context.read<AppAuthProvider>().isPro == true,
             );
             context.read<AtmosphereProvider>().setAura(
               AtmosphereProvider.auraForHabitCompletion(
@@ -1443,6 +1445,7 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                                     routineProvider.currentStreak,
                                                                                     playSound: routineProvider.soundsEnabled,
                                                                                     skippedCount: skips,
+                                                                                    isPro: context.read<AppAuthProvider>().isPro == true,
                                                                                   );
 
                                                                               context

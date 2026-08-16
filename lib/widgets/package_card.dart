@@ -6,17 +6,24 @@ class PackageCard extends StatelessWidget {
   final Package package;
   final bool isSelected;
   final Function(Package) onSelect;
+  // Known-ineligible for the annual plan's free trial (already used it, or
+  // an existing subscriber) -- see PaywallScreen._checkTrialEligibility.
+  // Keeps this card's "7 days free" badge consistent with the buy button's
+  // copy instead of advertising a trial that won't actually apply.
+  final bool trialIneligible;
 
   const PackageCard({
     super.key,
     required this.package,
     required this.isSelected,
     required this.onSelect,
+    this.trialIneligible = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final bool isAnnual = package.packageType == PackageType.annual;
+    final bool showTrialBadge = isAnnual && !trialIneligible;
     final String title = isAnnual ? "Annual" : "Monthly";
     final String priceString = package.storeProduct.priceString;
     final String period = isAnnual ? "/yr" : "/mo";
@@ -79,7 +86,7 @@ class PackageCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  if (isAnnual) ...[
+                  if (showTrialBadge) ...[
                     const SizedBox(height: 6),
                     Padding(
                       padding: const EdgeInsets.only(left: 36),

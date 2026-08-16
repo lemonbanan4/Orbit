@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:orbit_app/services/ai_fairy_service.dart';
 import 'package:orbit_app/services/voice_service.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AIFairyProvider extends ChangeNotifier {
   final AIFairyService _service = AIFairyService();
@@ -19,6 +20,30 @@ class AIFairyProvider extends ChangeNotifier {
   DateTime? _lastCheerAt;
   static const _cheerCooldown = Duration(seconds: 8);
 
+  // Every habit completion fired a real Gemini call for every user with no
+  // Pro gate or daily cap at all -- unbounded LLM spend with no revenue
+  // offset, and it also removed any incentive to upgrade since the app's
+  // flagship "AI coaching" touchpoint was already free everywhere. Free
+  // accounts now get a small number of real fairy interactions per day;
+  // Pro is unlimited. Persisted (not just in-memory) so a force-quit/reopen
+  // can't reset the count within the same day.
+  static const _freeDailyCheerCap = 5;
+  static const _cheerCountPrefsKey = 'ai_fairy_cheer_count';
+  static const _cheerCountDatePrefsKey = 'ai_fairy_cheer_count_date';
+
+  Future<bool> _consumeFreeCheerAllowance() async {
+    final prefs = await SharedPreferences.getInstance();
+    final todayKey = DateTime.now().toIso8601String().substring(0, 10);
+    final storedDate = prefs.getString(_cheerCountDatePrefsKey);
+    final count = storedDate == todayKey
+        ? (prefs.getInt(_cheerCountPrefsKey) ?? 0)
+        : 0;
+    if (count >= _freeDailyCheerCap) return false;
+    await prefs.setString(_cheerCountDatePrefsKey, todayKey);
+    await prefs.setInt(_cheerCountPrefsKey, count + 1);
+    return true;
+  }
+
   String get currentMessage => _currentMessage;
   List<String> get suggestedReplies => _suggestedReplies;
   bool get isCheering => _isCheering; // Renamed getter
@@ -31,6 +56,7 @@ class AIFairyProvider extends ChangeNotifier {
     int streak, {
     bool playSound = true,
     int skippedCount = 0,
+    bool isPro = false,
   }) async {
     _isCheering = true; // Set to true when cheering starts
     _activeHabitName = habitName; // Store the habit name
@@ -57,6 +83,16 @@ class AIFairyProvider extends ChangeNotifier {
       return;
     }
     _lastCheerAt = now;
+
+    if (!isPro && !await _consumeFreeCheerAllowance()) {
+      _currentMessage =
+          "You're glowing! That $streak-day streak is legendary! ✨";
+      _suggestedReplies = ["Heck yes!", "Keep it up"];
+      _isThinking = false;
+      notifyListeners();
+      return;
+    }
+
     _isThinking = true;
     notifyListeners();
 

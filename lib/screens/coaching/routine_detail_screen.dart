@@ -10,6 +10,7 @@ import '../../providers/routine_provider.dart';
 import '../../providers/ai_fairy_provider.dart';
 import '../../providers/telemetry_provider.dart';
 import '../../providers/atmosphere_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/reward_popup.dart';
 import '../../widgets/telemetry_levelup_dialog.dart';
@@ -1010,6 +1011,12 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                                                           playSound:
                                                               soundsEnabled,
                                                           skippedCount: skips,
+                                                          isPro: context
+                                                                  .read<
+                                                                    AppAuthProvider
+                                                                  >()
+                                                                  .isPro ==
+                                                              true,
                                                         );
 
                                                         atmosphereProvider.setAura(

@@ -225,11 +225,44 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                       return Center(
-                        child: Text(
-                          'No explorers found in orbit yet.',
-                          style: TextStyle(
-                            color: textColor.withValues(alpha: 0.5),
-                          ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'No explorers found in orbit yet.',
+                              style: TextStyle(
+                                color: textColor.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            // The add-friend flow otherwise only lived behind
+                            // a small toolbar icon above -- this was a dead
+                            // end with no obvious next action right where a
+                            // brand new user is most likely to land.
+                            TextButton.icon(
+                              onPressed: () {
+                                HapticFeedback.lightImpact();
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const AddFriendScreen(),
+                                  ),
+                                );
+                              },
+                              icon: Icon(
+                                Icons.person_add_alt_1_rounded,
+                                color: accent,
+                              ),
+                              label: Text(
+                                'Invite a Friend',
+                                style: TextStyle(
+                                  color: accent,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     }
