@@ -52,7 +52,7 @@ final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 
 const String globalAppVersion =
-    '1.1.0'; // Update this whenever you want to trigger What's New!
+    '1.3.0'; // Update this whenever you want to trigger What's New!
 
 // 1. This must be a top-level function (outside of any class)
 @pragma('vm:entry-point')

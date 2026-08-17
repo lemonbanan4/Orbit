@@ -58,28 +58,36 @@ class WhatsNewScreen extends StatelessWidget {
               ).animate().fade(delay: 200.ms),
               const SizedBox(height: 48),
               const FeatureRow(
-                  icon: Icons.ac_unit_rounded,
-                  color: Colors.lightBlueAccent,
-                  title: 'Streak Freeze',
+                  icon: Icons.bolt_rounded,
+                  color: Colors.amberAccent,
+                  title: 'Live Activities',
                   subtitle:
-                      'Miss a day without losing your streak — spend XP to freeze it.',
+                      'Track today\'s progress right from your Lock Screen and Dynamic Island.',
                   delay: 400),
               const SizedBox(height: 24),
               const FeatureRow(
-                  icon: Icons.insights_rounded,
-                  color: Colors.tealAccent,
-                  title: 'Habit Insights & History',
+                  icon: Icons.block_rounded,
+                  color: Colors.redAccent,
+                  title: 'Quit a Habit',
                   subtitle:
-                      'See your most consistent habits and a full history heatmap for each one.',
+                      'New "Something to Avoid" habits start each day already won — tap only if you slip.',
                   delay: 600),
+              const SizedBox(height: 24),
+              const FeatureRow(
+                  icon: Icons.groups_rounded,
+                  color: Colors.tealAccent,
+                  title: 'Group Challenges',
+                  subtitle:
+                      'Invite friends into a shared challenge and check in together.',
+                  delay: 800),
               const SizedBox(height: 24),
               const FeatureRow(
                   icon: Icons.favorite_rounded,
                   color: Colors.pinkAccent,
-                  title: 'Refer a Friend',
+                  title: 'Apple Health & Health Connect',
                   subtitle:
-                      'Invite a friend with your code and you both get 30 days of Orbit Pro.',
-                  delay: 800),
+                      'Link steps, workouts, and more so habits complete themselves.',
+                  delay: 1000),
               const Spacer(),
               PrimaryButton(
                 text: 'Continue to App',
