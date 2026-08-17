@@ -11,6 +11,7 @@ import {onDocumentCreated, onDocumentUpdated}
   from "firebase-functions/v2/firestore";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {onRequest, onCall, HttpsError} from "firebase-functions/v2/https";
+import {defineSecret} from "firebase-functions/params";
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import * as functions from "firebase-functions/v1";
@@ -38,6 +39,136 @@ setGlobalOptions({region: "europe-west1"});
 function isNotifsEnabled(userData: FirebaseFirestore.DocumentData | undefined) {
   return userData?.all_notifs !== false;
 }
+
+// GEMINI_API_KEY used to be embedded directly in the Flutter client (loaded
+// from a bundled .env asset and used by lib/services/ai_coach_service.dart,
+// ai_fairy_service.dart, cosmic_mirror_service.dart to call Gemini straight
+// from the device). That key shipped in plaintext inside every app binary --
+// anyone who downloaded the app could unzip it and pull the key out, which
+// is exactly what got the backing Google Cloud project suspended for
+// "abusive activity consistent with hijacking". Stored here via
+// defineSecret (Secret Manager-backed, never bundled into any client
+// artifact) and only ever used server-side.
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
+
+// Same 3-model chain lib/services/gemini_gateway.dart used to walk
+// client-side -- ported here so a congested/overloaded flagship model still
+// falls back to a lighter one instead of erroring out entirely.
+const GEMINI_MODEL_CHAIN = [
+  "gemini-flash-latest",
+  "gemini-flash-lite-latest",
+  "gemini-2.5-flash-lite",
+];
+
+/**
+ * Whether a failed Gemini response looks like transient capacity pressure
+ * (worth falling back to the next model in the chain) rather than a real
+ * error (bad request, blocked content, etc. -- worth surfacing immediately).
+ * @param {number} status HTTP status code from the Gemini API response.
+ * @param {string} bodyText Raw response body text.
+ * @return {boolean} True if this looks like a capacity-related failure.
+ */
+function isGeminiCapacityError(status: number, bodyText: string): boolean {
+  return status === 503 || status === 429 ||
+    bodyText.includes("UNAVAILABLE") ||
+    bodyText.includes("overloaded") ||
+    bodyText.includes("high demand") ||
+    bodyText.includes("Resource has been exhausted");
+}
+
+// Generic text(+optional image)-in, text-out proxy for every Gemini call
+// the app makes -- prompts, system instructions, and response parsing all
+// still live in the Dart call sites exactly as before; only the network
+// call and the API key moved server-side.
+export const generateWithGemini = onCall(
+  {secrets: [geminiApiKey]},
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Must be logged in to use AI features."
+      );
+    }
+
+    const prompt = request.data?.prompt;
+    if (!prompt || typeof prompt !== "string" || prompt.length > 12000) {
+      throw new HttpsError("invalid-argument", "Invalid prompt.");
+    }
+    const systemInstruction = request.data?.systemInstruction;
+    if (
+      systemInstruction !== undefined &&
+      (typeof systemInstruction !== "string" || systemInstruction.length > 4000)
+    ) {
+      throw new HttpsError("invalid-argument", "Invalid systemInstruction.");
+    }
+    const jsonMode = request.data?.jsonMode === true;
+    const imageBase64 = request.data?.imageBase64;
+    const imageMimeType = request.data?.imageMimeType;
+    if (imageBase64 !== undefined) {
+      if (
+        typeof imageBase64 !== "string" ||
+        // Base64 is ~1.37x the raw byte size -- this caps the raw image
+        // around 6MB, comfortably above what a habit-icon photo needs.
+        imageBase64.length > 8_000_000 ||
+        typeof imageMimeType !== "string"
+      ) {
+        throw new HttpsError("invalid-argument", "Invalid image payload.");
+      }
+    }
+
+    const parts: Array<Record<string, unknown>> = [{text: prompt}];
+    if (imageBase64 && imageMimeType) {
+      parts.push({inlineData: {mimeType: imageMimeType, data: imageBase64}});
+    }
+
+    const requestBody: Record<string, unknown> = {
+      contents: [{role: "user", parts}],
+    };
+    if (systemInstruction) {
+      requestBody.systemInstruction = {parts: [{text: systemInstruction}]};
+    }
+    if (jsonMode) {
+      requestBody.generationConfig = {responseMimeType: "application/json"};
+    }
+
+    const apiKey = geminiApiKey.value();
+    let lastErrorMessage = "No Gemini model responded.";
+
+    for (const model of GEMINI_MODEL_CHAIN) {
+      try {
+        const url =
+          "https://generativelanguage.googleapis.com/v1beta/models/" +
+          `${model}:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(requestBody),
+        });
+        const bodyText = await response.text();
+        if (!response.ok) {
+          if (isGeminiCapacityError(response.status, bodyText)) {
+            lastErrorMessage = bodyText;
+            continue;
+          }
+          logger.error(`Gemini error (${model}):`, bodyText);
+          throw new HttpsError("internal", "Gemini request failed.");
+        }
+        const data = JSON.parse(bodyText);
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (typeof text !== "string" || text.length === 0) {
+          lastErrorMessage = "Empty response from Gemini.";
+          continue;
+        }
+        return {text};
+      } catch (e) {
+        if (e instanceof HttpsError) throw e;
+        lastErrorMessage = String(e);
+      }
+    }
+    logger.error("All Gemini models exhausted:", lastErrorMessage);
+    throw new HttpsError("unavailable", "AI is temporarily unavailable.");
+  }
+);
 
 export const sendPushNotificationOnNewMessage = onDocumentCreated(
   "users/{userId}/notifications/{notificationId}",

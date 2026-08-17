@@ -1,54 +1,48 @@
-import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:cloud_functions/cloud_functions.dart';
 
-/// Model-fallback for Gemini calls.
+/// Proxy for every Gemini call the app makes.
 ///
-/// Since the July 2026 capacity crunch, `gemini-flash-latest` intermittently
-/// returns 503 "high demand" or takes 10s+ per reply while the lite models
-/// answer in under a second. Rather than pinning the app to whichever model
-/// happens to be healthy today, every one-shot generation runs through
-/// [withFallback]: best model first, sliding down the chain on
-/// capacity-shaped failures (503/429/timeouts) while real errors (bad key,
-/// blocked project, malformed request) still surface immediately.
+/// GEMINI_API_KEY used to live in a bundled .env asset and be used directly
+/// by GenerativeModel(apiKey: ...) client-side -- which means it shipped in
+/// plaintext inside every app binary, extractable by anyone who downloaded
+/// the app. That's how the backing Google Cloud project ended up suspended
+/// for "abusive activity consistent with hijacking": the key was harvested
+/// straight out of a public build. Every call now goes through the
+/// generateWithGemini Cloud Function instead, which holds the key server-side
+/// (Secret Manager) and walks the same 3-model capacity-fallback chain this
+/// class used to run client-side.
 class GeminiGateway {
   GeminiGateway._();
 
-  static const List<String> modelChain = [
-    'gemini-flash-latest',
-    'gemini-flash-lite-latest',
-    'gemini-2.5-flash-lite',
-  ];
+  static Future<String> generate({
+    required String prompt,
+    String? systemInstruction,
+    bool jsonMode = false,
+    Uint8List? imageBytes,
+    String? imageMimeType,
+  }) async {
+    final callable = FirebaseFunctions.instanceFor(region: 'europe-west1')
+        .httpsCallable(
+          'generateWithGemini',
+          options: HttpsCallableOptions(timeout: const Duration(seconds: 45)),
+        );
 
-  /// Per-model attempt budget. Long enough for a congested-but-working
-  /// model to answer, short enough that falling through the whole chain
-  /// stays tolerable in the UI.
-  static const Duration attemptTimeout = Duration(seconds: 20);
+    final result = await callable.call<Map<String, dynamic>>({
+      'prompt': prompt,
+      if (systemInstruction != null) 'systemInstruction': systemInstruction,
+      if (jsonMode) 'jsonMode': true,
+      if (imageBytes != null && imageMimeType != null)
+        'imageBase64': base64Encode(imageBytes),
+      if (imageBytes != null && imageMimeType != null)
+        'imageMimeType': imageMimeType,
+    });
 
-  static bool _isCapacityError(Object e) {
-    if (e is TimeoutException) return true;
-    final msg = e.toString();
-    return msg.contains('503') ||
-        msg.contains('UNAVAILABLE') ||
-        msg.contains('high demand') ||
-        msg.contains('overloaded') ||
-        msg.contains('Resource has been exhausted') ||
-        msg.contains('429');
-  }
-
-  /// Runs [attempt] with each model name in [modelChain] until one
-  /// succeeds. The callback constructs its own GenerativeModel so every
-  /// call keeps its specific system instruction / generation config.
-  static Future<T> withFallback<T>(
-    Future<T> Function(String modelName) attempt,
-  ) async {
-    Object lastError = TimeoutException('No Gemini model responded');
-    for (final name in modelChain) {
-      try {
-        return await attempt(name).timeout(attemptTimeout);
-      } catch (e) {
-        if (!_isCapacityError(e)) rethrow;
-        lastError = e;
-      }
+    final text = result.data['text'] as String?;
+    if (text == null || text.isEmpty) {
+      throw Exception('Empty response from generateWithGemini');
     }
-    throw lastError; // ignore: only_throw_errors
+    return text;
   }
 }

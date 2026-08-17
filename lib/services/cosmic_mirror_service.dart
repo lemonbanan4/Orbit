@@ -1,21 +1,10 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
 import 'gemini_gateway.dart';
 
 class CosmicMirrorService {
-  // Built per-call so GeminiGateway can swap model names on 503s.
-  GenerativeModel _buildModel(String modelName) {
-    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
-    return GenerativeModel(
-      model: modelName,
-      apiKey: apiKey,
-      systemInstruction: Content.system(
-        "You are the Cosmic Mirror, a mystical in-app narrator for a habit tracker called Orbit. "
-        "You speak like an ancient oracle reading the stars.",
-      ),
-    );
-  }
+  static const String _systemInstruction =
+      "You are the Cosmic Mirror, a mystical in-app narrator for a habit tracker called Orbit. "
+      "You speak like an ancient oracle reading the stars.";
 
   Future<String> generateWeeklyLegend(
     List<String> habitsDone,
@@ -31,19 +20,21 @@ class CosmicMirrorService {
         '''
     The user successfully completed these habits: ${habitsDone.join(', ')}.
     The user struggled with these habits: ${habitsMissed.join(', ')}.
-    
-    Write a 3-sentence epic, mythic legend about their week. Use cosmic, celestial, and heroic metaphors. 
-    Acknowledge their triumphs, and frame their struggles as a dark nebula they will conquer next time. 
+
+    Write a 3-sentence epic, mythic legend about their week. Use cosmic, celestial, and heroic metaphors.
+    Acknowledge their triumphs, and frame their struggles as a dark nebula they will conquer next time.
     Do not use generic AI responses, make it sound ancient and prophetic.
     ''';
 
     try {
       // 4. Ask Gemini for the legend
-      final response = await GeminiGateway.withFallback(
-          (m) => _buildModel(m).generateContent([Content.text(prompt)]));
+      final responseText = await GeminiGateway.generate(
+        prompt: prompt,
+        systemInstruction: _systemInstruction,
+      );
 
-      if (response.text != null && response.text!.isNotEmpty) {
-        return response.text!.trim();
+      if (responseText.isNotEmpty) {
+        return responseText.trim();
       } else {
         return _getFallbackLegend();
       }
@@ -71,17 +62,19 @@ class CosmicMirrorService {
         '''
   Today, the user successfully completed these habits: ${habitsDone.join(', ')}.
   They struggled/missed these habits: ${habitsMissed.join(', ')}.
-  
+
   Act as a mystical analytical oracle. Write exactly ONE deeply reflective, high-value psychological prompt (maximum 2 sentences).
   Acknowledge what went right, but explicitly ask them a deep question about the friction or roadblock that prevented them from finishing the missed habits.
   Do not use generic AI intro phrasing. Make it sound ancient, cryptic, yet highly actionable.
   ''';
 
     try {
-      final response = await GeminiGateway.withFallback(
-          (m) => _buildModel(m).generateContent([Content.text(prompt)]));
-      if (response.text != null && response.text!.isNotEmpty) {
-        return response.text!.trim();
+      final responseText = await GeminiGateway.generate(
+        prompt: prompt,
+        systemInstruction: _systemInstruction,
+      );
+      if (responseText.isNotEmpty) {
+        return responseText.trim();
       }
       return "Your constellations show division today. Reflect on what pulled your energy away from your alignment.";
     } catch (e) {
@@ -136,10 +129,12 @@ class CosmicMirrorService {
     ''';
 
     try {
-      final response = await GeminiGateway.withFallback(
-          (m) => _buildModel(m).generateContent([Content.text(prompt)]));
-      if (response.text != null && response.text!.isNotEmpty) {
-        return response.text!.trim();
+      final responseText = await GeminiGateway.generate(
+        prompt: prompt,
+        systemInstruction: _systemInstruction,
+      );
+      if (responseText.isNotEmpty) {
+        return responseText.trim();
       }
       return "The stars are aligning... what path will you choose?";
     } catch (e) {
@@ -163,10 +158,12 @@ class CosmicMirrorService {
     ''';
 
     try {
-      final response = await GeminiGateway.withFallback(
-          (m) => _buildModel(m).generateContent([Content.text(prompt)]));
-      if (response.text != null && response.text!.isNotEmpty) {
-        return response.text!.trim();
+      final responseText = await GeminiGateway.generate(
+        prompt: prompt,
+        systemInstruction: _systemInstruction,
+      );
+      if (responseText.isNotEmpty) {
+        return responseText.trim();
       }
     } catch (e) {
       debugPrint('Error generating genie greeting: $e');

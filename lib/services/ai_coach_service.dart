@@ -1,6 +1,4 @@
-import 'package:google_generative_ai/google_generative_ai.dart';
 import 'gemini_gateway.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -60,14 +58,6 @@ class AiCoachService {
       }
 
       // 3. Cache Miss: Generate a new insight via Gemini
-      final apiKey = dotenv.env['GEMINI_API_KEY'];
-      if (apiKey == null || apiKey.isEmpty) {
-        return _getFallbackInsight(completedCount, totalHabits);
-      }
-
-      GenerativeModel buildModel(String m) =>
-          GenerativeModel(model: m, apiKey: apiKey);
-
       String skipContext = '';
       if (recentSkipReasons != null && recentSkipReasons.isNotEmpty) {
         skipContext =
@@ -83,12 +73,10 @@ ${_interestsContext(interests)}
 Write a short, encouraging, 1-2 sentence message to motivate them. Keep it space-themed and actionable!
       ''';
 
-      final response = await GeminiGateway.withFallback(
-        (m) => buildModel(m).generateContent([Content.text(prompt)]),
-      );
-      final newInsight =
-          response.text?.replaceAll(RegExp(r'\n+'), ' ').trim() ??
-          _getFallbackInsight(completedCount, totalHabits);
+      final responseText = await GeminiGateway.generate(prompt: prompt);
+      final newInsight = responseText
+          .replaceAll(RegExp(r'\n+'), ' ')
+          .trim();
 
       // 4. Save the new insight to Firestore for future cache hits
       await docRef.set({
@@ -144,14 +132,6 @@ Write a short, encouraging, 1-2 sentence message to motivate them. Keep it space
       }
 
       // 3. Cache Miss: Generate a new intention via Gemini
-      final apiKey = dotenv.env['GEMINI_API_KEY'];
-      if (apiKey == null || apiKey.isEmpty) {
-        return 'Master your day.';
-      }
-
-      GenerativeModel buildModel(String m) =>
-          GenerativeModel(model: m, apiKey: apiKey);
-
       String skipContext = '';
       if (latestSkipReason != null && latestSkipReason.isNotEmpty) {
         skipContext =
@@ -167,11 +147,8 @@ Examples: "Embrace the stellar unknown.", "Command your orbit today.", "Shine br
 Do not include quotes around the text.
       ''';
 
-      final response = await GeminiGateway.withFallback(
-        (m) => buildModel(m).generateContent([Content.text(prompt)]),
-      );
-      final newIntention =
-          response.text?.replaceAll('"', '').trim() ?? 'Master your day.';
+      final responseText = await GeminiGateway.generate(prompt: prompt);
+      final newIntention = responseText.replaceAll('"', '').trim();
 
       // 4. Save to Firestore cache
       await docRef.set({
@@ -214,23 +191,16 @@ Do not include quotes around the text.
     XFile imageFile,
   ) async {
     try {
-      final apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
-      GenerativeModel buildModel(String m) =>
-          GenerativeModel(model: m, apiKey: apiKey);
       final bytes = await File(imageFile.path).readAsBytes();
 
-      final prompt = TextPart(
-        "Analyze this image. Suggest ONE healthy daily habit based on the object in the image. Return ONLY a JSON string with three keys: 'title' (short habit name), 'icon' (pick one: Explore, Fitness, Book, Mind, Sun, Moon, Work), and 'description' (a 1 sentence motivational reason).",
-      );
-      final imagePart = DataPart('image/jpeg', bytes);
-
-      final response = await GeminiGateway.withFallback(
-        (m) => buildModel(m).generateContent([
-          Content.multi([prompt, imagePart]),
-        ]),
+      final responseText = await GeminiGateway.generate(
+        prompt:
+            "Analyze this image. Suggest ONE healthy daily habit based on the object in the image. Return ONLY a JSON string with three keys: 'title' (short habit name), 'icon' (pick one: Explore, Fitness, Book, Mind, Sun, Moon, Work), and 'description' (a 1 sentence motivational reason).",
+        jsonMode: true,
+        imageBytes: bytes,
+        imageMimeType: 'image/jpeg',
       );
 
-      final responseText = response.text ?? "{}";
       final cleanJson = responseText
           .replaceAll('```json', '')
           .replaceAll('```', '')
@@ -257,19 +227,6 @@ Do not include quotes around the text.
     String goal,
   ) async {
     try {
-      final apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
-      if (apiKey.isEmpty) {
-        throw Exception("API key is blank inside environment targets.");
-      }
-
-      GenerativeModel buildModel(String m) => GenerativeModel(
-        model: m,
-        apiKey: apiKey,
-        generationConfig: GenerationConfig(
-          responseMimeType: 'application/json',
-        ),
-      );
-
       // We explicitly instruct Gemini to return a root dictionary object containing our tracking key
       final prompt =
           """
@@ -297,25 +254,19 @@ Do not include quotes around the text.
       debugPrint(
         "📡 GEMINI API CALL: Pinging model gateway using query payload...",
       );
-      final response = await GeminiGateway.withFallback(
-        (m) => buildModel(m).generateContent([Content.text(prompt)]),
+      final responseText = await GeminiGateway.generate(
+        prompt: prompt,
+        jsonMode: true,
       );
-
-      final String? responseText = response.text;
-      if (responseText == null || responseText.isEmpty) {
-        throw Exception(
-          "Gemini server nodes returned an empty payload stream.",
-        );
-      }
 
       debugPrint(
         "📥 GEMINI RESPONSE RECEIVED: De-serializing constellation map packet...",
       );
-      // The 3-model fallback chain (GeminiGateway.withFallback) can land
-      // on a lite model that doesn't honor responseMimeType as reliably --
-      // every other JSON-expecting call in this file strips ```json
-      // fences defensively before decoding; this one didn't, so a fenced
-      // response would throw straight into the catch below.
+      // The 3-model fallback chain (generateWithGemini, server-side) can
+      // land on a lite model that doesn't honor responseMimeType as
+      // reliably -- every other JSON-expecting call in this file strips
+      // ```json fences defensively before decoding; this one didn't, so a
+      // fenced response would throw straight into the catch below.
       final cleanJson = responseText
           .replaceAll('```json', '')
           .replaceAll('```', '')
@@ -346,10 +297,6 @@ Do not include quotes around the text.
     List<Map<String, dynamic>> activeHabits,
   ) async {
     try {
-      final apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
-      GenerativeModel buildModel(String m) =>
-          GenerativeModel(model: m, apiKey: apiKey);
-
       final habitsSummary = activeHabits
           .map(
             (h) =>
@@ -367,11 +314,8 @@ Do not include quotes around the text.
       Keep it strictly under 3 sentences. Be authoritative, motivating, and sharp.
       """;
 
-      final response = await GeminiGateway.withFallback(
-        (m) => buildModel(m).generateContent([Content.text(prompt)]),
-      );
-      return response.text?.trim() ??
-          "Telemetry link weak. Continue tracking your trajectory.";
+      final responseText = await GeminiGateway.generate(prompt: prompt);
+      return responseText.trim();
     } catch (e) {
       debugPrint("💥 Pro Scan Error: $e");
       return "Cosmic static detected. Your trajectory is solid—continue your mission.";

@@ -1,7 +1,5 @@
 import 'dart:convert';
-import 'package:google_generative_ai/google_generative_ai.dart';
 import 'gemini_gateway.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -15,20 +13,10 @@ class AIFairyResponse {
 }
 
 class AIFairyService {
-  // Built per-call so GeminiGateway can swap model names on 503s.
-  GenerativeModel _buildModel(String modelName) {
-    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
-    return GenerativeModel(
-      model: modelName,
-      apiKey: apiKey,
-      generationConfig: GenerationConfig(responseMimeType: 'application/json'),
-      systemInstruction: Content.system(
-        "You are the Orbit AI Fairy. You are ethereal, wise, and encouraging. "
-        "Your goal is to help users maintain their habits. Use celestial metaphors. "
-        "Always respond in valid JSON format ONLY with keys 'text' and 'options'.",
-      ),
-    );
-  }
+  static const String _systemInstruction =
+      "You are the Orbit AI Fairy. You are ethereal, wise, and encouraging. "
+      "Your goal is to help users maintain their habits. Use celestial metaphors. "
+      "Always respond in valid JSON format ONLY with keys 'text' and 'options'.";
 
   Future<AIFairyResponse> getFairyInteraction(
     String habitName, {
@@ -57,12 +45,14 @@ class AIFairyService {
     """;
 
     try {
-      final response = await GeminiGateway.withFallback(
-        (m) => _buildModel(m).generateContent([Content.text(prompt)]),
+      final responseText = await GeminiGateway.generate(
+        prompt: prompt,
+        systemInstruction: _systemInstruction,
+        jsonMode: true,
       );
 
       // We need to clean the response text because Gemini sometimes wraps JSON in markdown blocks like ```json
-      final cleanJson = response.text!
+      final cleanJson = responseText
           .replaceAll('```json', '')
           .replaceAll('```', '')
           .trim();

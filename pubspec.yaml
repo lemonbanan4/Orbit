@@ -52,7 +52,6 @@ dependencies:
   share_plus: ^13.1.0
   flutter_dotenv: ^6.0.1
   home_widget: 0.9.1
-  google_generative_ai: ^0.4.7
   just_audio: ^0.10.5
   just_audio_background: ^0.0.1-beta.11
   flutter_local_notifications: ^21.0.0
