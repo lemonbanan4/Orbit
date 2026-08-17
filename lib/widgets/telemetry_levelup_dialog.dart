@@ -6,6 +6,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../screens/paywall/paywall_screen.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/routine_provider.dart';
+import '../../data/cosmic_ranks.dart';
 
 class TelemetryLevelUpDialog {
   static void show(BuildContext context, int newLevel, {String? habitTitle}) {
@@ -15,6 +17,22 @@ class TelemetryLevelUpDialog {
     final bool triggerProUpsell =
         !isPro &&
         (newLevel % 2 == 0); // Upsell on alternating levels for free users
+
+    // A Cosmic Rank's minLevel is the exact level a user just landed on the
+    // moment they cross into it (ranks are contiguous and Level only ever
+    // increments by 1), so this is true only on the specific level-up that
+    // unlocked a new rank tier, not every level-up.
+    final rank = cosmicRankForLevel(newLevel);
+    final bool isRankUp = rank.minLevel == newLevel;
+
+    // Was previously just a number tick with nothing to show for it --
+    // grant a small spendable-XP bonus (bigger on a rank crossing) so
+    // leveling up funds the next streak freeze / Nebula theme unlock.
+    context.read<RoutineProvider>().grantLevelUpBonus(
+          newLevel,
+          isRankUp: isRankUp,
+        );
+    final int bonusXp = isRankUp ? 50 : 15;
 
     final String dynamicMessage = habitTitle != null
         ? "\"Incredible, star-seeker! Completing '$habitTitle' has pushed your steady orbit through to Rank $newLevel. The cosmic dust expands around your discipline inside the Nebula Forge!\""
@@ -80,9 +98,9 @@ class TelemetryLevelUpDialog {
                   .scaleXY(begin: 0.95, end: 1.05, duration: 1.2.seconds)
                   .shimmer(color: Colors.white, duration: 1500.ms),
               const SizedBox(height: 16),
-              const Text(
-                "ORBIT LEVEL ALIGNMENT",
-                style: TextStyle(
+              Text(
+                isRankUp ? "NEW COSMIC RANK" : "ORBIT LEVEL ALIGNMENT",
+                style: const TextStyle(
                   color: Color(0xFF00E5FF),
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
@@ -91,11 +109,23 @@ class TelemetryLevelUpDialog {
               ),
               const SizedBox(height: 4),
               Text(
-                "Rank Tier $newLevel Unlocked",
+                isRankUp
+                    ? "${rank.title} · Level $newLevel"
+                    : "${rank.title} · Level $newLevel Unlocked",
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.w900,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "+$bonusXp XP earned",
+                style: const TextStyle(
+                  color: Color(0xFFFFD700),
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 16),

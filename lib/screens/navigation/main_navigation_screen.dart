@@ -5,6 +5,8 @@ import '../social/leaderboard_screen.dart';
 import '../habit_dashboard_screen.dart';
 import 'package:provider/provider.dart';
 import '../../providers/routine_provider.dart';
+import '../../providers/telemetry_provider.dart';
+import '../../widgets/telemetry_levelup_dialog.dart';
 import '../coaching/constellation_builder_screen.dart';
 // import '../../services/ai_coach_service.dart';
 import '../journey/journey_screen.dart';
@@ -166,23 +168,62 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final accent =
         theme.extension<OrbitColors>()?.orbColor1 ?? const Color(0xFF00E5FF);
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      body: IndexedStack(index: _currentIndex, children: _screens),
-      bottomNavigationBar: _OrbitNavBar(
-        currentIndex: _currentIndex,
-        onSelect: (idx) => setState(() => _currentIndex = idx),
-        backgroundColor: navBgColor,
-        hairline: hairline,
-        unselectedColor: unselectedColor,
-        accent: accent,
-        destinations: const [
-          _OrbitNavDestination('\u25D0', 'Home'), // ◐
-          _OrbitNavDestination('\u25C8', 'Journey'), // ◈
-          _OrbitNavDestination('\u2726', 'Cosmos'), // ✦
-          _OrbitNavDestination('\u25A4', 'Ranks'), // ▤
-          _OrbitNavDestination('\u25EF', 'Profile'), // ◯
-        ],
+    // A health-linked habit can complete via a silent background sync with
+    // no screen-specific tap to hang the Telemetry award off of (see
+    // RoutineProvider.pendingHealthTelemetryXp) -- this shell is the one
+    // widget guaranteed to be mounted regardless of which tab is active, so
+    // it's the only reliable place to consume that signal. Selector (not
+    // context.watch, used for the rest of this build()) so this only
+    // rebuilds on the specific int changing, not on every unrelated
+    // RoutineProvider.notifyListeners() call -- the `child` Scaffold below
+    // is built once and passed through untouched otherwise.
+    return Selector<RoutineProvider, int>(
+      selector: (_, p) => p.pendingHealthTelemetryXp,
+      builder: (context, pendingHealthXp, child) {
+        if (pendingHealthXp > 0) {
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            if (!context.mounted) return;
+            final routineProvider = context.read<RoutineProvider>();
+            routineProvider.clearPendingHealthTelemetryXp();
+            final telemetry = context.read<TelemetryProvider>();
+            final didLevelUp = await telemetry.awardXp(pendingHealthXp);
+            if (!context.mounted) return;
+            final newMilestones = telemetry.checkMilestoneUnlocks(
+              routineProvider.currentStreak,
+            );
+            if (didLevelUp) {
+              TelemetryLevelUpDialog.show(context, telemetry.currentLevel);
+            } else if (newMilestones.isNotEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'A health sync just unlocked a new streak milestone! 🌟',
+                  ),
+                ),
+              );
+            }
+          });
+        }
+        return child!;
+      },
+      child: Scaffold(
+        backgroundColor: bgColor,
+        body: IndexedStack(index: _currentIndex, children: _screens),
+        bottomNavigationBar: _OrbitNavBar(
+          currentIndex: _currentIndex,
+          onSelect: (idx) => setState(() => _currentIndex = idx),
+          backgroundColor: navBgColor,
+          hairline: hairline,
+          unselectedColor: unselectedColor,
+          accent: accent,
+          destinations: const [
+            _OrbitNavDestination('\u25D0', 'Home'), // ◐
+            _OrbitNavDestination('\u25C8', 'Journey'), // ◈
+            _OrbitNavDestination('\u2726', 'Cosmos'), // ✦
+            _OrbitNavDestination('\u25A4', 'Ranks'), // ▤
+            _OrbitNavDestination('\u25EF', 'Profile'), // ◯
+          ],
+        ),
       ),
     );
   }

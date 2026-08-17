@@ -84,24 +84,13 @@ class PastJourneysScreen extends StatelessWidget {
                     final title = data['title'] as String? ?? 'Unknown Journey';
                     final completed = data['completedDays'] as int? ?? 0;
 
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: JourneyCard(
-                        title: title,
-                        subtitle: '$completed-Day Journey Completed',
-                        progress: 1.0,
-                        icon: Icons.check_circle_rounded,
-                        accentColor: Colors.purpleAccent,
-                        onTap: () {},
-                        trailing: IconButton(
-                          icon: const Icon(
-                            Icons.restart_alt_rounded,
-                            color: Colors.amber,
-                            size: 28,
-                          ),
-                          tooltip: 'Restart Journey',
-                          onPressed: () async {
-                            HapticFeedback.lightImpact();
+                    // Was previously only reachable via the small trailing
+                    // icon, with the card body's own onTap a no-op -- the
+                    // larger, more obvious tap target did nothing. Shared so
+                    // tapping either the card or the icon offers the same
+                    // (confirmed) restart flow.
+                    Future<void> handleRestart() async {
+                      HapticFeedback.lightImpact();
                             // Unlike every other destructive action in the
                             // app (delete habit, delete account, remove
                             // friend), this irreversibly wiped a completed
@@ -220,7 +209,25 @@ class PastJourneysScreen extends StatelessWidget {
                                 );
                               }
                             }
-                          },
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: JourneyCard(
+                        title: title,
+                        subtitle: '$completed-Day Journey Completed',
+                        progress: 1.0,
+                        icon: Icons.check_circle_rounded,
+                        accentColor: Colors.purpleAccent,
+                        onTap: handleRestart,
+                        trailing: IconButton(
+                          icon: const Icon(
+                            Icons.restart_alt_rounded,
+                            color: Colors.amber,
+                            size: 28,
+                          ),
+                          tooltip: 'Restart Journey',
+                          onPressed: handleRestart,
                         ),
                       ),
                     ).animate().fade(delay: (index * 100).ms).slideY(begin: 0.1);

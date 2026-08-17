@@ -10,6 +10,7 @@ import '../../widgets/common/premium_glass_card.dart';
 import '../common/add_friend_screen.dart';
 import '../common/friend_requests_screen.dart';
 import 'group_challenges_screen.dart';
+import '../../data/cosmic_ranks.dart';
 
 class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({super.key});
@@ -355,7 +356,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                               ),
                             ),
                             subtitle: Text(
-                              'Level $level',
+                              '${cosmicRankForLevel(level).title} · Level $level',
                               style: TextStyle(
                                 color: textColor.withValues(alpha: 0.6),
                               ),

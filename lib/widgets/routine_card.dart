@@ -203,6 +203,72 @@ class _RoutineCardState extends State<RoutineCard> {
     );
   }
 
+  /// Shows the "MILESTONE UNLOCKED" toast for the first newly-crossed streak
+  /// threshold, if any. Shared by every completion path (checkbox, count
+  /// stepper) so a milestone crossed via any of them gets the same toast --
+  /// previously only the checkbox path in this file showed it at all.
+  void _showMilestoneUnlockSnackBar(
+    BuildContext context,
+    List<int> newMilestones,
+  ) {
+    if (newMilestones.isEmpty) return;
+    final thresholds = [
+      3, 7, 14, 21, 30, 45, 60, 90, 120, 150, 180, 210, 250, 300, 365,
+    ];
+    final days = thresholds[newMilestones.first];
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(
+              Icons.emoji_events_rounded,
+              color: Color(0xFFFFD700),
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "MILESTONE UNLOCKED",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                      letterSpacing: 1.2,
+                      color: Color(0xFFFFD700),
+                    ),
+                  ),
+                  Text(
+                    "$days Day Streak Achieved!",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF1F1235),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: const Color(0xFFFFD700).withValues(alpha: 0.5),
+            width: 1.5,
+          ),
+        ),
+        margin: const EdgeInsets.only(bottom: 24, left: 24, right: 24),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
   Widget _buildCountStepper(BuildContext context, Habit habit) {
     final Color themeAccent =
         Theme.of(context).extension<OrbitColors>()?.orbColor1 ??
@@ -242,6 +308,14 @@ class _RoutineCardState extends State<RoutineCard> {
             final telemetry = context.read<TelemetryProvider>();
             final didLevelUp = await telemetry.awardXp(15);
             if (!context.mounted) return;
+            // Was previously missing here despite the checkbox-habit
+            // handler (further below in this same file) already doing this
+            // -- a streak milestone crossed via the count stepper never
+            // showed the toast or updated unlocked_milestones.
+            final newMilestones = telemetry.checkMilestoneUnlocks(
+              routineProvider.currentStreak,
+            );
+            _showMilestoneUnlockSnackBar(context, newMilestones);
             if (didLevelUp) {
               TelemetryLevelUpDialog.show(
                 context,
@@ -1476,100 +1550,10 @@ class _RoutineCardState extends State<RoutineCard> {
                                                                               final newMilestones = telemetry.checkMilestoneUnlocks(
                                                                                 routineProvider.currentStreak,
                                                                               );
-                                                                              if (newMilestones.isNotEmpty) {
-                                                                                final thresholds = [
-                                                                                  3,
-                                                                                  7,
-                                                                                  14,
-                                                                                  21,
-                                                                                  30,
-                                                                                  45,
-                                                                                  60,
-                                                                                  90,
-                                                                                  120,
-                                                                                  150,
-                                                                                  180,
-                                                                                  210,
-                                                                                  250,
-                                                                                  300,
-                                                                                  365,
-                                                                                ];
-                                                                                final days = thresholds[newMilestones.first];
-
-                                                                                ScaffoldMessenger.of(
-                                                                                  context,
-                                                                                ).showSnackBar(
-                                                                                  SnackBar(
-                                                                                    content: Row(
-                                                                                      children: [
-                                                                                        const Icon(
-                                                                                          Icons.emoji_events_rounded,
-                                                                                          color: Color(
-                                                                                            0xFFFFD700,
-                                                                                          ),
-                                                                                          size: 28,
-                                                                                        ),
-                                                                                        const SizedBox(
-                                                                                          width: 12,
-                                                                                        ),
-                                                                                        Expanded(
-                                                                                          child: Column(
-                                                                                            mainAxisSize: MainAxisSize.min,
-                                                                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                                                                            children: [
-                                                                                              const Text(
-                                                                                                "MILESTONE UNLOCKED",
-                                                                                                style: TextStyle(
-                                                                                                  fontWeight: FontWeight.w900,
-                                                                                                  fontSize: 12,
-                                                                                                  letterSpacing: 1.2,
-                                                                                                  color: Color(
-                                                                                                    0xFFFFD700,
-                                                                                                  ),
-                                                                                                ),
-                                                                                              ),
-                                                                                              Text(
-                                                                                                "$days Day Streak Achieved!",
-                                                                                                style: const TextStyle(
-                                                                                                  color: Colors.white,
-                                                                                                  fontSize: 14,
-                                                                                                  fontWeight: FontWeight.bold,
-                                                                                                ),
-                                                                                              ),
-                                                                                            ],
-                                                                                          ),
-                                                                                        ),
-                                                                                      ],
-                                                                                    ),
-                                                                                    backgroundColor: const Color(
-                                                                                      0xFF1F1235,
-                                                                                    ),
-                                                                                    behavior: SnackBarBehavior.floating,
-                                                                                    shape: RoundedRectangleBorder(
-                                                                                      borderRadius: BorderRadius.circular(
-                                                                                        16,
-                                                                                      ),
-                                                                                      side: BorderSide(
-                                                                                        color:
-                                                                                            const Color(
-                                                                                              0xFFFFD700,
-                                                                                            ).withValues(
-                                                                                              alpha: 0.5,
-                                                                                            ),
-                                                                                        width: 1.5,
-                                                                                      ),
-                                                                                    ),
-                                                                                    margin: const EdgeInsets.only(
-                                                                                      bottom: 24,
-                                                                                      left: 24,
-                                                                                      right: 24,
-                                                                                    ),
-                                                                                    duration: const Duration(
-                                                                                      seconds: 4,
-                                                                                    ),
-                                                                                  ),
-                                                                                );
-                                                                              }
+                                                                              _showMilestoneUnlockSnackBar(
+                                                                                context,
+                                                                                newMilestones,
+                                                                              );
 
                                                                               if (didLevelUp) {
                                                                                 TelemetryLevelUpDialog.show(

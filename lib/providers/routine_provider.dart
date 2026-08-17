@@ -508,8 +508,6 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool get isStreakFrozen => _isStreakFrozen;
   bool get isBuyingFreeze => _isBuyingFreeze;
   static const int streakFreezeCost = 200;
-  int get currentLevel => (_xp ~/ 100) + 1; // Level up every 100 XP
-  double get levelProgress => (_xp % 100) / 100.0; // Progress to the next level
   bool get justLeveledUp => _justLeveledUp;
 
   // --- DAILY MISSIONS -------------------------------------------------------
@@ -802,6 +800,25 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
     // No notifyListeners() here to prevent an extra rebuild loop.
   }
 
+  /// Awards a small spendable-XP bonus whenever TelemetryProvider's visible
+  /// Level advances (TelemetryLevelUpDialog.show() calls this once per
+  /// level-up, regardless of which of its several call sites triggered it).
+  /// Bigger on a Cosmic Rank crossing (see data/cosmic_ranks.dart) so the
+  /// rarer, more celebratory moments feel materially rewarding too --
+  /// otherwise leveling up was just a number tick with nothing to actually
+  /// spend on streak freezes / Nebula themes to show for it.
+  void grantLevelUpBonus(int newLevel, {required bool isRankUp}) {
+    final bonus = isRankUp ? 50 : 15;
+    _xp += bonus;
+
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    _xpHistory[today] = (_xpHistory[today] ?? 0) + bonus;
+
+    _prefs?.setInt('xp', _xp);
+    notifyListeners();
+    _saveToCloud();
+  }
+
   // We call this whenever a habit is checked off
   void incrementTotalHabits() {
     _totalHabitsCompleted++;
@@ -812,7 +829,14 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     _prefs?.setInt('xp', _xp);
     _prefs?.setInt('total_habits_completed', _totalHabitsCompleted);
-    FirebaseCrashlytics.instance.setCustomKey('user_level', currentLevel);
+    // 'user_level' used to be logged here too, derived from spendable _xp
+    // via (_xp ~/ 100) + 1 -- a completely different, unrelated formula
+    // from the actual Level shown throughout the UI (TelemetryProvider's
+    // current_level/global_xp, an escalating threshold RoutineProvider
+    // doesn't have a reference to). Removed rather than fixed in place: it
+    // was a live foot-gun (any future code reading it would silently get
+    // the wrong Level), and 'user_xp' right below already captures the
+    // same underlying signal for diagnostics.
     FirebaseCrashlytics.instance.setCustomKey('user_xp', _xp);
     FirebaseCrashlytics.instance.setCustomKey('current_streak', _currentStreak);
   }
@@ -1239,6 +1263,21 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// unavailable/unauthorized Health access or a read failure just leaves
   /// existing progress untouched rather than surfacing an error, since this
   /// runs silently on every boot/resume.
+  // A health-linked completion previously only ever fed the spendable _xp
+  // pool (incrementTotalHabits() below) -- unlike every manual completion
+  // path, it never called TelemetryProvider.awardXp()/checkMilestoneUnlocks(),
+  // because those live on a separate provider only reachable from widget
+  // code. A user whose habits are entirely health-linked could hold a
+  // perfect streak indefinitely while their Level (Journey/Stats/
+  // leaderboard) and unlocked_milestones never moved at all. This mirrors
+  // the justCompletedJourney signal-flag pattern: MainNavigationScreen
+  // (always mounted) polls it and applies the Telemetry award itself.
+  int _pendingHealthTelemetryXp = 0;
+  int get pendingHealthTelemetryXp => _pendingHealthTelemetryXp;
+  void clearPendingHealthTelemetryXp() {
+    _pendingHealthTelemetryXp = 0;
+  }
+
   Future<void> syncHealthHabits() async {
     final linked = _habits.values
         .where((h) => h.isHealthLinked && !h.isArchived && h.isActiveOn())
@@ -1298,6 +1337,9 @@ class RoutineProvider extends ChangeNotifier with WidgetsBindingObserver {
             .catchError((_) {});
 
         incrementTotalHabits();
+        // Matches the flat 15 XP a manual checkbox/count-stepper completion
+        // awards through TelemetryProvider.awardXp() elsewhere.
+        _pendingHealthTelemetryXp += 15;
         if (isRoutineComplete(habit.routineType)) {
           markRoutineComplete();
         }
