@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import '../services/auth_service.dart';
 import 'dart:async';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import '../utils/dev_overrides.dart';
 
 class AppAuthProvider extends ChangeNotifier {
@@ -37,9 +36,16 @@ class AppAuthProvider extends ChangeNotifier {
           'is_anonymous',
           newUser.isAnonymous,
         );
-
-        // Setup push notifications and write them directly to the inbox
-        _setupFCM(newUser.uid);
+        // Notification permission used to be requested right here, via
+        // _setupFCM() below, on every single auth-state change -- including
+        // the automatic anonymous sign-in that happens before a brand new
+        // user ever sees onboarding. iOS only ever shows the real system
+        // dialog once per install, so this fired first and "used up" the
+        // ask with zero context, defeating the contextual soft-ask in
+        // MainNavigationScreen (showNotificationPrePrompt), which already
+        // covers every user path identically. _setupFCM did nothing else
+        // (its only other code was commented out), so it's removed rather
+        // than fixed in place.
       } else {
         FirebaseCrashlytics.instance.setUserIdentifier(''); // Clear on logout
         // Ensure we reset Pro status so the next session/guest starts clean
@@ -48,35 +54,6 @@ class AppAuthProvider extends ChangeNotifier {
 
       notifyListeners();
     });
-  }
-
-  Future<void> _setupFCM(String uid) async {
-    if (kIsWeb) {
-      return; // Prevent Web crashes if service workers aren't configured
-    }
-
-    try {
-      FirebaseMessaging messaging = FirebaseMessaging.instance;
-      await messaging.requestPermission();
-
-      // Listen to foreground messages and log them directly to Firestore!
-      // FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      //   if (message.notification != null) {
-      //     await FirebaseFirestore.instance
-      //         .collection('users')
-      //         .doc(uid)
-      //         .collection('notifications')
-      //         .add({
-      //           'title': message.notification!.title ?? 'New Alert',
-      //           'message': message.notification!.body ?? '',
-      //           'type': message.data['type'] ?? 'system',
-      //           'timestamp': FieldValue.serverTimestamp(),
-      //         });
-      //   }
-      // });
-    } catch (e) {
-      debugPrint('Failed to setup FCM: $e');
-    }
   }
 
   @override

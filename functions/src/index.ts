@@ -51,13 +51,16 @@ function isNotifsEnabled(userData: FirebaseFirestore.DocumentData | undefined) {
 // artifact) and only ever used server-side.
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
-// Same 3-model chain lib/services/gemini_gateway.dart used to walk
-// client-side -- ported here so a congested/overloaded flagship model still
-// falls back to a lighter one instead of erroring out entirely.
+// Was ported verbatim from the old client-side chain (gemini_gateway.dart),
+// which had gone stale: gemini-2.5-flash-lite now 404s with "no longer
+// available to new users" on this (rotated) key/project, confirmed via
+// v1beta/models against the live key -- gemini-2.5-flash-lite is still
+// listed there but evidently not actually callable for a new project.
+// Replaced with currently-callable models, verified the same way.
 const GEMINI_MODEL_CHAIN = [
-  "gemini-flash-latest",
+  "gemini-2.5-flash",
   "gemini-flash-lite-latest",
-  "gemini-2.5-flash-lite",
+  "gemini-3.5-flash-lite",
 ];
 
 /**
