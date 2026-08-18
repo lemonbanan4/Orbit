@@ -6,6 +6,8 @@
 	<string>Orbit needs access to your photo library so you can select a profile picture.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Orbit reads your steps and workouts from Apple Health to automatically complete health-linked habits.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Orbit does not write any data to Apple Health. This permission is required by the health data framework Orbit uses, but Orbit only ever reads your steps and workouts -- it never adds, modifies, or deletes anything in Apple Health.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
